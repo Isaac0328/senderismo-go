@@ -1,0 +1,477 @@
+/* ================= HERO ================= */
+#hero h1,
+#hero p {
+    color: var(--color-blanco);
+}
+
+#hero p {
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+/* Botón CONOCER MÁS en Hero */
+#hero .btn {
+    background: linear-gradient(135deg, #3e6b3e 0%, #4a7c4a 100%);
+    color: var(--color-blanco);
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(62, 107, 62, 0.2);
+}
+
+#hero .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(62, 107, 62, 0.3);
+    border-color: var(--color-blanco);
+}
+
+#hero .btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(62, 107, 62, 0.2);
+}
+
+#hero .btn span {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+#hero .btn:hover span {
+    transform: translateY(3px);
+}
+
+/* ================= POR QUÉ ELEGIRNOS ================= */
+#porque-elegirnos {
+    background-color: #5b1a1a;
+    /* rojo oscuro */
+    color: var(--color-blanco);
+    position: relative;
+    overflow: hidden;
+}
+
+#porque-elegirnos::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3e6b3e, #4a7c4a);
+    z-index: 1;
+}
+
+#porque-elegirnos h2 {
+    color: var(--color-blanco);
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.5rem;
+}
+
+#porque-elegirnos h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background-color: #3e6b3e;
+    border-radius: 2px;
+}
+
+#porque-elegirnos .card {
+    background-color: #3e6b3e;
+    /* verde oscuro */
+    padding: 2.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#porque-elegirnos .card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: #457845;
+}
+
+#porque-elegirnos .card i {
+    color: #ffd166;
+    transition: transform 0.3s ease;
+}
+
+#porque-elegirnos .card:hover i {
+    transform: scale(1.2);
+}
+
+#porque-elegirnos .card h3 {
+    color: #ffd166;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+#porque-elegirnos .card p {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
+/* ================= GALERÍA ================= */
+#galeria {
+    background-color: var(--color-blanco);
+    position: relative;
+}
+
+#galeria h2 {
+    color: #5b1a1a;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.5rem;
+}
+
+#galeria h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background-color: #3e6b3e;
+    border-radius: 2px;
+}
+
+#galeria .image-hover {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#galeria .image-hover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(91, 26, 26, 0.1) 50%,
+            rgba(62, 107, 62, 0.3) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    border-radius: 0.75rem;
+}
+
+#galeria .image-hover:hover::before {
+    opacity: 1;
+}
+
+#galeria img {
+    width: 100%;
+    height: 10rem;
+    object-fit: cover;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-radius: 0.75rem;
+}
+
+#galeria .image-hover:hover img {
+    transform: scale(1.08) rotate(1deg);
+}
+
+#galeria .image-hover:active img {
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+/* ================= QUIÉNES SOMOS ================= */
+#quienes-somos {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+#quienes-somos::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #5b1a1a, #3e6b3e);
+}
+
+#quienes-somos h2 {
+    color: #5b1a1a;
+}
+
+#quienes-somos .btn {
+    background: linear-gradient(135deg, #5b1a1a 0%, #7a2c2c 100%);
+    color: var(--color-blanco);
+    padding: 0.75rem 2.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(91, 26, 26, 0.2);
+}
+
+#quienes-somos .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(91, 26, 26, 0.3);
+    background: linear-gradient(135deg, #7a2c2c 0%, #5b1a1a 100%);
+}
+
+/* ================= MODAL GALERÍA ================= */
+#galleryModal {
+    background-color: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+#galleryModal.modal-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+#galleryModal img {
+    max-width: 90%;
+    max-height: 85%;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: scale(0.8);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+#galleryModal.modal-open img {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Botones de navegación */
+#galleryModal button {
+    background: rgba(91, 26, 26, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 1.8rem;
+    position: absolute;
+    z-index: 10;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+#galleryModal.modal-open button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#galleryModal button:hover {
+    background: rgba(62, 107, 62, 0.9);
+    transform: scale(1.1);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#galleryModal button:active {
+    transform: scale(0.95);
+}
+
+/* Retrasos para animación escalonada de botones */
+#galleryModal.modal-open button:first-of-type {
+    transition-delay: 0.1s;
+}
+
+#galleryModal.modal-open button:nth-of-type(2) {
+    transition-delay: 0.2s;
+}
+
+#galleryModal.modal-open button:nth-of-type(3) {
+    transition-delay: 0.3s;
+}
+
+/* Botón cerrar */
+#galleryModal button:first-of-type {
+    top: 30px;
+    right: 30px;
+    background: rgba(91, 26, 26, 0.9);
+    font-size: 2.5rem;
+    width: 50px;
+    height: 50px;
+    line-height: 1;
+}
+
+/* Botón anterior */
+#galleryModal button:nth-of-type(2) {
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Botón siguiente */
+#galleryModal button:nth-of-type(3) {
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Indicador de posición */
+#galleryModal::after {
+    content: attr(data-current) " / " attr(data-total);
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1.2rem;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 25px;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.5s ease 0.4s;
+}
+
+#galleryModal.modal-open::after {
+    opacity: 1;
+}
+
+/* Efecto de overlay en fondo */
+#galleryModal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.9) 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#galleryModal.modal-open::before {
+    opacity: 1;
+}
+
+/* Botón cerrar */
+#galleryModal button:first-of-type {
+    background: rgba(91, 26, 26, 0.7);
+}
+
+#galleryModal button:first-of-type:hover {
+    background: rgba(91, 26, 26, 0.9);
+}
+
+/* ================= ANIMACIONES GENERALES ================= */
+/* Scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Animación de aparición */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-fade {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Transiciones */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+.transition-transform {
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition-duration: 400ms;
+}
+
+/* Efecto de carga para imágenes */
+img {
+    transition: opacity 0.3s ease;
+}
+
+img:not([src]),
+img[src=""] {
+    opacity: 0;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+    #porque-elegirnos .card {
+        padding: 1.5rem;
+    }
+
+    #galeria img {
+        height: 8rem;
+    }
+
+    #galeria .image-hover:hover img {
+        transform: scale(1.05);
+    }
+
+    #galleryModal button {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    #hero .btn {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    #galeria img {
+        height: 6rem;
+    }
+}

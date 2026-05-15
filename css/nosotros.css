@@ -1,0 +1,469 @@
+/* ================= VARIABLES Y ESTILOS GENERALES ================= */
+:root {
+    --color-verde: #3e6b3e;
+    --color-verde-claro: #4a7c4a;
+    --color-rojo: #5b1a1a;
+    --color-amarillo: #ffd166;
+    --color-blanco: #ffffff;
+    --color-gris: #f8f9fa;
+}
+
+/* ================= UTILIDADES ================= */
+.section-padding {
+    padding: 5rem 0;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--color-rojo);
+    margin-bottom: 1rem;
+    position: relative;
+    display: inline-block;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-verde), var(--color-verde-claro));
+    border-radius: 2px;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+/* ================= HERO NOSOTROS ================= */
+#nosotros-hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.animate-text-up {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: textUp 0.8s ease-out forwards;
+}
+
+.delay-100 {
+    animation-delay: 0.1s;
+}
+
+.delay-200 {
+    animation-delay: 0.2s;
+}
+
+.delay-300 {
+    animation-delay: 0.3s;
+}
+
+.delay-400 {
+    animation-delay: 0.4s;
+}
+
+.delay-500 {
+    animation-delay: 0.5s;
+}
+
+@keyframes textUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    min-width: 120px;
+    transition: transform 0.3s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ================= TARJETAS MISIÓN/VISIÓN/VALORES ================= */
+.mv-card {
+    background: var(--color-blanco);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    height: 100%;
+}
+
+.mv-card:hover {
+    transform: translateY(-15px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.mv-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: all 0.4s ease;
+}
+
+/* ================= EQUIPO ================= */
+.team-card {
+    background: var(--color-blanco);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s ease;
+    height: 100%;
+}
+
+.team-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.team-img-container {
+    position: relative;
+    height: 280px;
+    overflow: hidden;
+}
+
+.team-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.team-card:hover .team-img {
+    transform: scale(1.05);
+}
+
+.team-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.team-card:hover .team-overlay {
+    opacity: 1;
+}
+
+.social-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--color-blanco);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-verde);
+    transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+    background: var(--color-verde);
+    color: var(--color-blanco);
+    transform: translateY(-3px);
+}
+
+.team-info {
+    padding: 1.5rem;
+}
+
+.team-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--color-rojo);
+    margin-bottom: 0.25rem;
+}
+
+.team-role {
+    color: var(--color-verde);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.team-desc {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* ================= VIDEO ================= */
+.video-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+}
+
+.video-play-btn {
+    width: 80px;
+    height: 80px;
+    background: var(--color-verde);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-blanco);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    position: relative;
+    border: none;
+}
+
+.video-play-btn:hover {
+    background: var(--color-verde-claro);
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(62, 107, 62, 0.5);
+}
+
+#videoModal {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#videoModal:not(.hidden) {
+    opacity: 1;
+}
+
+/* ================= LOGROS ================= */
+.logro-card {
+    background: var(--color-blanco);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.logro-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-verde);
+}
+
+.logro-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--color-gris), #e9ecef);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--color-verde);
+    transition: all 0.3s ease;
+}
+
+.logro-card:hover .logro-icon {
+    background: linear-gradient(135deg, var(--color-verde), var(--color-verde-claro));
+    color: var(--color-blanco);
+    transform: rotateY(180deg);
+}
+
+.logro-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-rojo);
+    margin-bottom: 0.5rem;
+}
+
+.logro-desc {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* ================= BOTONES ================= */
+.btn-secondary {
+    background: transparent;
+    color: var(--color-verde);
+    border: 2px solid var(--color-verde);
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--color-verde);
+    color: var(--color-blanco);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(62, 107, 62, 0.2);
+}
+
+.btn-white {
+    background: var(--color-blanco);
+    color: var(--color-verde);
+    padding: 1rem 2rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.btn-white:hover {
+    background: var(--color-gris);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline-white {
+    background: transparent;
+    color: var(--color-blanco);
+    border: 2px solid var(--color-blanco);
+    padding: 1rem 2rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.btn-outline-white:hover {
+    background: var(--color-blanco);
+    color: var(--color-verde);
+    transform: translateY(-3px);
+}
+
+/* ================= ANIMACIONES ================= */
+.animate-fade-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    animation: fadeLeft 0.8s ease-out forwards;
+}
+
+.animate-fade-right {
+    opacity: 0;
+    transform: translateX(50px);
+    animation: fadeRight 0.8s ease-out forwards;
+}
+
+.animate-fade-up {
+    opacity: 0;
+    transform: translateY(50px);
+    animation: fadeUp 0.8s ease-out forwards;
+}
+
+.animate-scale-up {
+    opacity: 0;
+    transform: scale(0.9);
+    animation: scaleUp 0.6s ease-out forwards;
+}
+
+.animate-team-card {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: teamCardUp 0.8s ease-out forwards;
+}
+
+@keyframes fadeLeft {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeRight {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleUp {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes teamCardUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+    .section-padding {
+        padding: 3rem 0;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .team-img-container {
+        height: 240px;
+    }
+
+    .mv-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .stat-box {
+        padding: 1rem;
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 640px) {
+    #nosotros-hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-white,
+    .btn-outline-white {
+        padding: 0.75rem 1.5rem;
+        width: 100%;
+    }
+
+    .flex-col .gap-4>* {
+        width: 100%;
+    }
+}

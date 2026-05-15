@@ -1,0 +1,400 @@
+/* ================= REGISTRO ================= */
+
+/* Ajuste general con navbar */
+.register-page {
+    min-height: 100vh;
+    background: #e6e6e6;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 120px 24px 28px;
+}
+
+/* Contenedor principal */
+.register-layout {
+    width: 100%;
+    max-width: 1180px;
+    min-height: calc(100vh - 160px);
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 25px 55px rgba(0, 0, 0, 0.18);
+}
+
+/* ================= LADO IZQUIERDO ================= */
+
+.register-left {
+    position: relative;
+    overflow: hidden;
+}
+
+.register-left-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.05);
+}
+
+.register-left-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg,
+            rgba(0, 0, 0, 0.65),
+            rgba(0, 0, 0, 0.2));
+}
+
+.register-left-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.register-left-title {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.register-left-subtitle {
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 420px;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* ================= LADO DERECHO ================= */
+
+.register-right {
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+}
+
+/* Tarjeta */
+.register-card {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 34px 30px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    position: relative;
+}
+
+/* brillo sutil */
+.register-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px;
+    pointer-events: none;
+    background: radial-gradient(600px 220px at 20% 0%,
+            rgba(0, 0, 0, 0.05),
+            transparent 55%);
+}
+
+.register-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.register-logo img {
+    width: 120px;
+    animation: floatSoft 4.5s ease-in-out infinite;
+}
+
+/* Textos */
+.register-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 6px;
+    color: #111;
+    text-transform: none;
+}
+
+.register-desc {
+    text-align: center;
+    color: #666;
+    margin-bottom: 22px;
+}
+
+/* ================= FORM ================= */
+
+.register-form {
+    margin-top: 8px;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 650;
+    color: #222;
+    font-size: 0.95rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1.8px solid #d7d7d7;
+    background: #fafafa;
+    font-size: 1rem;
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.2s ease,
+        background 0.25s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #111;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.hint {
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Password */
+.password-wrapper {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    color: #555;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.toggle-password:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Términos */
+.terms {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 18px;
+    font-size: 0.9rem;
+    color: #444;
+    cursor: pointer;
+}
+
+/* Botón */
+.btn-register {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: none;
+    background: #111;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.25s ease,
+        opacity 0.2s ease;
+}
+
+.btn-register:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+}
+
+.btn-register:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ================= MENSAJES ================= */
+
+.alert {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    animation: popIn 0.3s ease both;
+}
+
+.alert-error {
+    background: #fff1f1;
+    border-left: 4px solid #e53935;
+    color: #b71c1c;
+}
+
+.alert-success {
+    background: #eaffea;
+    border: 1px solid #b8ffb8;
+    color: #1f6b1f;
+}
+
+/* Footer */
+.register-footer {
+    margin-top: 18px;
+    text-align: center;
+}
+
+.register-footer a {
+    color: #111;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.register-footer a:hover {
+    text-decoration: underline;
+}
+
+.register-login {
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* ================= ANIMACIONES ================= */
+
+.register-animate {
+    animation: fadeUp 0.65s cubic-bezier(.2, .9, .2, 1) both;
+}
+
+.register-animate-left {
+    animation: slideInLeft 0.85s cubic-bezier(.2, .9, .2, 1) both;
+}
+
+.register-animate-right {
+    animation: slideInRight 0.85s cubic-bezier(.2, .9, .2, 1) both;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes floatSoft {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 900px) {
+    .register-page {
+        padding: 108px 18px 22px;
+    }
+
+    .register-layout {
+        grid-template-columns: 1fr;
+        min-height: auto;
+    }
+
+    .register-left {
+        min-height: 260px;
+    }
+
+    .register-left-content {
+        padding: 28px;
+    }
+
+    .register-right {
+        padding: 26px 18px;
+    }
+
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

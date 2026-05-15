@@ -1,0 +1,29 @@
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs y archivos temporales
+*.log
+*.tmp
+*.temp
+cache/
+tmp/
+temp/
+
+# Dependencias si se agregan luego
+node_modules/
+vendor/
+
+# Archivos de entorno local
+.env
+.env.*
+
+# Respaldos con datos reales o credenciales locales
+respaldos_bd/*.sql
+
+# Archivos generados por pruebas o herramientas
+coverage/
+dist/
+build/
