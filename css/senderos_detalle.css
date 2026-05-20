@@ -30,6 +30,23 @@
     object-fit: cover;
 }
 
+.detalle-no-image {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 10px;
+    background: #202020;
+    color: rgba(255, 255, 255, .78);
+    font-weight: 900;
+    text-align: center;
+}
+
+.detalle-no-image svg {
+    width: 42px;
+    height: 42px;
+    color: rgba(255, 255, 255, .42);
+}
+
 .detalle-hero-overlay {
     background:
         linear-gradient(90deg, rgba(0, 0, 0, .76) 0%, rgba(0, 0, 0, .46) 48%, rgba(0, 0, 0, .12) 100%),
@@ -307,6 +324,27 @@
 
 .gallery-item:hover img {
     transform: scale(1.04);
+}
+
+.gallery-empty {
+    grid-column: 1 / -1;
+    min-height: 170px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    border: 1px dashed rgba(0, 0, 0, .18);
+    background: #f2f2f2;
+    color: #777;
+    font-weight: 900;
+    text-align: center;
+}
+
+.gallery-empty svg {
+    width: 30px;
+    height: 30px;
+    color: #aaa;
 }
 
 .meeting-grid {

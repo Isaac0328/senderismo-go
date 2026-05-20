@@ -294,6 +294,81 @@
     color: #7a5200;
 }
 
+.contact-report-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px auto auto;
+    gap: 10px;
+    padding: 0 14px 14px;
+}
+
+.contact-report-filter input,
+.contact-report-filter select,
+.inline-report-form select {
+    min-height: 38px;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 8px;
+    background: #fff;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.contact-report-filter button,
+.contact-report-filter a,
+.inline-report-form button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    border-radius: 8px;
+    border: 0;
+    padding: 8px 12px;
+    background: #111;
+    color: #fff;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.contact-report-filter a {
+    background: #f3f3f3;
+    color: #111;
+}
+
+.inline-report-form {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.inline-report-form select {
+    min-width: 124px;
+}
+
+.inline-report-form button {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: .78rem;
+}
+
+.contacto-alert {
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-weight: 900;
+}
+
+.contacto-alert.success {
+    background: #e5f5eb;
+    color: #23643b;
+    border: 1px solid #b6dec4;
+}
+
+.contacto-alert.error {
+    background: #fff0ec;
+    color: #8d1f12;
+    border: 1px solid #efc1b6;
+}
+
 @media (max-width: 1100px) {
     .metrics-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -317,6 +392,10 @@
     .metrics-grid,
     .report-grid,
     .report-table-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-report-filter {
         grid-template-columns: 1fr;
     }
 

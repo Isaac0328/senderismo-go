@@ -98,6 +98,75 @@ LOCK TABLES `detalles_usuarios` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `configuracion_contacto`
+--
+
+DROP TABLE IF EXISTS `configuracion_contacto`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `configuracion_contacto` (
+  `id` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `hero_imagen` varchar(255) NOT NULL DEFAULT 'imagenes/paisajes/hero.jpg',
+  `titulo` varchar(160) NOT NULL,
+  `subtitulo` varchar(255) NOT NULL,
+  `horario` varchar(160) NOT NULL,
+  `ubicacion` varchar(160) NOT NULL,
+  `telefono` varchar(40) NOT NULL,
+  `whatsapp` varchar(40) NOT NULL,
+  `email` varchar(160) NOT NULL,
+  `instagram` varchar(80) NOT NULL,
+  `instagram_url` varchar(255) NOT NULL,
+  `texto_formulario` text NOT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `configuracion_contacto`
+--
+
+LOCK TABLES `configuracion_contacto` WRITE;
+/*!40000 ALTER TABLE `configuracion_contacto` DISABLE KEYS */;
+/*!40000 ALTER TABLE `configuracion_contacto` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `mensajes_contacto`
+--
+
+DROP TABLE IF EXISTS `mensajes_contacto`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `mensajes_contacto` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `apellido` varchar(100) DEFAULT NULL,
+  `email` varchar(150) NOT NULL,
+  `telefono` varchar(30) DEFAULT NULL,
+  `asunto` varchar(80) NOT NULL,
+  `mensaje` text NOT NULL,
+  `estado` enum('nuevo','leido','respondido','archivado') NOT NULL DEFAULT 'nuevo',
+  `ip` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_mensajes_contacto_estado` (`estado`),
+  KEY `idx_mensajes_contacto_fecha` (`fecha_creacion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `mensajes_contacto`
+--
+
+LOCK TABLES `mensajes_contacto` WRITE;
+/*!40000 ALTER TABLE `mensajes_contacto` DISABLE KEYS */;
+/*!40000 ALTER TABLE `mensajes_contacto` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `elementos_incluidos`
 --
 
@@ -447,12 +516,14 @@ CREATE TABLE `senderos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(150) NOT NULL,
   `slug` varchar(180) NOT NULL,
-  `fecha_sendero` date NOT NULL,
+  `fecha_sendero` date DEFAULT NULL,
   `lugar` varchar(150) NOT NULL,
   `provincia` varchar(100) DEFAULT NULL,
   `descripcion_corta` varchar(255) DEFAULT NULL,
   `descripcion` text DEFAULT NULL,
   `imagen_principal` varchar(255) DEFAULT NULL,
+  `imagen_flyer` varchar(255) DEFAULT NULL,
+  `imagen_catalogo` varchar(255) DEFAULT NULL,
   `nivel_dificultad_id` int(11) NOT NULL,
   `tiempo_ida_vehiculo_min` int(11) DEFAULT NULL,
   `tiempo_regreso_vehiculo_min` int(11) DEFAULT NULL,

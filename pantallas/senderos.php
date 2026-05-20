@@ -20,7 +20,7 @@ $jsFiles = [
     "js/senderos.js"
 ];
 
-function sendero_img_src(?string $ruta, string $fallback = 'imagenes/paisajes/hero.jpg'): string
+function sendero_img_src(?string $ruta): string
 {
     $ruta = trim((string) $ruta);
     $path = $ruta !== '' ? __DIR__ . '/../' . $ruta : '';
@@ -29,7 +29,23 @@ function sendero_img_src(?string $ruta, string $fallback = 'imagenes/paisajes/he
         return BASE_URL . htmlspecialchars($ruta);
     }
 
-    return BASE_URL . $fallback;
+    return '';
+}
+
+function tiempo_publico(?int $minutos): string
+{
+    if ($minutos === null) {
+        return '';
+    }
+    $horas = intdiv(max(0, $minutos), 60);
+    $mins = max(0, $minutos) % 60;
+    if ($horas > 0 && $mins > 0) {
+        return $horas . ' h ' . $mins . ' min';
+    }
+    if ($horas > 0) {
+        return $horas . ' h';
+    }
+    return $mins . ' min';
 }
 
 function fecha_larga_es(string $fecha): string
@@ -76,6 +92,7 @@ $sqlProximos = "
         s.provincia,
         s.descripcion_corta,
         s.imagen_principal,
+        s.imagen_flyer,
         s.estado,
         s.tiempo_sendero_min,
         s.distancia_km,
@@ -183,12 +200,19 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     <main class="senderos-main container-senderos">
         <?php if ($senderoDestacado): ?>
             <?php
-            $destacadoImg = sendero_img_src($senderoDestacado['imagen_principal'], 'imagenes/paisajes/hero.jpg');
+            $destacadoImg = sendero_img_src($senderoDestacado['imagen_flyer']);
             $dias = dias_restantes($senderoDestacado['fecha_sendero']);
             ?>
             <section class="featured-sendero">
                 <div class="featured-media">
-                    <img src="<?= $destacadoImg ?>" alt="<?= htmlspecialchars($senderoDestacado['nombre']) ?>">
+                    <?php if ($destacadoImg !== ''): ?>
+                        <img src="<?= $destacadoImg ?>" alt="<?= htmlspecialchars($senderoDestacado['nombre']) ?>">
+                    <?php else: ?>
+                        <div class="sendero-no-image featured-no-image">
+                            <i data-feather="image"></i>
+                            <span>Sin imagen cargada</span>
+                        </div>
+                    <?php endif; ?>
                     <span class="featured-date">
                         <?= date('d', strtotime($senderoDestacado['fecha_sendero'])) ?>
                         <small><?= strtoupper(date('M', strtotime($senderoDestacado['fecha_sendero']))) ?></small>
@@ -234,13 +258,20 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 <div class="senderos-grid">
                     <?php foreach ($proximosSenderos as $sendero): ?>
                         <?php
-                        $imagenSrc = sendero_img_src($sendero['imagen_principal'], 'imagenes/paisajes/img' . (((int) $sendero['id'] % 10) + 1) . '.jpg');
+                        $imagenSrc = sendero_img_src($sendero['imagen_flyer']);
                         $terrenos = trim((string) ($sendero['tipos_terreno'] ?? ''));
                         ?>
                         <article class="sendero-card">
                             <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $sendero['id'] ?>" class="sendero-card-link">
                                 <div class="sendero-image-wrap">
-                                    <img src="<?= $imagenSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
+                                    <?php if ($imagenSrc !== ''): ?>
+                                        <img src="<?= $imagenSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
+                                    <?php else: ?>
+                                        <div class="sendero-no-image">
+                                            <i data-feather="image"></i>
+                                            <span>Sin imagen cargada</span>
+                                        </div>
+                                    <?php endif; ?>
                                     <span class="sendero-level"><?= htmlspecialchars($sendero['nivel_dificultad']) ?></span>
                                 </div>
 
@@ -267,7 +298,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                                             <span><i data-feather="navigation"></i><?= number_format((float) $sendero['distancia_km'], 2) ?> km</span>
                                         <?php endif; ?>
                                         <?php if ($sendero['tiempo_sendero_min'] !== null): ?>
-                                            <span><i data-feather="clock"></i><?= (int) $sendero['tiempo_sendero_min'] ?> min</span>
+                                            <span><i data-feather="clock"></i><?= tiempo_publico((int) $sendero['tiempo_sendero_min']) ?></span>
                                         <?php endif; ?>
                                         <?php if (!empty($sendero['hora_salida'])): ?>
                                             <span><i data-feather="clock"></i><?= date('h:i A', strtotime($sendero['hora_salida'])) ?></span>

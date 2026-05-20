@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
     const galleryInput = document.getElementById('galeria');
     const galleryHelp = document.getElementById('galleryHelp');
+    const dateInput = document.getElementById('fecha_sendero_visual');
+    const dateHiddenInput = document.getElementById('fecha_sendero');
+    const datePreview = document.getElementById('fechaSenderoPreview');
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -24,6 +27,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 : 'Puedes cargar varias imagenes a la vez.';
         });
     }
+
+    if (dateInput && dateHiddenInput && datePreview) {
+        const pad = (value) => String(value).padStart(2, '0');
+
+        const parseVisualDate = (value) => {
+            const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (!match) return null;
+
+            const day = Number(match[1]);
+            const month = Number(match[2]);
+            const year = Number(match[3]);
+            const date = new Date(year, month - 1, day);
+
+            if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+                return null;
+            }
+
+            return { date, iso: `${year}-${pad(month)}-${pad(day)}` };
+        };
+
+        const updateDatePreview = () => {
+            if (!dateInput.value) {
+                datePreview.textContent = 'Selecciona la fecha del sendero.';
+                dateHiddenInput.value = '';
+                return;
+            }
+
+            const parsed = parseVisualDate(dateInput.value);
+            if (!parsed) {
+                dateHiddenInput.value = '';
+                datePreview.textContent = 'Usa el formato dia/mes/año. Ej: 03/08/2026.';
+                return;
+            }
+
+            dateHiddenInput.value = parsed.iso;
+            datePreview.textContent = `Fecha seleccionada: ${parsed.date.toLocaleDateString('es-DO', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })}`;
+        };
+
+        dateInput.addEventListener('change', updateDatePreview);
+        dateInput.addEventListener('input', updateDatePreview);
+        updateDatePreview();
+    }
+
+    document.querySelectorAll('[data-duration-group]').forEach((group) => {
+        const hoursInput = group.querySelector('[data-duration-hours]');
+        const minutesInput = group.querySelector('[data-duration-minutes]');
+        const totalInput = group.querySelector('[data-duration-total]');
+
+        if (!hoursInput || !minutesInput || !totalInput) return;
+
+        const updateTotal = () => {
+            const hours = Math.max(0, Number.parseInt(hoursInput.value || '0', 10) || 0);
+            const minutes = Math.min(59, Math.max(0, Number.parseInt(minutesInput.value || '0', 10) || 0));
+
+            if (String(minutesInput.value) !== String(minutes)) {
+                minutesInput.value = String(minutes);
+            }
+
+            const total = (hours * 60) + minutes;
+            totalInput.value = total > 0 ? String(total) : '';
+        };
+
+        hoursInput.addEventListener('input', updateTotal);
+        minutesInput.addEventListener('input', updateTotal);
+        updateTotal();
+    });
 
     function updateModalCount(modal) {
         const list = modal.querySelector('[data-count-target]');

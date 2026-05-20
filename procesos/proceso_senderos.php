@@ -126,6 +126,31 @@ function uploaded_files_array(string $field): array
     return $files;
 }
 
+function normalizar_fecha_sendero(string $fechaIso, string $fechaVisual = ''): string
+{
+    $fechaVisual = trim($fechaVisual);
+
+    if ($fechaVisual !== '') {
+        $dt = DateTime::createFromFormat('d/m/Y', $fechaVisual);
+        $errores = DateTime::getLastErrors();
+        $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
+        if ($dt && $sinErrores) {
+            return $dt->format('Y-m-d');
+        }
+        return '';
+    }
+
+    $fechaIso = trim($fechaIso);
+    $dt = DateTime::createFromFormat('Y-m-d', $fechaIso);
+    $errores = DateTime::getLastErrors();
+    $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
+    if ($dt && $sinErrores) {
+        return $dt->format('Y-m-d');
+    }
+
+    return '';
+}
+
 try {
     if ($action === 'delete_image') {
         $imageId = (int) ($_POST['image_id'] ?? 0);
@@ -160,7 +185,7 @@ try {
     }
 
     $nombre = trim($_POST['nombre'] ?? '');
-    $fecha = trim($_POST['fecha_sendero'] ?? '');
+    $fecha = normalizar_fecha_sendero((string) ($_POST['fecha_sendero'] ?? ''), (string) ($_POST['fecha_sendero_visual'] ?? ''));
     $lugar = trim($_POST['lugar'] ?? '');
     $provincia = trim($_POST['provincia'] ?? '');
     $descripcionCorta = trim($_POST['descripcion_corta'] ?? '');
@@ -179,7 +204,7 @@ try {
     $incluye = array_map('intval', $_POST['incluye'] ?? []);
 
     if ($nombre === '' || $fecha === '' || $lugar === '' || $nivelId <= 0) {
-        $_SESSION['senderos_error'] = "Completa nombre, fecha, lugar y dificultad.";
+        $_SESSION['senderos_error'] = "Completa nombre, fecha en formato dia/mes/año, lugar y dificultad.";
         redirect_senderos($conn, $id);
     }
 
@@ -187,41 +212,44 @@ try {
         $estado = 'pendiente';
     }
 
+    if ($estado === 'pendiente' && $fecha < date('Y-m-d')) {
+        $_SESSION['senderos_error'] = "Un sendero pendiente debe tener una fecha de hoy o futura. Si ya se realizo, cambialo a visitado.";
+        redirect_senderos($conn, $id);
+    }
+
     mysqli_begin_transaction($conn);
 
     $slug = unique_sendero_slug($conn, $nombre, $id);
     $imagenPrincipal = null;
+    $imagenFlyer = null;
+    $imagenCatalogo = null;
 
     if (!empty($_FILES['imagen_principal'])) {
         $imagenPrincipal = save_uploaded_image($_FILES['imagen_principal'], $slug, 'principal');
     }
 
+    if (!empty($_FILES['imagen_flyer'])) {
+        $imagenFlyer = save_uploaded_image($_FILES['imagen_flyer'], $slug, 'flyer');
+    }
+
+    if (!empty($_FILES['imagen_catalogo'])) {
+        $imagenCatalogo = save_uploaded_image($_FILES['imagen_catalogo'], $slug, 'catalogo');
+    }
+
     if ($id > 0) {
-        if ($imagenPrincipal) {
-            $stmt = mysqli_prepare(
-                $conn,
-                "UPDATE senderos
-                 SET nombre = ?, slug = ?, fecha_sendero = ?, lugar = ?, provincia = ?, descripcion_corta = ?,
-                     descripcion = ?, imagen_principal = ?, nivel_dificultad_id = ?,
-                     tiempo_ida_vehiculo_min = ?, tiempo_regreso_vehiculo_min = ?, tipo_camino_vehiculo_id = ?,
-                     tiempo_sendero_min = ?, distancia_km = ?, cobertura_senal_pct = ?,
-                     estado = ?, activo = ?
-                 WHERE id = ?"
-            );
-            mysqli_stmt_bind_param($stmt, "ssssssssiiiiidisii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $coberturaSenal, $estado, $activo, $id);
-        } else {
-            $stmt = mysqli_prepare(
-                $conn,
-                "UPDATE senderos
-                 SET nombre = ?, slug = ?, fecha_sendero = ?, lugar = ?, provincia = ?, descripcion_corta = ?,
-                     descripcion = ?, nivel_dificultad_id = ?,
-                     tiempo_ida_vehiculo_min = ?, tiempo_regreso_vehiculo_min = ?, tipo_camino_vehiculo_id = ?,
-                     tiempo_sendero_min = ?, distancia_km = ?, cobertura_senal_pct = ?,
-                     estado = ?, activo = ?
-                 WHERE id = ?"
-            );
-            mysqli_stmt_bind_param($stmt, "sssssssiiiiidisii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $coberturaSenal, $estado, $activo, $id);
-        }
+        $stmt = mysqli_prepare(
+            $conn,
+            "UPDATE senderos
+             SET nombre = ?, slug = ?, fecha_sendero = ?, lugar = ?, provincia = ?, descripcion_corta = ?,
+                 descripcion = ?, imagen_principal = COALESCE(?, imagen_principal),
+                 imagen_flyer = COALESCE(?, imagen_flyer),
+                 imagen_catalogo = COALESCE(?, imagen_catalogo), nivel_dificultad_id = ?,
+                 tiempo_ida_vehiculo_min = ?, tiempo_regreso_vehiculo_min = ?, tipo_camino_vehiculo_id = ?,
+                 tiempo_sendero_min = ?, distancia_km = ?, cobertura_senal_pct = ?,
+                 estado = ?, activo = ?
+             WHERE id = ?"
+        );
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidisii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $coberturaSenal, $estado, $activo, $id);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         $senderoId = $id;
@@ -229,16 +257,22 @@ try {
         if (!$imagenPrincipal) {
             $imagenPrincipal = '';
         }
+        if (!$imagenFlyer) {
+            $imagenFlyer = '';
+        }
+        if (!$imagenCatalogo) {
+            $imagenCatalogo = '';
+        }
 
         $stmt = mysqli_prepare(
             $conn,
             "INSERT INTO senderos
-             (nombre, slug, fecha_sendero, lugar, provincia, descripcion_corta, descripcion, imagen_principal,
+             (nombre, slug, fecha_sendero, lugar, provincia, descripcion_corta, descripcion, imagen_principal, imagen_flyer, imagen_catalogo,
               nivel_dificultad_id, tiempo_ida_vehiculo_min, tiempo_regreso_vehiculo_min, tipo_camino_vehiculo_id,
               tiempo_sendero_min, distancia_km, cobertura_senal_pct, estado, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
-        mysqli_stmt_bind_param($stmt, "ssssssssiiiiidisi", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $coberturaSenal, $estado, $activo);
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidisi", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $coberturaSenal, $estado, $activo);
         mysqli_stmt_execute($stmt);
         $senderoId = mysqli_insert_id($conn);
         mysqli_stmt_close($stmt);

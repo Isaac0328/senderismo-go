@@ -44,6 +44,14 @@
     line-height: 1.45;
 }
 
+.senderos-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
 .view-public-link,
 .clear-edit-link,
 .btn-secondary {
@@ -149,7 +157,8 @@
 .field input,
 .field select,
 .field textarea,
-.meeting-card input {
+.meeting-card input,
+.time-combo input[type="number"] {
     width: 100%;
     min-height: 38px;
     border-radius: 8px;
@@ -158,6 +167,35 @@
     background: #fff;
     outline: none;
     font-size: .9rem;
+}
+
+.time-combo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+}
+
+.time-combo span {
+    color: #444;
+    font-size: .82rem;
+    font-weight: 900;
+}
+
+.row-thumb-placeholder {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 44px;
+    margin: 0 !important;
+    border-radius: 8px;
+    background: #f1f1f1;
+    color: #777 !important;
+    border: 1px dashed rgba(0, 0, 0, .18);
+    font-size: .68rem;
+    font-weight: 900;
+    text-align: center;
 }
 
 .field textarea {
@@ -179,9 +217,17 @@
     gap: 7px;
 }
 
+.check-pill {
+    position: relative;
+    display: inline-flex;
+}
+
 .check-pill input {
     position: absolute;
+    width: 1px;
+    height: 1px;
     opacity: 0;
+    pointer-events: none;
 }
 
 .check-pill span {
@@ -578,6 +624,7 @@
 
 @media (max-width: 980px) {
     .senderos-admin-header,
+    .senderos-header-actions,
     .senderos-card-head {
         align-items: flex-start;
         flex-direction: column;
@@ -614,6 +661,7 @@
     }
 
     .view-public-link,
+    .senderos-header-actions,
     .clear-edit-link,
     .btn-secondary,
     .detail-modal-trigger,

@@ -35,7 +35,45 @@ function img_admin_src(?string $ruta): string
     if ($ruta !== '' && file_exists(__DIR__ . '/../' . $ruta)) {
         return BASE_URL . htmlspecialchars($ruta);
     }
-    return BASE_URL . 'imagenes/paisajes/hero.jpg';
+    return '';
+}
+
+function fecha_admin_visual(?string $fecha): string
+{
+    $fecha = trim((string) $fecha);
+    if ($fecha === '') {
+        return '';
+    }
+
+    $dt = DateTime::createFromFormat('Y-m-d', $fecha);
+    return $dt ? $dt->format('d/m/Y') : '';
+}
+
+function minutos_horas(int|string|null $minutos): array
+{
+    $total = max(0, (int) ($minutos ?? 0));
+    return [intdiv($total, 60), $total % 60];
+}
+
+function tiempo_legible(int|string|null $minutos): string
+{
+    if ($minutos === null || $minutos === '') {
+        return 'Tiempo pendiente';
+    }
+
+    $total = max(0, (int) $minutos);
+    $horas = intdiv($total, 60);
+    $mins = $total % 60;
+
+    if ($horas > 0 && $mins > 0) {
+        return $horas . ' h ' . $mins . ' min';
+    }
+
+    if ($horas > 0) {
+        return $horas . ' h';
+    }
+
+    return $mins . ' min';
 }
 
 $niveles = [];
@@ -87,7 +125,7 @@ $sqlSenderos = "
     FROM senderos s
     INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN tipos_camino_vehiculo tc ON tc.id = s.tipo_camino_vehiculo_id
-    ORDER BY s.fecha_sendero DESC, s.id DESC
+    ORDER BY s.fecha_sendero IS NULL ASC, s.fecha_sendero DESC, s.id DESC
 ";
 $resSenderos = mysqli_query($conn, $sqlSenderos);
 if ($resSenderos) {
@@ -160,6 +198,10 @@ if ($editId > 0) {
     }
 }
 
+[$idaHoras, $idaMinutos] = minutos_horas($edit['tiempo_ida_vehiculo_min'] ?? null);
+[$regresoHoras, $regresoMinutos] = minutos_horas($edit['tiempo_regreso_vehiculo_min'] ?? null);
+[$senderoHoras, $senderoMinutos] = minutos_horas($edit['tiempo_sendero_min'] ?? null);
+
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
 ?>
@@ -172,7 +214,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 <h1 class="senderos-admin-title">Mantenimiento de Senderos</h1>
                 <p class="senderos-admin-subtitle">Crea rutas, publica proximas salidas y carga las imagenes que vera el cliente.</p>
             </div>
-            <a href="<?= BASE_URL ?>pantallas/senderos.php" class="view-public-link">Ver pantalla publica</a>
+            <div class="senderos-header-actions">
+                <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="view-public-link">Volver al panel</a>
+                <a href="<?= BASE_URL ?>pantallas/senderos.php" class="view-public-link">Ver pantalla publica</a>
+            </div>
         </div>
 
         <?php if (!empty($_SESSION['senderos_success'])): ?>
@@ -207,8 +252,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
 
                     <div class="field">
-                        <label for="fecha_sendero">Fecha *</label>
-                        <input type="date" id="fecha_sendero" name="fecha_sendero" required value="<?= htmlspecialchars($edit['fecha_sendero'] ?? '') ?>">
+                        <label for="fecha_sendero">Fecha</label>
+                        <input type="text" id="fecha_sendero_visual" name="fecha_sendero_visual" value="<?= htmlspecialchars(fecha_admin_visual($edit['fecha_sendero'] ?? '')) ?>" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10">
+                        <input type="hidden" id="fecha_sendero" name="fecha_sendero" value="<?= htmlspecialchars($edit['fecha_sendero'] ?? '') ?>">
+                        <small id="fechaSenderoPreview" class="date-preview">Obligatoria solo para proximos senderos.</small>
                     </div>
 
                     <div class="field">
@@ -249,17 +296,41 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <div class="field span-3">
                         <label for="imagen_principal">Imagen principal</label>
                         <input type="file" id="imagen_principal" name="imagen_principal" accept="image/png,image/jpeg,image/webp">
-                        <small><?= $edit && !empty($edit['imagen_principal']) ? 'Deja vacio para conservar la imagen actual.' : 'Recomendado: imagen horizontal de buena calidad.' ?></small>
+                        <small><?= $edit && !empty($edit['imagen_principal']) ? 'Deja vacio para conservar la imagen principal actual.' : 'Se muestra grande al abrir el detalle del sendero.' ?></small>
+                    </div>
+
+                    <div class="field span-3">
+                        <label for="imagen_flyer">Imagen flyer</label>
+                        <input type="file" id="imagen_flyer" name="imagen_flyer" accept="image/png,image/jpeg,image/webp">
+                        <small><?= $edit && !empty($edit['imagen_flyer']) ? 'Deja vacio para conservar el flyer actual.' : 'Se muestra en proximos senderos.' ?></small>
+                    </div>
+
+                    <div class="field span-3">
+                        <label for="imagen_catalogo">Imagen visitados/catalogo</label>
+                        <input type="file" id="imagen_catalogo" name="imagen_catalogo" accept="image/png,image/jpeg,image/webp">
+                        <small><?= $edit && !empty($edit['imagen_catalogo']) ? 'Deja vacio para conservar la imagen de catalogo actual.' : 'Se muestra en senderos visitados.' ?></small>
                     </div>
 
                     <div class="field">
-                        <label for="tiempo_ida_vehiculo_min">Ida vehiculo (min)</label>
-                        <input type="number" id="tiempo_ida_vehiculo_min" name="tiempo_ida_vehiculo_min" min="0" max="999" value="<?= htmlspecialchars($edit['tiempo_ida_vehiculo_min'] ?? '') ?>" placeholder="80">
+                        <label>Ida vehiculo</label>
+                        <div class="time-combo" data-duration-group>
+                            <input type="number" min="0" max="99" value="<?= $idaHoras ?>" aria-label="Horas ida vehiculo" data-duration-hours>
+                            <span>h</span>
+                            <input type="number" min="0" max="59" value="<?= $idaMinutos ?>" aria-label="Minutos ida vehiculo" data-duration-minutes>
+                            <span>min</span>
+                            <input type="hidden" id="tiempo_ida_vehiculo_min" name="tiempo_ida_vehiculo_min" value="<?= htmlspecialchars($edit['tiempo_ida_vehiculo_min'] ?? '') ?>" data-duration-total>
+                        </div>
                     </div>
 
                     <div class="field">
-                        <label for="tiempo_regreso_vehiculo_min">Regreso vehiculo (min)</label>
-                        <input type="number" id="tiempo_regreso_vehiculo_min" name="tiempo_regreso_vehiculo_min" min="0" max="999" value="<?= htmlspecialchars($edit['tiempo_regreso_vehiculo_min'] ?? '') ?>" placeholder="80">
+                        <label>Regreso vehiculo</label>
+                        <div class="time-combo" data-duration-group>
+                            <input type="number" min="0" max="99" value="<?= $regresoHoras ?>" aria-label="Horas regreso vehiculo" data-duration-hours>
+                            <span>h</span>
+                            <input type="number" min="0" max="59" value="<?= $regresoMinutos ?>" aria-label="Minutos regreso vehiculo" data-duration-minutes>
+                            <span>min</span>
+                            <input type="hidden" id="tiempo_regreso_vehiculo_min" name="tiempo_regreso_vehiculo_min" value="<?= htmlspecialchars($edit['tiempo_regreso_vehiculo_min'] ?? '') ?>" data-duration-total>
+                        </div>
                     </div>
 
                     <div class="field">
@@ -275,8 +346,14 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
 
                     <div class="field">
-                        <label for="tiempo_sendero_min">Tiempo sendero (min)</label>
-                        <input type="number" id="tiempo_sendero_min" name="tiempo_sendero_min" min="0" max="999" value="<?= htmlspecialchars($edit['tiempo_sendero_min'] ?? '') ?>" placeholder="300">
+                        <label>Tiempo sendero</label>
+                        <div class="time-combo" data-duration-group>
+                            <input type="number" min="0" max="99" value="<?= $senderoHoras ?>" aria-label="Horas del sendero" data-duration-hours>
+                            <span>h</span>
+                            <input type="number" min="0" max="59" value="<?= $senderoMinutos ?>" aria-label="Minutos del sendero" data-duration-minutes>
+                            <span>min</span>
+                            <input type="hidden" id="tiempo_sendero_min" name="tiempo_sendero_min" value="<?= htmlspecialchars($edit['tiempo_sendero_min'] ?? '') ?>" data-duration-total>
+                        </div>
                     </div>
 
                     <div class="field">
@@ -476,12 +553,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <?php else: ?>
                             <?php foreach ($senderos as $s): ?>
                                 <tr>
-                                    <td><img class="row-thumb" src="<?= img_admin_src($s['imagen_principal']) ?>" alt="<?= htmlspecialchars($s['nombre']) ?>"></td>
+                                    <td>
+                                        <?php $thumb = img_admin_src(($s['estado'] === 'visitado' ? $s['imagen_catalogo'] : $s['imagen_flyer']) ?: $s['imagen_principal']); ?>
+                                        <?php if ($thumb !== ''): ?>
+                                            <img class="row-thumb" src="<?= $thumb ?>" alt="<?= htmlspecialchars($s['nombre']) ?>">
+                                        <?php else: ?>
+                                            <span class="row-thumb-placeholder">Sin imagen</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <strong><?= htmlspecialchars($s['nombre']) ?></strong>
                                         <span><?= htmlspecialchars($s['lugar']) ?><?= !empty($s['provincia']) ? ', ' . htmlspecialchars($s['provincia']) : '' ?></span>
                                     </td>
-                                    <td><?= date('d/m/Y', strtotime($s['fecha_sendero'])) ?></td>
+                                    <td><?= !empty($s['fecha_sendero']) ? date('d/m/Y', strtotime($s['fecha_sendero'])) : 'Sin fecha' ?></td>
                                     <td><?= htmlspecialchars($s['nivel_nombre']) ?></td>
                                     <td>
                                         <span class="state-pill <?= $s['estado'] === 'pendiente' ? 'pending' : 'visited' ?>"><?= htmlspecialchars($s['estado']) ?></span>
@@ -489,7 +573,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     </td>
                                     <td>
                                         <?= $s['distancia_km'] !== null ? number_format((float) $s['distancia_km'], 2) . ' km' : 'Distancia pendiente' ?>
-                                        <span><?= $s['tiempo_sendero_min'] !== null ? (int) $s['tiempo_sendero_min'] . ' min sendero' : 'Tiempo pendiente' ?></span>
+                                        <span><?= $s['tiempo_sendero_min'] !== null ? tiempo_legible($s['tiempo_sendero_min']) . ' sendero' : 'Tiempo pendiente' ?></span>
                                     </td>
                                     <td>
                                         <a class="btn-mini" href="<?= BASE_URL ?>mantenimientos/mantenimiento_senderos.php?edit=<?= (int) $s['id'] ?>">Editar</a>

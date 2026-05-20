@@ -20,7 +20,7 @@ $jsFiles = [
     "js/senderos.js"
 ];
 
-function sendero_visitado_img_src(?string $ruta, string $fallback = 'imagenes/paisajes/hero.jpg'): string
+function sendero_visitado_img_src(?string $ruta): string
 {
     $ruta = trim((string) $ruta);
     $path = $ruta !== '' ? __DIR__ . '/../' . $ruta : '';
@@ -29,7 +29,7 @@ function sendero_visitado_img_src(?string $ruta, string $fallback = 'imagenes/pa
         return BASE_URL . htmlspecialchars($ruta);
     }
 
-    return BASE_URL . $fallback;
+    return '';
 }
 
 $senderosVisitados = [];
@@ -42,6 +42,8 @@ $sqlVisitados = "
         s.provincia,
         s.descripcion_corta,
         s.imagen_principal,
+        s.imagen_flyer,
+        s.imagen_catalogo,
         s.tiempo_sendero_min,
         s.distancia_km,
         nd.nombre AS nivel_dificultad,
@@ -97,7 +99,15 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <article class="sendero-card visited-card">
                             <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $sendero['id'] ?>" class="sendero-card-link">
                                 <div class="sendero-image-wrap">
-                                    <img src="<?= sendero_visitado_img_src($sendero['imagen_principal'], 'imagenes/paisajes/img4.jpg') ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
+                                    <?php $imagenSrc = sendero_visitado_img_src($sendero['imagen_catalogo']); ?>
+                                    <?php if ($imagenSrc !== ''): ?>
+                                        <img src="<?= $imagenSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
+                                    <?php else: ?>
+                                        <div class="sendero-no-image">
+                                            <i data-feather="image"></i>
+                                            <span>Sin imagen cargada</span>
+                                        </div>
+                                    <?php endif; ?>
                                     <span class="sendero-level">Visitado</span>
                                 </div>
 

@@ -109,7 +109,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">4 activos</span>
+                    <span class="panel-count">5 activos</span>
                 </div>
 
                 <div class="panel-list">
@@ -149,13 +149,13 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>
 
-                    <a class="panel-item panel-item-disabled" href="#" aria-disabled="true">
-                        <span class="panel-icon"><i data-feather="sliders"></i></span>
+                    <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_contacto.php">
+                        <span class="panel-icon"><i data-feather="phone-call"></i></span>
                         <span class="panel-copy">
-                            <span class="panel-item-title">Plataforma</span>
-                            <span class="panel-item-sub">Parametros, banners, textos y ajustes</span>
+                            <span class="panel-item-title">Contacto</span>
+                            <span class="panel-item-sub">Redes, telefono, correo, ubicacion e imagen</span>
                         </span>
-                        <span class="panel-status">Pendiente</span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>
                 </div>
             </section>
@@ -193,6 +193,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-copy">
                             <span class="panel-item-title">Senderos / Galeria</span>
                             <span class="panel-item-sub">Rutas, imagenes, asistencia y reservas</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
+                    <a class="panel-item" href="<?= BASE_URL ?>pantallas/reporte_contacto.php">
+                        <span class="panel-icon"><i data-feather="inbox"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Contacto</span>
+                            <span class="panel-item-sub">Mensajes enviados desde la pagina publica</span>
                         </span>
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>

@@ -1,0 +1,44 @@
+<?php
+require_once __DIR__ . '/../configuracion.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in']) || (int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
+    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    exit;
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header("Location: " . BASE_URL . "pantallas/reporte_contacto.php");
+    exit;
+}
+
+$id = (int) ($_POST['id'] ?? 0);
+$estado = trim((string) ($_POST['estado'] ?? ''));
+$permitidos = ['nuevo', 'leido', 'respondido', 'archivado'];
+
+if ($id <= 0 || !in_array($estado, $permitidos, true)) {
+    $_SESSION['reporte_contacto_error'] = "Solicitud no valida.";
+    header("Location: " . BASE_URL . "pantallas/reporte_contacto.php");
+    exit;
+}
+
+$conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if (!$conn) {
+    $_SESSION['reporte_contacto_error'] = "No se pudo conectar con la base de datos.";
+    header("Location: " . BASE_URL . "pantallas/reporte_contacto.php");
+    exit;
+}
+mysqli_set_charset($conn, "utf8mb4");
+
+$stmt = mysqli_prepare($conn, "UPDATE mensajes_contacto SET estado = ? WHERE id = ?");
+mysqli_stmt_bind_param($stmt, 'si', $estado, $id);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_close($stmt);
+mysqli_close($conn);
+
+$_SESSION['reporte_contacto_success'] = "Estado del mensaje actualizado.";
+header("Location: " . BASE_URL . "pantallas/reporte_contacto.php");
+exit;

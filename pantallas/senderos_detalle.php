@@ -27,17 +27,37 @@ if ($idSendero <= 0) {
     exit;
 }
 
-function detalle_img_src(?string $ruta, string $fallback = 'imagenes/paisajes/hero.jpg'): string
+function detalle_img_src(?string $ruta): string
 {
     $ruta = trim((string) $ruta);
     if ($ruta !== '' && file_exists(__DIR__ . '/../' . $ruta)) {
         return BASE_URL . htmlspecialchars($ruta);
     }
-    return BASE_URL . $fallback;
+    return '';
 }
 
-function fecha_larga_detalle(string $fecha): string
+function tiempo_detalle(?int $minutos): string
 {
+    if ($minutos === null) {
+        return 'Por definir';
+    }
+    $horas = intdiv(max(0, $minutos), 60);
+    $mins = max(0, $minutos) % 60;
+    if ($horas > 0 && $mins > 0) {
+        return $horas . ' h ' . $mins . ' min';
+    }
+    if ($horas > 0) {
+        return $horas . ' h';
+    }
+    return $mins . ' min';
+}
+
+function fecha_larga_detalle(?string $fecha): string
+{
+    if (empty($fecha)) {
+        return 'Fecha por coordinar';
+    }
+
     $meses = [
         1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
         5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
@@ -48,8 +68,12 @@ function fecha_larga_detalle(string $fecha): string
     return date('d', $ts) . ' de ' . $meses[(int) date('n', $ts)] . ' de ' . date('Y', $ts);
 }
 
-function dias_restantes_detalle(string $fecha): int
+function dias_restantes_detalle(?string $fecha): int
 {
+    if (empty($fecha)) {
+        return 0;
+    }
+
     $hoy = new DateTime('today');
     $evento = new DateTime($fecha);
     return max(0, (int) $hoy->diff($evento)->format('%r%a'));
@@ -199,14 +223,22 @@ if ($stmtIncluye) {
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
-$imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal'], 'imagenes/paisajes/hero.jpg');
+$imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
+$tieneFecha = !empty($sendero['fecha_sendero']);
 ?>
 
 <div class="sendero-detalle-page">
     <section class="detalle-hero">
-        <img src="<?= $imagenPrincipalSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="detalle-hero-img">
+        <?php if ($imagenPrincipalSrc !== ''): ?>
+            <img src="<?= $imagenPrincipalSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="detalle-hero-img">
+        <?php else: ?>
+            <div class="detalle-hero-img detalle-no-image">
+                <i data-feather="image"></i>
+                <span>Sin imagen cargada</span>
+            </div>
+        <?php endif; ?>
         <div class="detalle-hero-overlay"></div>
 
         <div class="detalle-hero-content container-detalle">
@@ -223,7 +255,9 @@ $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
             <?php endif; ?>
 
             <div class="hero-meta">
-                <span><i data-feather="calendar"></i><?= fecha_larga_detalle($sendero['fecha_sendero']) ?></span>
+                <?php if ($tieneFecha): ?>
+                    <span><i data-feather="calendar"></i><?= fecha_larga_detalle($sendero['fecha_sendero']) ?></span>
+                <?php endif; ?>
                 <span><i data-feather="map-pin"></i><?= htmlspecialchars($sendero['lugar']) ?><?= !empty($sendero['provincia']) ? ', ' . htmlspecialchars($sendero['provincia']) : '' ?></span>
                 <span><i data-feather="trending-up"></i><?= htmlspecialchars($sendero['nivel_dificultad']) ?></span>
             </div>
@@ -242,10 +276,17 @@ $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
         <?php endif; ?>
 
         <section class="summary-panel">
-            <div class="summary-card date-card">
-                <span><?= date('d', strtotime($sendero['fecha_sendero'])) ?></span>
-                <strong><?= strtoupper(date('M', strtotime($sendero['fecha_sendero']))) ?></strong>
-            </div>
+            <?php if ($tieneFecha): ?>
+                <div class="summary-card date-card">
+                    <span><?= date('d', strtotime($sendero['fecha_sendero'])) ?></span>
+                    <strong><?= strtoupper(date('M', strtotime($sendero['fecha_sendero']))) ?></strong>
+                </div>
+            <?php else: ?>
+                <div class="summary-card date-card">
+                    <i data-feather="map"></i>
+                    <strong>Catalogo</strong>
+                </div>
+            <?php endif; ?>
             <div class="summary-card">
                 <i data-feather="clock"></i>
                 <span>Salida</span>
@@ -259,7 +300,7 @@ $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
             <div class="summary-card">
                 <i data-feather="activity"></i>
                 <span>Recorrido</span>
-                <strong><?= $sendero['tiempo_sendero_min'] !== null ? (int) $sendero['tiempo_sendero_min'] . ' min' : 'Por definir' ?></strong>
+                <strong><?= tiempo_detalle($sendero['tiempo_sendero_min'] !== null ? (int) $sendero['tiempo_sendero_min'] : null) ?></strong>
             </div>
             <div class="summary-card">
                 <i data-feather="flag"></i>
@@ -282,8 +323,8 @@ $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
                 <h2>Terreno y dificultad</h2>
                 <div class="feature-list">
                     <span><strong>Trayecto vehiculo:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
-                    <span><strong>Ida vehiculo:</strong> <?= $sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] . ' min' : 'Por definir' ?></span>
-                    <span><strong>Regreso vehiculo:</strong> <?= $sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] . ' min' : 'Por definir' ?></span>
+                    <span><strong>Ida vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
+                    <span><strong>Regreso vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
                     <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
                 </div>
                 <div class="terrain-tags">
@@ -306,18 +347,18 @@ $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
             <div class="gallery-grid">
                 <?php if (!empty($galeria)): ?>
                     <?php foreach ($galeria as $index => $imagen): ?>
-                        <?php $src = detalle_img_src($imagen['ruta_imagen'], 'imagenes/paisajes/img' . (($index % 10) + 1) . '.jpg'); ?>
-                        <button type="button" class="gallery-item" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
-                            <img src="<?= $src ?>" alt="<?= htmlspecialchars($imagen['titulo'] ?: $sendero['nombre']) ?>">
-                        </button>
+                        <?php $src = detalle_img_src($imagen['ruta_imagen']); ?>
+                        <?php if ($src !== ''): ?>
+                            <button type="button" class="gallery-item" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
+                                <img src="<?= $src ?>" alt="<?= htmlspecialchars($imagen['titulo'] ?: $sendero['nombre']) ?>">
+                            </button>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <?php for ($i = 1; $i <= 6; $i++): ?>
-                        <?php $src = BASE_URL . 'imagenes/paisajes/img' . $i . '.jpg'; ?>
-                        <button type="button" class="gallery-item" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $i - 1 ?>" aria-label="Ver imagen">
-                            <img src="<?= $src ?>" alt="Paisaje Senderismo Go">
-                        </button>
-                    <?php endfor; ?>
+                    <div class="gallery-empty">
+                        <i data-feather="image"></i>
+                        <span>Este sendero aun no tiene galeria cargada.</span>
+                    </div>
                 <?php endif; ?>
             </div>
         </section>
