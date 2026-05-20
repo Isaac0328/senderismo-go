@@ -22,6 +22,7 @@ DELETE FROM `niveles_dificultad`;
 DELETE FROM `tipos_camino_vehiculo`;
 DELETE FROM `tipos_terreno`;
 DELETE FROM `configuracion_contacto`;
+DELETE FROM `tarjeta_pago`;
 DELETE FROM `usuarios`;
 
 ALTER TABLE `sendero_anotaciones` AUTO_INCREMENT = 1;
@@ -63,6 +64,22 @@ VALUES
         '@senderismogo',
         'https://www.instagram.com/senderismogo',
         'Cuentanos que necesitas y te responderemos con orientacion clara para que puedas planificar con confianza.'
+    );
+
+INSERT INTO `tarjeta_pago`
+    (`id`, `banco`, `cuenta`, `tipo_cuenta`, `cedula`, `correo`, `nombre`, `telefono_comprobante`, `nota_importante`, `activo`)
+VALUES
+    (
+        1,
+        'Banco Popular',
+        '846542835',
+        'Corriente',
+        '032-0039961-0',
+        'senderismogopro@gmail.com',
+        'Yomary Infante',
+        '809-323-1888',
+        'Al momento de realizar el pago debe enviar el comprobante al numero indicado. El deposito por reservacion no es reembolsable ni transferible. No se realizan reembolsos del pago total, pero puede ceder su lugar a otra persona que cuente con la capacidad fisica necesaria para realizar el sendero.',
+        1
     );
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -22,6 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
     alergiaRadios.forEach((radio) => radio.addEventListener('change', syncAlergia));
     viaSelect?.addEventListener('change', syncReferido);
 
+    document.querySelectorAll('.consent-toggle').forEach((button) => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('aria-controls');
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (!target) return;
+
+            const isOpen = button.getAttribute('aria-expanded') === 'true';
+            button.setAttribute('aria-expanded', String(!isOpen));
+            button.classList.toggle('is-open', !isOpen);
+            target.hidden = isOpen;
+            button.querySelector('span').textContent = isOpen ? 'Leer consentimiento completo' : 'Ocultar consentimiento';
+        });
+    });
+
     syncAlergia();
     syncReferido();
 });

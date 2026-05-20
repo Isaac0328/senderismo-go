@@ -68,6 +68,15 @@ function fecha_larga_detalle(?string $fecha): string
     return date('d', $ts) . ' de ' . $meses[(int) date('n', $ts)] . ' de ' . date('Y', $ts);
 }
 
+function dinero_detalle($monto): string
+{
+    if ($monto === null || $monto === '') {
+        return 'Por definir';
+    }
+
+    return 'RD$ ' . number_format((float) $monto, 2) . ' pesos';
+}
+
 function dias_restantes_detalle(?string $fecha): int
 {
     if (empty($fecha)) {
@@ -96,6 +105,8 @@ $sqlSendero = "
         s.distancia_km,
         s.desnivel_mts,
         s.cobertura_senal_pct,
+        s.inversion_total,
+        s.fecha_limite_pago,
         s.estado,
         nd.nombre AS nivel_dificultad,
         tc.nombre AS tipo_camino_vehiculo
@@ -221,13 +232,20 @@ if ($stmtIncluye) {
     mysqli_stmt_close($stmtIncluye);
 }
 
+$tarjetaPago = null;
+$resPago = mysqli_query($conn, "SELECT * FROM tarjeta_pago WHERE id = 1 AND activo = 1 LIMIT 1");
+if ($resPago && ($rowPago = mysqli_fetch_assoc($resPago))) {
+    $tarjetaPago = $rowPago;
+}
+
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
+$esVisitado = ($sendero['estado'] ?? '') === 'visitado';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
-$tieneFecha = !empty($sendero['fecha_sendero']);
+$tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
 ?>
 
 <div class="sendero-detalle-page">
@@ -243,7 +261,7 @@ $tieneFecha = !empty($sendero['fecha_sendero']);
         <div class="detalle-hero-overlay"></div>
 
         <div class="detalle-hero-content container-detalle">
-            <a href="<?= BASE_URL ?>pantallas/senderos.php" class="back-link">
+            <a href="<?= BASE_URL ?>pantallas/<?= $esVisitado ? 'senderos_visitados.php' : 'senderos.php' ?>" class="back-link">
                 <i data-feather="arrow-left"></i>
                 Volver a senderos
             </a>
@@ -277,22 +295,26 @@ $tieneFecha = !empty($sendero['fecha_sendero']);
         <?php endif; ?>
 
         <section class="summary-panel">
-            <?php if ($tieneFecha): ?>
-                <div class="summary-card date-card">
-                    <span><?= date('d', strtotime($sendero['fecha_sendero'])) ?></span>
-                    <strong><?= strtoupper(date('M', strtotime($sendero['fecha_sendero']))) ?></strong>
-                </div>
-            <?php else: ?>
-                <div class="summary-card date-card">
-                    <i data-feather="map"></i>
-                    <strong>Catalogo</strong>
+            <?php if (!$esVisitado): ?>
+                <?php if ($tieneFecha): ?>
+                    <div class="summary-card date-card">
+                        <span><?= date('d', strtotime($sendero['fecha_sendero'])) ?></span>
+                        <strong><?= strtoupper(date('M', strtotime($sendero['fecha_sendero']))) ?></strong>
+                    </div>
+                <?php else: ?>
+                    <div class="summary-card date-card">
+                        <i data-feather="map"></i>
+                        <strong>Catalogo</strong>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+            <?php if (!$esVisitado): ?>
+                <div class="summary-card">
+                    <i data-feather="clock"></i>
+                    <span>Salida</span>
+                    <strong><?= $horaSalidaPrincipal ? date('h:i A', strtotime($horaSalidaPrincipal)) : 'Por definir' ?></strong>
                 </div>
             <?php endif; ?>
-            <div class="summary-card">
-                <i data-feather="clock"></i>
-                <span>Salida</span>
-                <strong><?= $horaSalidaPrincipal ? date('h:i A', strtotime($horaSalidaPrincipal)) : 'Por definir' ?></strong>
-            </div>
             <div class="summary-card">
                 <i data-feather="trending-up"></i>
                 <span>Dificultad</span>
@@ -365,98 +387,155 @@ $tieneFecha = !empty($sendero['fecha_sendero']);
             </div>
         </section>
 
-        <section class="detail-section">
-            <span class="section-kicker">Encuentro</span>
-            <h2>Puntos y horarios</h2>
+        <?php if (!$esVisitado): ?>
+            <section class="detail-section">
+                <span class="section-kicker">Encuentro</span>
+                <h2>Puntos y horarios</h2>
 
-            <div class="meeting-grid">
-                <?php if (!empty($puntosEncuentro)): ?>
-                    <?php foreach ($puntosEncuentro as $punto): ?>
-                        <article class="meeting-card">
-                            <div class="meeting-icon"><i data-feather="map-pin"></i></div>
-                            <div>
-                                <span class="meeting-point-label">Punto <?= (int) ($punto['orden'] ?? 0) ?></span>
-                                <h3><?= htmlspecialchars($punto['nombre_punto']) ?></h3>
-                                <?php if (!empty($punto['direccion_referencia'])): ?>
-                                    <p><?= htmlspecialchars($punto['direccion_referencia']) ?></p>
-                                <?php endif; ?>
-                                <div class="time-grid">
-                                    <span><strong>Encuentro</strong><?= date('h:i A', strtotime($punto['hora_encuentro'])) ?></span>
-                                    <span><strong>Salida</strong><?= date('h:i A', strtotime($punto['hora_salida'])) ?></span>
-                                </div>
-                                <?php if (!empty($punto['url_mapa'])): ?>
-                                    <a href="<?= htmlspecialchars($punto['url_mapa']) ?>" target="_blank" rel="noopener noreferrer" class="map-link">
-                                        Abrir ubicacion
-                                    </a>
-                                <?php endif; ?>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="empty-block">Los puntos de encuentro se publicaran proximamente.</div>
-                <?php endif; ?>
-            </div>
-        </section>
-
-        <section class="detail-lists-grid">
-            <article class="detail-section list-panel">
-                <span class="section-kicker">Preparacion</span>
-                <h2>Anotaciones importantes</h2>
-
-                <?php if (!empty($anotaciones)): ?>
-                    <div class="detail-list">
-                        <?php foreach ($anotaciones as $item): ?>
-                            <div class="detail-list-item">
-                                <i data-feather="check-circle"></i>
+                <div class="meeting-grid">
+                    <?php if (!empty($puntosEncuentro)): ?>
+                        <?php foreach ($puntosEncuentro as $punto): ?>
+                            <article class="meeting-card">
+                                <div class="meeting-icon"><i data-feather="map-pin"></i></div>
                                 <div>
-                                    <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                    <?php if (!empty($item['descripcion'])): ?>
-                                        <p><?= htmlspecialchars($item['descripcion']) ?></p>
+                                    <span class="meeting-point-label">Punto <?= (int) ($punto['orden'] ?? 0) ?></span>
+                                    <h3><?= htmlspecialchars($punto['nombre_punto']) ?></h3>
+                                    <?php if (!empty($punto['direccion_referencia'])): ?>
+                                        <p><?= htmlspecialchars($punto['direccion_referencia']) ?></p>
+                                    <?php endif; ?>
+                                    <div class="time-grid">
+                                        <span><strong>Encuentro</strong><?= date('h:i A', strtotime($punto['hora_encuentro'])) ?></span>
+                                        <span><strong>Salida</strong><?= date('h:i A', strtotime($punto['hora_salida'])) ?></span>
+                                    </div>
+                                    <?php if (!empty($punto['url_mapa'])): ?>
+                                        <a href="<?= htmlspecialchars($punto['url_mapa']) ?>" target="_blank" rel="noopener noreferrer" class="map-link">
+                                            Abrir ubicacion
+                                        </a>
                                     <?php endif; ?>
                                 </div>
-                            </div>
+                            </article>
                         <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-block">No hay anotaciones registradas.</div>
-                <?php endif; ?>
-            </article>
+                    <?php else: ?>
+                        <div class="empty-block">Los puntos de encuentro se publicaran proximamente.</div>
+                    <?php endif; ?>
+                </div>
+            </section>
 
-            <article class="detail-section list-panel">
-                <span class="section-kicker">Incluido</span>
-                <h2>Este sendero incluye</h2>
+            <section class="detail-lists-grid">
+                <article class="detail-section list-panel">
+                    <span class="section-kicker">Preparacion</span>
+                    <h2>Anotaciones importantes</h2>
 
-                <?php if (!empty($incluye)): ?>
-                    <div class="detail-list">
-                        <?php foreach ($incluye as $item): ?>
-                            <div class="detail-list-item">
-                                <i data-feather="plus-circle"></i>
-                                <div>
-                                    <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                    <?php if (!empty($item['descripcion'])): ?>
-                                        <p><?= htmlspecialchars($item['descripcion']) ?></p>
-                                    <?php endif; ?>
+                    <?php if (!empty($anotaciones)): ?>
+                        <div class="detail-list">
+                            <?php foreach ($anotaciones as $item): ?>
+                                <div class="detail-list-item">
+                                    <i data-feather="check-circle"></i>
+                                    <div>
+                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                        <?php if (!empty($item['descripcion'])): ?>
+                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="empty-block">No hay elementos incluidos registrados.</div>
-                <?php endif; ?>
-            </article>
-        </section>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="empty-block">No hay anotaciones registradas.</div>
+                    <?php endif; ?>
+                </article>
 
-        <section class="detail-register-cta">
-            <div>
-                <span class="section-kicker">Registro</span>
-                <h2>Reserva tu cupo para este sendero</h2>
-                <p>Completa tus datos de participante, salud y contacto de emergencia en una pantalla separada.</p>
-            </div>
-            <a class="register-sendero-btn" href="<?= BASE_URL ?>pantallas/registro_sendero.php?id=<?= (int) $sendero['id'] ?>">
-                Registrarme
-                <i data-feather="arrow-right"></i>
-            </a>
-        </section>
+                <article class="detail-section list-panel">
+                    <span class="section-kicker">Incluido</span>
+                    <h2>Este sendero incluye</h2>
+
+                    <?php if (!empty($incluye)): ?>
+                        <div class="detail-list">
+                            <?php foreach ($incluye as $item): ?>
+                                <div class="detail-list-item">
+                                    <i data-feather="plus-circle"></i>
+                                    <div>
+                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                        <?php if (!empty($item['descripcion'])): ?>
+                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="empty-block">No hay elementos incluidos registrados.</div>
+                    <?php endif; ?>
+                </article>
+            </section>
+
+            <section class="payment-section">
+                <article class="detail-section investments-panel">
+                    <span class="section-kicker">Inversiones</span>
+                    <h2>Inversiones</h2>
+                    <div class="payment-lines">
+                        <div class="payment-line payment-amount">
+                            <i data-feather="credit-card"></i>
+                            <span>
+                                <small>Inversion total</small>
+                                <strong><?= dinero_detalle($sendero['inversion_total']) ?></strong>
+                            </span>
+                        </div>
+                        <div class="payment-line">
+                            <i data-feather="info"></i>
+                            <span>
+                                Solo reservas tu cupo con el pago total del sendero<?= !empty($sendero['fecha_limite_pago']) ? ', a mas tardar el ' . fecha_larga_detalle($sendero['fecha_limite_pago']) . '.' : '.' ?>
+                            </span>
+                        </div>
+                        <div class="payment-line">
+                            <i data-feather="info"></i>
+                            <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un companero. <strong>Deben compartir el gasto de combustible.</strong></span>
+                        </div>
+                    </div>
+                </article>
+
+                <?php if ($tarjetaPago): ?>
+                    <article class="detail-section payment-card-section">
+                        <span class="section-kicker">Pago</span>
+                        <h2>Informacion para el pago</h2>
+                        <div class="bank-card">
+                            <h3><?= htmlspecialchars($tarjetaPago['banco']) ?></h3>
+                            <dl>
+                                <div><dt>Cuenta No.:</dt><dd><?= htmlspecialchars($tarjetaPago['cuenta']) ?></dd></div>
+                                <div><dt>Tipo de cuenta:</dt><dd><?= htmlspecialchars($tarjetaPago['tipo_cuenta']) ?></dd></div>
+                                <div><dt>Cedula:</dt><dd><?= htmlspecialchars($tarjetaPago['cedula']) ?></dd></div>
+                                <div><dt>Correo:</dt><dd><?= htmlspecialchars($tarjetaPago['correo']) ?></dd></div>
+                                <div><dt>Nombre:</dt><dd><?= htmlspecialchars($tarjetaPago['nombre']) ?></dd></div>
+                                <div><dt>Comprobante:</dt><dd><?= htmlspecialchars($tarjetaPago['telefono_comprobante']) ?></dd></div>
+                            </dl>
+                            <div class="payment-note">
+                                <strong><i data-feather="alert-triangle"></i> Nota importante</strong>
+                                <ul>
+                                    <?php foreach (preg_split('/\r\n|\r|\n|\.\s+/', (string) $tarjetaPago['nota_importante']) as $linea): ?>
+                                        <?php $linea = trim($linea); ?>
+                                        <?php if ($linea !== ''): ?>
+                                            <li><?= htmlspecialchars(rtrim($linea, '.')) ?>.</li>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+                <?php endif; ?>
+            </section>
+
+            <section class="detail-register-cta">
+                <div>
+                    <span class="section-kicker">Registro</span>
+                    <h2>Reserva tu cupo para este sendero</h2>
+                    <p>Completa tus datos de participante, salud y contacto de emergencia en una pantalla separada.</p>
+                </div>
+                <a class="register-sendero-btn" href="<?= BASE_URL ?>pantallas/registro_sendero.php?id=<?= (int) $sendero['id'] ?>">
+                    Registrarme
+                    <i data-feather="arrow-right"></i>
+                </a>
+            </section>
+        <?php endif; ?>
     </main>
 
     <div class="gallery-modal" id="galleryModal" aria-hidden="true">

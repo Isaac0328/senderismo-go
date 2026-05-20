@@ -271,14 +271,29 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </div>
                 </div>
 
-                <label class="consent-box">
-                    <input type="checkbox" name="consentimiento" value="1" <?= !empty($formData['consentimiento']) ? 'checked' : '' ?> required>
-                    <span><strong>Consentimiento *</strong><?= h($consentimientoTexto) ?></span>
-                </label>
+                <div class="consent-box consent-box-large">
+                    <label class="consent-accept" for="consentimiento">
+                        <input id="consentimiento" type="checkbox" name="consentimiento" value="1" <?= !empty($formData['consentimiento']) ? 'checked' : '' ?> required>
+                        <span class="consent-check" aria-hidden="true"></span>
+                        <span class="consent-copy">
+                            <strong>Consentimiento informado *</strong>
+                            <small>Lee y acepta las condiciones de participacion antes de enviar tu registro.</small>
+                        </span>
+                    </label>
+                    <button class="consent-toggle" type="button" aria-expanded="false" aria-controls="consentimientoTexto">
+                        <span>Leer consentimiento completo</span>
+                        <i data-feather="chevron-down"></i>
+                    </button>
+                    <div class="consent-readable" id="consentimientoTexto" hidden><?= h($consentimientoTexto) ?></div>
+                </div>
 
                 <label class="consent-box">
                     <input type="checkbox" name="rgpd" value="1" <?= !empty($formData['rgpd']) ? 'checked' : '' ?> required>
-                    <span><strong>Acuerdo RGPD *</strong><?= h($rgpdTexto) ?></span>
+                    <span class="consent-check" aria-hidden="true"></span>
+                    <span class="consent-copy">
+                        <strong>Acuerdo RGPD *</strong>
+                        <span>Doy mi consentimiento para que esta web almacene la informacion que envio para que puedan responder a mi peticion. <span class="privacy-link">Politica de Privacidad</span>.</span>
+                    </span>
                 </label>
             </section>
 

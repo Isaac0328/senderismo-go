@@ -109,7 +109,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">5 activos</span>
+                    <span class="panel-count">6 activos</span>
                 </div>
 
                 <div class="panel-list">
@@ -154,6 +154,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-copy">
                             <span class="panel-item-title">Contacto</span>
                             <span class="panel-item-sub">Redes, telefono, correo, ubicacion e imagen</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
+                    <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_tarjeta_pago.php">
+                        <span class="panel-icon"><i data-feather="credit-card"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Tarjeta de pago</span>
+                            <span class="panel-item-sub">Banco, cuenta, titular y nota importante</span>
                         </span>
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>

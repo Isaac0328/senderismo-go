@@ -532,6 +532,8 @@ CREATE TABLE `senderos` (
   `distancia_km` decimal(6,2) DEFAULT NULL,
   `desnivel_mts` int(11) DEFAULT NULL,
   `cobertura_senal_pct` tinyint(3) unsigned DEFAULT NULL,
+  `inversion_total` decimal(10,2) DEFAULT NULL,
+  `fecha_limite_pago` date DEFAULT NULL,
   `estado` enum('pendiente','visitado') NOT NULL DEFAULT 'pendiente',
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -552,6 +554,39 @@ CREATE TABLE `senderos` (
 LOCK TABLES `senderos` WRITE;
 /*!40000 ALTER TABLE `senderos` DISABLE KEYS */;
 /*!40000 ALTER TABLE `senderos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `tarjeta_pago`
+--
+
+DROP TABLE IF EXISTS `tarjeta_pago`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tarjeta_pago` (
+  `id` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `banco` varchar(120) NOT NULL,
+  `cuenta` varchar(80) NOT NULL,
+  `tipo_cuenta` varchar(80) NOT NULL,
+  `cedula` varchar(40) NOT NULL,
+  `correo` varchar(160) NOT NULL,
+  `nombre` varchar(160) NOT NULL,
+  `telefono_comprobante` varchar(40) NOT NULL,
+  `nota_importante` text NOT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `tarjeta_pago`
+--
+
+LOCK TABLES `tarjeta_pago` WRITE;
+/*!40000 ALTER TABLE `tarjeta_pago` DISABLE KEYS */;
+INSERT INTO `tarjeta_pago` VALUES (1,'Banco Popular','846542835','Corriente','032-0039961-0','senderismogopro@gmail.com','Yomary Infante','809-323-1888','Al momento de realizar el pago debe enviar el comprobante al numero indicado. El deposito por reservacion no es reembolsable ni transferible. No se realizan reembolsos del pago total, pero puede ceder su lugar a otra persona que cuente con la capacidad fisica necesaria para realizar el sendero.',1,current_timestamp());
+/*!40000 ALTER TABLE `tarjeta_pago` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

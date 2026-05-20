@@ -370,6 +370,16 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <input type="number" id="cobertura_senal_pct" name="cobertura_senal_pct" min="0" max="100" value="<?= htmlspecialchars($edit['cobertura_senal_pct'] ?? '') ?>" placeholder="50">
                     </div>
 
+                    <div class="field">
+                        <label for="inversion_total">Inversion total (RD$)</label>
+                        <input type="number" id="inversion_total" name="inversion_total" min="0" max="999999.99" step="0.01" value="<?= htmlspecialchars($edit['inversion_total'] ?? '') ?>" placeholder="1500.00">
+                    </div>
+
+                    <div class="field">
+                        <label for="fecha_limite_pago">Fecha limite de pago</label>
+                        <input type="date" id="fecha_limite_pago" name="fecha_limite_pago" value="<?= htmlspecialchars($edit['fecha_limite_pago'] ?? '') ?>">
+                    </div>
+
                     <div class="field span-6">
                         <label for="descripcion">Descripcion completa</label>
                         <textarea id="descripcion" name="descripcion" rows="4" placeholder="Describe la experiencia, nivel fisico, ambiente y recomendaciones generales."><?= htmlspecialchars($edit['descripcion'] ?? '') ?></textarea>

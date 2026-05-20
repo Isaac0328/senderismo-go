@@ -496,6 +496,188 @@
     border: 1px solid rgba(225, 6, 0, .20);
 }
 
+.payment-section {
+    display: grid;
+    grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr);
+    align-items: start;
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.payment-section .detail-section h2 {
+    font-size: clamp(1.2rem, 1.55vw, 1.55rem);
+}
+
+.investments-panel {
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
+}
+
+.payment-lines {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.payment-line {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    color: #24313a;
+    line-height: 1.5;
+    font-size: .9rem;
+}
+
+.payment-line svg {
+    width: 20px;
+    height: 20px;
+    color: #9d9d9d;
+    margin-top: 1px;
+}
+
+.payment-line strong {
+    color: #111;
+}
+
+.payment-amount {
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: center;
+    margin-bottom: 2px;
+    padding: 14px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #111 0%, #2b2b2b 48%, #b90000 100%);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(185, 0, 0, .20);
+}
+
+.payment-amount svg {
+    width: 32px;
+    height: 32px;
+    color: #ffcf3d;
+}
+
+.payment-amount small {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(255, 255, 255, .72);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.payment-amount strong {
+    display: block;
+    color: #fff;
+    font-size: clamp(1.45rem, 2.3vw, 2rem);
+    line-height: 1.05;
+}
+
+.payment-card-section {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 16px;
+}
+
+.bank-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, .78fr);
+    gap: 10px 14px;
+    align-items: start;
+    width: 100%;
+    margin: 8px 0 0;
+    padding: 14px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(0, 70, 173, .05), rgba(225, 6, 0, .04)),
+        #fff;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .09);
+}
+
+.bank-card h3 {
+    grid-column: 1 / -1;
+    margin: 0 0 10px;
+    color: #0046ad;
+    font-size: 1.1rem;
+    line-height: 1.2;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.bank-card dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, .08);
+}
+
+.bank-card dl div {
+    min-width: 0;
+    padding: 8px 9px;
+    border: 1px solid rgba(0, 0, 0, .07);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .78);
+}
+
+.bank-card dt,
+.bank-card dd {
+    margin: 0;
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.bank-card dt {
+    margin-bottom: 3px;
+    color: #24313a;
+    font-weight: 800;
+}
+
+.bank-card dd {
+    color: #0046ad;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.payment-note {
+    margin-top: 0;
+    padding: 10px 12px;
+    border-left: 4px solid #ffbf00;
+    border-radius: 8px;
+    background: #fff6dc;
+    color: #bc0000;
+}
+
+.payment-note strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #bc0000;
+    font-size: .86rem;
+    text-transform: uppercase;
+}
+
+.payment-note strong svg {
+    width: 17px;
+    height: 17px;
+}
+
+.payment-note ul {
+    display: grid;
+    gap: 5px;
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
+.payment-note li {
+    color: #bc0000;
+    font-size: .8rem;
+    line-height: 1.35;
+}
+
 .detail-register-cta {
     display: flex;
     align-items: center;
@@ -639,7 +821,8 @@
 @media (max-width: 980px) {
     .summary-panel,
     .content-grid,
-    .detail-lists-grid {
+    .detail-lists-grid,
+    .payment-section {
         grid-template-columns: 1fr;
     }
 
@@ -705,6 +888,10 @@
         flex-direction: column;
     }
 
+    .bank-card {
+        margin-top: 18px;
+    }
+
     .register-sendero-btn {
         width: 100%;
     }
@@ -736,6 +923,27 @@
     .section-head-row {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .payment-line {
+        grid-template-columns: 28px minmax(0, 1fr);
+    }
+
+    .bank-card {
+        grid-template-columns: 1fr;
+    }
+
+    .bank-card dl div {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .bank-card dd {
+        text-align: left;
+    }
+
+    .payment-note ul {
+        grid-template-columns: 1fr;
     }
 
     .gallery-modal {
