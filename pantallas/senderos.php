@@ -247,9 +247,6 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 <div>
                     <span class="section-eyebrow">Agenda abierta</span>
                     <h2 class="section-title">Proximos senderos</h2>
-                    <p class="section-description">
-                        Cada tarjeta se alimenta desde la base de datos. Al crear un sendero pendiente y activo desde el mantenimiento, aparecera aqui automaticamente.
-                    </p>
                 </div>
                 <a href="<?= BASE_URL ?>pantallas/senderos_visitados.php" class="section-link">Ver visitados</a>
             </div>

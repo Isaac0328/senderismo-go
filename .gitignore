@@ -22,6 +22,7 @@ vendor/
 
 # Respaldos con datos reales o credenciales locales
 respaldos_bd/*.sql
+scripts_bd/respaldos_bd/*.sql
 
 # Archivos generados por pruebas o herramientas
 coverage/

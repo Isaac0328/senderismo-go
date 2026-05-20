@@ -18,8 +18,8 @@ El archivo `configuracion.php` detecta si el proyecto corre en local o en hostin
 
 ## Base de datos
 
-El script versionado de estructura esta en `bd/estructura_sgbd.sql`.
-Los respaldos completos con datos reales se mantienen fuera de Git por seguridad.
+El script versionado de estructura esta en `scripts_bd/estructura_sgbd.sql`.
+Los respaldos completos con datos estan en `scripts_bd/respaldos_bd`.
 
 ## Acceso local
 

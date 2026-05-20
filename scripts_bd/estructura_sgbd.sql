@@ -530,6 +530,7 @@ CREATE TABLE `senderos` (
   `tipo_camino_vehiculo_id` int(11) DEFAULT NULL,
   `tiempo_sendero_min` int(11) DEFAULT NULL,
   `distancia_km` decimal(6,2) DEFAULT NULL,
+  `desnivel_mts` int(11) DEFAULT NULL,
   `cobertura_senal_pct` tinyint(3) unsigned DEFAULT NULL,
   `estado` enum('pendiente','visitado') NOT NULL DEFAULT 'pendiente',
   `activo` tinyint(1) NOT NULL DEFAULT 1,

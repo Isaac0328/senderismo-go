@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
     const galleryInput = document.getElementById('galeria');
     const galleryHelp = document.getElementById('galleryHelp');
-    const dateInput = document.getElementById('fecha_sendero_visual');
-    const dateHiddenInput = document.getElementById('fecha_sendero');
+    const dateInput = document.getElementById('fecha_sendero');
     const datePreview = document.getElementById('fechaSenderoPreview');
 
     if (searchInput) {
@@ -28,7 +27,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (dateInput && dateHiddenInput && datePreview) {
+    if (dateInput && datePreview) {
+        if (dateInput.type === 'date') {
+            const updateNativeDatePreview = () => {
+                if (!dateInput.value) {
+                    datePreview.textContent = 'Obligatoria solo para proximos senderos.';
+                    return;
+                }
+
+                const [year, month, day] = dateInput.value.split('-').map(Number);
+                const parsedDate = new Date(year, month - 1, day);
+
+                datePreview.textContent = `Fecha seleccionada: ${parsedDate.toLocaleDateString('es-DO', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}`;
+            };
+
+            dateInput.addEventListener('change', updateNativeDatePreview);
+            dateInput.addEventListener('input', updateNativeDatePreview);
+            updateNativeDatePreview();
+        } else {
+
         const pad = (value) => String(value).padStart(2, '0');
 
         const parseVisualDate = (value) => {
@@ -73,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dateInput.addEventListener('change', updateDatePreview);
         dateInput.addEventListener('input', updateDatePreview);
         updateDatePreview();
+        }
     }
 
     document.querySelectorAll('[data-duration-group]').forEach((group) => {

@@ -94,6 +94,7 @@ $sqlSendero = "
         s.tiempo_regreso_vehiculo_min,
         s.tiempo_sendero_min,
         s.distancia_km,
+        s.desnivel_mts,
         s.cobertura_senal_pct,
         s.estado,
         nd.nombre AS nivel_dificultad,
@@ -325,6 +326,7 @@ $tieneFecha = !empty($sendero['fecha_sendero']);
                     <span><strong>Trayecto vehiculo:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
                     <span><strong>Ida vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
                     <span><strong>Regreso vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
+                    <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
                     <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
                 </div>
                 <div class="terrain-tags">
@@ -373,6 +375,7 @@ $tieneFecha = !empty($sendero['fecha_sendero']);
                         <article class="meeting-card">
                             <div class="meeting-icon"><i data-feather="map-pin"></i></div>
                             <div>
+                                <span class="meeting-point-label">Punto <?= (int) ($punto['orden'] ?? 0) ?></span>
                                 <h3><?= htmlspecialchars($punto['nombre_punto']) ?></h3>
                                 <?php if (!empty($punto['direccion_referencia'])): ?>
                                     <p><?= htmlspecialchars($punto['direccion_referencia']) ?></p>

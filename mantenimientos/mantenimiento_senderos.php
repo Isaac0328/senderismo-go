@@ -253,8 +253,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                     <div class="field">
                         <label for="fecha_sendero">Fecha</label>
-                        <input type="text" id="fecha_sendero_visual" name="fecha_sendero_visual" value="<?= htmlspecialchars(fecha_admin_visual($edit['fecha_sendero'] ?? '')) ?>" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10">
-                        <input type="hidden" id="fecha_sendero" name="fecha_sendero" value="<?= htmlspecialchars($edit['fecha_sendero'] ?? '') ?>">
+                        <input type="date" id="fecha_sendero" name="fecha_sendero" value="<?= htmlspecialchars($edit['fecha_sendero'] ?? '') ?>">
                         <small id="fechaSenderoPreview" class="date-preview">Obligatoria solo para proximos senderos.</small>
                     </div>
 
@@ -359,6 +358,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <div class="field">
                         <label for="distancia_km">Distancia (km)</label>
                         <input type="number" id="distancia_km" name="distancia_km" min="0" max="999" step="0.01" value="<?= htmlspecialchars($edit['distancia_km'] ?? '') ?>" placeholder="6.50">
+                    </div>
+
+                    <div class="field">
+                        <label for="desnivel_mts">Desnivel (+ - mts)</label>
+                        <input type="number" id="desnivel_mts" name="desnivel_mts" min="0" max="9999" value="<?= htmlspecialchars($edit['desnivel_mts'] ?? '') ?>" placeholder="450">
                     </div>
 
                     <div class="field">
@@ -495,6 +499,54 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 </div>
             </form>
         </section>
+
+        <?php if ($edit): ?>
+            <?php
+            $imagenesBase = [
+                [
+                    'titulo' => 'Imagen principal',
+                    'uso' => 'Detalle grande del sendero',
+                    'ruta' => $edit['imagen_principal'] ?? '',
+                ],
+                [
+                    'titulo' => 'Imagen flyer',
+                    'uso' => 'Tarjeta de proximos senderos',
+                    'ruta' => $edit['imagen_flyer'] ?? '',
+                ],
+                [
+                    'titulo' => 'Imagen visitados/catalogo',
+                    'uso' => 'Tarjeta de senderos visitados',
+                    'ruta' => $edit['imagen_catalogo'] ?? '',
+                ],
+            ];
+            ?>
+            <section class="senderos-form-card image-summary-card">
+                <div class="senderos-card-head">
+                    <div>
+                        <h2>Imagenes principales</h2>
+                        <p>Vista rapida de las imagenes asignadas a cada pantalla publica.</p>
+                    </div>
+                </div>
+                <div class="image-summary-grid">
+                    <?php foreach ($imagenesBase as $imagenBase): ?>
+                        <?php $src = img_admin_src($imagenBase['ruta']); ?>
+                        <article class="image-summary-item">
+                            <div class="image-summary-preview">
+                                <?php if ($src !== ''): ?>
+                                    <img src="<?= $src ?>" alt="<?= htmlspecialchars($imagenBase['titulo']) ?>">
+                                <?php else: ?>
+                                    <span>Sin imagen cargada</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="image-summary-copy">
+                                <strong><?= htmlspecialchars($imagenBase['titulo']) ?></strong>
+                                <span><?= htmlspecialchars($imagenBase['uso']) ?></span>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endif; ?>
 
         <?php if ($edit && !empty($editGaleria)): ?>
             <section class="senderos-form-card gallery-admin-card">
