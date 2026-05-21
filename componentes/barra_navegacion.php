@@ -116,7 +116,7 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 
                 <!-- Botón menú mobile -->
                 <div class="mobile-menu-button-wrap">
-                    <button id="menuBtn" class="nav-menu-button" type="button" aria-label="Abrir menu">
+                    <button id="menuBtn" class="nav-menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileMenu" onclick="return window.toggleMobileMenu(event);">
                         <i data-feather="menu"></i>
                     </button>
                 </div>
@@ -127,6 +127,16 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="hidden md:hidden">
         <div class="px-4 pt-2 pb-3 space-y-1">
+            <?php if ($isLoggedIn): ?>
+                <div class="mobile-user-card">
+                    <div class="mobile-user-avatar"><?= htmlspecialchars($userInitial) ?></div>
+                    <div>
+                        <strong><?= htmlspecialchars($userName ?: 'Usuario') ?></strong>
+                        <span><?= htmlspecialchars($userRole ?: 'Sesion activa') ?></span>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <a href="<?= BASE_URL ?>pantallas/inicio.php" class="mobile-nav-link"><i
                     data-feather="home"></i><span>Inicio</span></a>
             <a href="<?= BASE_URL ?>pantallas/nosotros.php" class="mobile-nav-link"><i
@@ -160,3 +170,24 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
         </div>
     </div>
 </nav>
+
+<script>
+    window.toggleMobileMenu = window.toggleMobileMenu || function (event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        var menu = document.getElementById('mobileMenu');
+        var button = document.getElementById('menuBtn');
+        if (!menu || !button) return false;
+
+        var isOpen = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', !isOpen);
+        menu.classList.toggle('is-open', isOpen);
+        button.classList.toggle('is-open', isOpen);
+        button.setAttribute('aria-expanded', String(isOpen));
+        button.setAttribute('aria-label', isOpen ? 'Cerrar menu' : 'Abrir menu');
+        return false;
+    };
+</script>

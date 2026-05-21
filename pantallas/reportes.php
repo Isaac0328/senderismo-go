@@ -337,6 +337,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <th>Estado</th>
                                 <th>Registros</th>
                                 <th>7 dias</th>
+                                <th>Accion</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -347,6 +348,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <td><?= h($row['estado']) ?></td>
                                     <td><?= (int) $row['registros'] ?></td>
                                     <td><?= (int) $row['registros_7'] ?></td>
+                                    <td>
+                                        <a class="report-row-link" href="<?= BASE_URL ?>pantallas/reporte_usuarios_sendero.php?sendero_id=<?= (int) $row['id'] ?>">Ver usuarios</a>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

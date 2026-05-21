@@ -206,6 +206,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>
 
+                    <a class="panel-item" href="<?= BASE_URL ?>pantallas/reporte_usuarios_sendero.php">
+                        <span class="panel-icon"><i data-feather="users"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Usuarios por sendero</span>
+                            <span class="panel-item-sub">Participantes, salud, emergencia y fecha de registro</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
                     <a class="panel-item" href="<?= BASE_URL ?>pantallas/reporte_contacto.php">
                         <span class="panel-icon"><i data-feather="inbox"></i></span>
                         <span class="panel-copy">

@@ -1,5 +1,14 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+
+function asset_url(string $asset): string
+{
+    $asset = ltrim($asset, '/');
+    $path = __DIR__ . '/../' . $asset;
+    $version = file_exists($path) ? '?v=' . filemtime($path) : '';
+
+    return BASE_URL . $asset . $version;
+}
 ?>
 
 <!DOCTYPE html>
@@ -24,7 +33,7 @@ require_once __DIR__ . '/../configuracion.php';
     <?php
     if (isset($cssFiles)) {
         foreach ($cssFiles as $css) {
-            echo "<link rel='stylesheet' href='" . BASE_URL . ltrim($css, '/') . "'>\n";
+            echo "<link rel='stylesheet' href='" . asset_url($css) . "'>\n";
         }
     }
     ?>
