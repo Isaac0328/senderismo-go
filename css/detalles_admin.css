@@ -218,6 +218,14 @@
     resize: vertical;
 }
 
+.field-note {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: .76rem;
+    line-height: 1.35;
+}
+
 .active-row {
     display: inline-flex;
     align-items: center;
@@ -298,6 +306,12 @@
     color: #b90000;
 }
 
+.pill.level {
+    margin-left: 5px;
+    background: rgba(17, 17, 17, .10);
+    color: #111;
+}
+
 .btn-mini {
     display: inline-flex;
     align-items: center;
@@ -316,6 +330,11 @@
 .btn-mini.ok {
     background: rgba(0, 180, 120, .14);
     color: #079258;
+}
+
+.btn-mini.danger {
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
 }
 
 .inline-form {

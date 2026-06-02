@@ -178,6 +178,80 @@
     color: #b90000;
 }
 
+.difficulty-face {
+    position: relative;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin: 0 !important;
+    border-radius: 999px;
+    color: #fff !important;
+    letter-spacing: 0;
+}
+
+.difficulty-face .face-eyes,
+.difficulty-face .face-mouth {
+    position: absolute;
+    display: block;
+}
+
+.difficulty-face .face-eyes {
+    top: 10px;
+    left: 9px;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 12px 0 0 currentColor;
+}
+
+.difficulty-face .face-mouth {
+    left: 10px;
+    bottom: 9px;
+    width: 14px;
+    height: 7px;
+    border: 2px solid currentColor;
+    border-top: 0;
+    border-radius: 0 0 999px 999px;
+}
+
+.difficulty-face.medium .face-mouth {
+    bottom: 10px;
+    height: 0;
+    border: 0;
+    border-top: 2px solid currentColor;
+    border-radius: 999px;
+}
+
+.difficulty-face.hard .face-mouth {
+    left: 11px;
+    bottom: 7px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+}
+
+.difficulty-face.easy,
+.difficulty-tag.easy {
+    background: #11945a !important;
+    color: #fff !important;
+}
+
+.difficulty-face.medium,
+.difficulty-tag.medium {
+    background: #d89200 !important;
+    color: #111 !important;
+}
+
+.difficulty-face.hard,
+.difficulty-tag.hard {
+    background: #c90000 !important;
+    color: #fff !important;
+}
+
 .summary-card span {
     display: block;
     margin-top: 10px;
@@ -193,6 +267,14 @@
     color: #111;
     font-size: 1.05rem;
     line-height: 1.2;
+    font-weight: 900;
+}
+
+.summary-card small {
+    display: block;
+    margin-top: 3px;
+    color: #777;
+    font-size: .75rem;
     font-weight: 900;
 }
 
@@ -498,7 +580,7 @@
 
 .payment-section {
     display: grid;
-    grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
     align-items: start;
     gap: 14px;
     margin-bottom: 28px;
@@ -520,6 +602,103 @@
     margin-top: 14px;
 }
 
+.investment-public-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.investment-public-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #f8f8f8;
+    padding: 13px;
+}
+
+.investment-public-top {
+    display: grid;
+    gap: 6px;
+}
+
+.investment-public-top span {
+    color: #b90000;
+    font-size: .78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.investment-public-top strong {
+    color: #111;
+    font-size: clamp(1.3rem, 2vw, 1.75rem);
+    line-height: 1.05;
+    font-weight: 900;
+}
+
+.investment-public-card p {
+    color: #555;
+    font-size: .9rem;
+    line-height: 1.45;
+}
+
+.investment-public-card .investment-alias {
+    margin: 0;
+    color: #111;
+    font-weight: 900;
+}
+
+.investment-limit {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 7px 9px;
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+.investment-limit svg {
+    width: 15px;
+    height: 15px;
+}
+
+.investment-included-list {
+    display: grid;
+    gap: 7px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, .08);
+}
+
+.investment-included-list b {
+    color: #111;
+    font-size: .8rem;
+    text-transform: uppercase;
+}
+
+.investment-included-list span {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 7px;
+    color: #333;
+    font-size: .86rem;
+    line-height: 1.35;
+}
+
+.investment-included-list svg {
+    width: 15px;
+    height: 15px;
+    color: #11945a;
+    margin-top: 1px;
+    flex: 0 0 auto;
+}
+
 .payment-line {
     display: grid;
     grid-template-columns: 30px minmax(0, 1fr);
@@ -528,6 +707,13 @@
     color: #24313a;
     line-height: 1.5;
     font-size: .9rem;
+}
+
+.fuel-note {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f7f7f7;
 }
 
 .payment-line svg {

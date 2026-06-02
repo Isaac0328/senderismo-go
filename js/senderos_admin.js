@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const galleryHelp = document.getElementById('galleryHelp');
     const dateInput = document.getElementById('fecha_sendero');
     const datePreview = document.getElementById('fechaSenderoPreview');
+    const investmentWrap = document.getElementById('investmentOptionsAdmin');
+    const investmentTemplate = document.getElementById('investmentOptionTemplate');
+    const addInvestmentButton = document.getElementById('addInvestmentOption');
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -122,6 +125,105 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTotal();
     });
 
+    function syncMeetingPoint(select) {
+        const card = select.closest('.meeting-card');
+        if (!card) return;
+
+        const selectedOption = select.options[select.selectedIndex];
+        const addressInput = card.querySelector('[data-meeting-address]');
+        const mapInput = card.querySelector('[data-meeting-map]');
+
+        if (addressInput) {
+            addressInput.value = selectedOption?.dataset.direccion || '';
+        }
+        if (mapInput) {
+            mapInput.value = selectedOption?.dataset.url || '';
+        }
+    }
+
+    document.querySelectorAll('.meeting-point-select').forEach((select) => {
+        select.addEventListener('change', () => syncMeetingPoint(select));
+        syncMeetingPoint(select);
+    });
+
+    function prepareInvestmentCard(card, index) {
+        const order = index + 1;
+
+        const replaceTokenAttribute = (element, attribute) => {
+            const value = element.getAttribute(attribute);
+            if (!value) return;
+
+            element.setAttribute(
+                attribute,
+                value
+                    .replaceAll('__INDEX__', String(index))
+                    .replaceAll('__ORDER__', String(order))
+            );
+        };
+
+        card.querySelectorAll('[id]').forEach((element) => replaceTokenAttribute(element, 'id'));
+        card.querySelectorAll('[data-modal-target]').forEach((element) => replaceTokenAttribute(element, 'data-modal-target'));
+        card.querySelectorAll('[data-count-target]').forEach((element) => replaceTokenAttribute(element, 'data-count-target'));
+
+        card.querySelectorAll('[data-name-template]').forEach((field) => {
+            const template = field.dataset.nameTemplate || '';
+            field.name = template
+                .replaceAll('__INDEX__', String(index))
+                .replaceAll('__ORDER__', String(order));
+            field.removeAttribute('data-name-template');
+        });
+
+        const title = card.querySelector('[data-investment-title]');
+        if (title) {
+            title.textContent = `Inversion ${order}`;
+        }
+
+        const modalTitle = card.querySelector('[data-investment-modal-title]');
+        if (modalTitle) {
+            modalTitle.textContent = `Incluye - Inversion ${order}`;
+        }
+
+        const orderInput = card.querySelector(`input[name="inversiones[${index}][orden]"]`);
+        if (orderInput) {
+            orderInput.value = String(order);
+        }
+    }
+
+    function refreshInvestmentCards() {
+        if (!investmentWrap) return;
+
+        investmentWrap.querySelectorAll('[data-investment-card]').forEach((card, index) => {
+            prepareInvestmentCard(card, index);
+            updateModalCountFromCard(card);
+        });
+    }
+
+    function updateModalCountFromCard(card) {
+        const modal = card.querySelector('.detail-modal');
+        if (modal) {
+            updateModalCount(modal);
+        }
+    }
+
+    if (investmentWrap) {
+        refreshInvestmentCards();
+    }
+
+    if (addInvestmentButton && investmentWrap && investmentTemplate) {
+        addInvestmentButton.addEventListener('click', () => {
+            const index = investmentWrap.querySelectorAll('[data-investment-card]').length;
+            const fragment = investmentTemplate.content.cloneNode(true);
+            const card = fragment.querySelector('[data-investment-card]');
+            if (!card) return;
+
+            prepareInvestmentCard(card, index);
+            investmentWrap.appendChild(card);
+            const firstInput = card.querySelector('input[type="text"]');
+            firstInput?.focus();
+            updateModalCountFromCard(card);
+        });
+    }
+
     function updateModalCount(modal) {
         const list = modal.querySelector('[data-count-target]');
         if (!list) return;
@@ -137,34 +239,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.detail-modal').forEach((modal) => {
         updateModalCount(modal);
-
-        modal.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-            checkbox.addEventListener('change', () => updateModalCount(modal));
-        });
     });
 
-    document.querySelectorAll('.detail-modal-trigger').forEach((button) => {
-        button.addEventListener('click', () => {
-            const modalId = button.dataset.modalTarget;
-            const modal = modalId ? document.getElementById(modalId) : null;
+    document.addEventListener('change', (event) => {
+        const checkbox = event.target.closest('.detail-modal input[type="checkbox"]');
+        if (!checkbox) return;
 
-            if (!modal) return;
-
-            modal.classList.add('is-open');
-            modal.setAttribute('aria-hidden', 'false');
-        });
-    });
-
-    document.querySelectorAll('[data-modal-close]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.detail-modal');
-
-            if (!modal) return;
-
-            modal.classList.remove('is-open');
-            modal.setAttribute('aria-hidden', 'true');
+        const modal = checkbox.closest('.detail-modal');
+        if (modal) {
             updateModalCount(modal);
-        });
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('.detail-modal-trigger');
+        if (!trigger) return;
+
+        const modalId = trigger.dataset.modalTarget;
+        const modal = modalId ? document.getElementById(modalId) : null;
+
+        if (!modal) return;
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+    });
+
+    document.addEventListener('click', (event) => {
+        const closeButton = event.target.closest('[data-modal-close]');
+        if (!closeButton) return;
+
+        const modal = closeButton.closest('.detail-modal');
+
+        if (!modal) return;
+
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        updateModalCount(modal);
     });
 
     document.addEventListener('keydown', (event) => {

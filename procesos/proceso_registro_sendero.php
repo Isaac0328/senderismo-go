@@ -20,6 +20,7 @@ require_once __DIR__ . '/../bd/conexion.php';
 
 $usuarioId = (int) $_SESSION['usuario_id'];
 $senderoId = (int) ($_POST['sendero_id'] ?? 0);
+$inversionId = (int) ($_POST['inversion_id'] ?? 0);
 
 function registro_redirect(mysqli $conn, int $senderoId): void
 {
@@ -61,6 +62,12 @@ if (!$senderoExiste) {
     registro_redirect($conn, $senderoId);
 }
 
+$stmt = mysqli_prepare($conn, "SELECT id FROM sendero_inversiones WHERE id = ? AND sendero_id = ? AND activo = 1 LIMIT 1");
+mysqli_stmt_bind_param($stmt, "ii", $inversionId, $senderoId);
+mysqli_stmt_execute($stmt);
+$inversionExiste = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+
 $telefono = only_digits($_POST['telefono'] ?? '');
 $rangoEdad = clean_text($_POST['rango_edad'] ?? '', 20);
 $identificacion = clean_text($_POST['identificacion'] ?? '', 50);
@@ -84,6 +91,9 @@ $experienciasPermitidas = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzad
 $viasPermitidas = ['Instagram', 'Facebook', 'TikTok', 'WhatsApp', 'Google', 'Amigos', 'Otro'];
 
 $errores = [];
+if (!$inversionExiste) {
+    $errores[] = "Selecciona un tipo de inversion valido.";
+}
 if (strlen($telefono) < 10 || strlen($telefono) > 15) {
     $errores[] = "El telefono debe contener entre 10 y 15 digitos.";
 }
@@ -118,6 +128,7 @@ if (!$consentimiento || !$rgpd) {
 if (!empty($errores)) {
     guardar_formulario_anterior($senderoId, [
         'telefono' => $telefono,
+        'inversion_id' => (string) $inversionId,
         'rango_edad' => $rangoEdad,
         'identificacion' => $identificacion,
         'es_alergico' => (string) $esAlergico,
@@ -205,17 +216,18 @@ try {
         $conn,
         "INSERT INTO registros_senderos (
             sendero_id, usuario_id, detalle_usuario_id, estado, consentimiento_aceptado,
-            rgpd_aceptado, consentimiento_texto, rgpd_texto
-        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?)
+            rgpd_aceptado, consentimiento_texto, rgpd_texto, inversion_id
+        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             detalle_usuario_id = VALUES(detalle_usuario_id),
+            inversion_id = VALUES(inversion_id),
             estado = 'registrado',
             consentimiento_aceptado = 1,
             rgpd_aceptado = 1,
             consentimiento_texto = VALUES(consentimiento_texto),
             rgpd_texto = VALUES(rgpd_texto)"
     );
-    mysqli_stmt_bind_param($stmt, "iiiss", $senderoId, $usuarioId, $detalleId, $consentimientoTexto, $rgpdTexto);
+    mysqli_stmt_bind_param($stmt, "iiissi", $senderoId, $usuarioId, $detalleId, $consentimientoTexto, $rgpdTexto, $inversionId);
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 
@@ -224,6 +236,7 @@ try {
     mysqli_rollback($conn);
     guardar_formulario_anterior($senderoId, [
         'telefono' => $telefono,
+        'inversion_id' => (string) $inversionId,
         'rango_edad' => $rangoEdad,
         'identificacion' => $identificacion,
         'es_alergico' => (string) $esAlergico,

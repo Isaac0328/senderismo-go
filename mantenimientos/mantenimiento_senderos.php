@@ -77,7 +77,7 @@ function tiempo_legible(int|string|null $minutos): string
 }
 
 $niveles = [];
-$resNiveles = mysqli_query($conn, "SELECT id, nombre FROM niveles_dificultad WHERE activo = 1 ORDER BY id ASC");
+$resNiveles = mysqli_query($conn, "SELECT id, nombre, nivel_numero FROM niveles_dificultad WHERE activo = 1 ORDER BY nivel_numero ASC, id ASC");
 if ($resNiveles) {
     while ($row = mysqli_fetch_assoc($resNiveles)) {
         $niveles[] = $row;
@@ -116,6 +116,14 @@ if ($resIncluye) {
     }
 }
 
+$puntosCatalogo = [];
+$resPuntosCatalogo = mysqli_query($conn, "SELECT id, nombre, direccion_referencia, url_mapa FROM puntos_encuentro WHERE activo = 1 ORDER BY nombre ASC");
+if ($resPuntosCatalogo) {
+    while ($row = mysqli_fetch_assoc($resPuntosCatalogo)) {
+        $puntosCatalogo[] = $row;
+    }
+}
+
 $senderos = [];
 $sqlSenderos = "
     SELECT s.*, nd.nombre AS nivel_nombre,
@@ -138,7 +146,7 @@ $editId = (int) ($_GET['edit'] ?? 0);
 $edit = null;
 $editTerrenos = [];
 $editAnotaciones = [];
-$editIncluye = [];
+$editInversiones = [];
 $editPuntos = [];
 $editGaleria = [];
 
@@ -169,12 +177,21 @@ if ($editId > 0) {
         }
         mysqli_stmt_close($stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT incluye_id FROM sendero_elementos_incluidos WHERE sendero_id = ?");
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT si.*, GROUP_CONCAT(sii.incluye_id ORDER BY sii.incluye_id ASC) AS incluye_ids
+             FROM sendero_inversiones si
+             LEFT JOIN sendero_inversion_incluye sii ON sii.inversion_id = si.id
+             WHERE si.sendero_id = ?
+             GROUP BY si.id
+             ORDER BY si.orden ASC, si.id ASC"
+        );
         mysqli_stmt_bind_param($stmt, "i", $editId);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         while ($row = mysqli_fetch_assoc($res)) {
-            $editIncluye[] = (int) $row['incluye_id'];
+            $row['incluye_ids_array'] = array_values(array_filter(array_map('intval', explode(',', (string) ($row['incluye_ids'] ?? '')))));
+            $editInversiones[] = $row;
         }
         mysqli_stmt_close($stmt);
 
@@ -201,6 +218,19 @@ if ($editId > 0) {
 [$idaHoras, $idaMinutos] = minutos_horas($edit['tiempo_ida_vehiculo_min'] ?? null);
 [$regresoHoras, $regresoMinutos] = minutos_horas($edit['tiempo_regreso_vehiculo_min'] ?? null);
 [$senderoHoras, $senderoMinutos] = minutos_horas($edit['tiempo_sendero_min'] ?? null);
+
+if (empty($editInversiones)) {
+    $editInversiones[] = [
+        'id' => 0,
+        'nombre' => '',
+        'descripcion' => '',
+        'monto' => $edit['inversion_total'] ?? '',
+        'fecha_limite_pago' => $edit['fecha_limite_pago'] ?? '',
+        'orden' => 1,
+        'activo' => 1,
+        'incluye_ids_array' => [],
+    ];
+}
 
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
@@ -246,6 +276,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 <input type="hidden" name="id" value="<?= (int) ($edit['id'] ?? 0) ?>">
 
                 <div class="form-grid">
+                    <div class="form-section-title span-6">
+                        <span>Datos generales</span>
+                        <p>Nombre, fecha, ubicacion y estado publico del sendero.</p>
+                    </div>
+
                     <div class="field span-3">
                         <label for="nombre">Nombre *</label>
                         <input type="text" id="nombre" name="nombre" maxlength="150" required value="<?= htmlspecialchars($edit['nombre'] ?? '') ?>" placeholder="Ej: Reserva Cientifica Loma Quita Espuela">
@@ -292,6 +327,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <input type="text" id="descripcion_corta" name="descripcion_corta" maxlength="255" value="<?= htmlspecialchars($edit['descripcion_corta'] ?? '') ?>" placeholder="Texto breve para las tarjetas publicas">
                     </div>
 
+                    <div class="form-section-title span-6">
+                        <span>Imagenes del sendero</span>
+                        <p>Principal para el detalle, flyer para proximos, catalogo para visitados y galeria adicional.</p>
+                    </div>
+
                     <div class="field span-3">
                         <label for="imagen_principal">Imagen principal</label>
                         <input type="file" id="imagen_principal" name="imagen_principal" accept="image/png,image/jpeg,image/webp">
@@ -308,6 +348,17 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <label for="imagen_catalogo">Imagen visitados/catalogo</label>
                         <input type="file" id="imagen_catalogo" name="imagen_catalogo" accept="image/png,image/jpeg,image/webp">
                         <small><?= $edit && !empty($edit['imagen_catalogo']) ? 'Deja vacio para conservar la imagen de catalogo actual.' : 'Se muestra en senderos visitados.' ?></small>
+                    </div>
+
+                    <div class="field span-3">
+                        <label for="galeria">Galeria de imagenes</label>
+                        <input type="file" id="galeria" name="galeria[]" accept="image/png,image/jpeg,image/webp" multiple>
+                        <small id="galleryHelp">Puedes cargar varias imagenes a la vez.</small>
+                    </div>
+
+                    <div class="form-section-title span-6">
+                        <span>Caracteristicas de la ruta</span>
+                        <p>Tiempos, trayecto, distancia, desnivel, senal y descripcion completa.</p>
                     </div>
 
                     <div class="field">
@@ -370,16 +421,6 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <input type="number" id="cobertura_senal_pct" name="cobertura_senal_pct" min="0" max="100" value="<?= htmlspecialchars($edit['cobertura_senal_pct'] ?? '') ?>" placeholder="50">
                     </div>
 
-                    <div class="field">
-                        <label for="inversion_total">Inversion total (RD$)</label>
-                        <input type="number" id="inversion_total" name="inversion_total" min="0" max="999999.99" step="0.01" value="<?= htmlspecialchars($edit['inversion_total'] ?? '') ?>" placeholder="1500.00">
-                    </div>
-
-                    <div class="field">
-                        <label for="fecha_limite_pago">Fecha limite de pago</label>
-                        <input type="date" id="fecha_limite_pago" name="fecha_limite_pago" value="<?= htmlspecialchars($edit['fecha_limite_pago'] ?? '') ?>">
-                    </div>
-
                     <div class="field span-6">
                         <label for="descripcion">Descripcion completa</label>
                         <textarea id="descripcion" name="descripcion" rows="4" placeholder="Describe la experiencia, nivel fisico, ambiente y recomendaciones generales."><?= htmlspecialchars($edit['descripcion'] ?? '') ?></textarea>
@@ -397,10 +438,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </div>
 
-                    <div class="field span-3">
-                        <label for="galeria">Galeria de imagenes</label>
-                        <input type="file" id="galeria" name="galeria[]" accept="image/png,image/jpeg,image/webp" multiple>
-                        <small id="galleryHelp">Puedes cargar varias imagenes a la vez.</small>
+                    <div class="form-section-title span-6">
+                        <span>Recomendaciones del sendero</span>
+                        <p>Anotaciones importantes y catalogos auxiliares que aplican a la ruta.</p>
                     </div>
 
                     <div class="field span-6">
@@ -410,30 +450,159 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 Agregar anotaciones
                                 <span id="anotacionesCount"><?= count($editAnotaciones) ?></span>
                             </button>
-                            <button type="button" class="detail-modal-trigger" data-modal-target="modalIncluye">
-                                Agregar que incluye
-                                <span id="incluyeCount"><?= count($editIncluye) ?></span>
-                            </button>
                             <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_detalles.php" class="detail-admin-link">
                                 Mantener catalogos
                             </a>
                         </div>
                     </div>
 
+                    <div class="form-section-title span-6">
+                        <span>Inversiones</span>
+                        <p>Opciones de pago con monto, fecha limite y elementos incluidos por cada opcion.</p>
+                    </div>
+
+                    <div class="field span-6">
+                        <div class="investment-admin-head">
+                            <div>
+                                <label class="section-label">Tipos de inversion</label>
+                                <p>Agrega una o varias opciones. Cada inversion puede tener su propio monto, fecha limite y elementos incluidos.</p>
+                            </div>
+                            <button type="button" class="investment-add-btn" id="addInvestmentOption">Agregar inversion</button>
+                        </div>
+                        <div class="investment-options-admin" id="investmentOptionsAdmin">
+                            <?php foreach ($editInversiones as $index => $inversion): ?>
+                                <?php
+                                $investmentNumber = $index + 1;
+                                $investmentCount = count($inversion['incluye_ids_array'] ?? []);
+                                ?>
+                                <article class="investment-admin-card" data-investment-card>
+                                    <div class="investment-admin-card-head">
+                                        <strong data-investment-title>Inversion <?= $investmentNumber ?></strong>
+                                        <label>
+                                            <input type="checkbox" name="inversiones[<?= $index ?>][activo]" value="1" <?= (int) ($inversion['activo'] ?? 1) === 1 ? 'checked' : '' ?>>
+                                            Activa
+                                        </label>
+                                    </div>
+                                    <input type="hidden" name="inversiones[<?= $index ?>][id]" value="<?= (int) ($inversion['id'] ?? 0) ?>">
+                                    <input type="hidden" name="inversiones[<?= $index ?>][orden]" value="<?= (int) ($inversion['orden'] ?? ($index + 1)) ?>">
+                                    <div class="investment-admin-grid">
+                                        <label class="field">
+                                            <span>Nombre opcional</span>
+                                            <input type="text" name="inversiones[<?= $index ?>][nombre]" maxlength="120" value="<?= htmlspecialchars($inversion['nombre'] ?? '') ?>" placeholder="Ej: Con suplementos">
+                                        </label>
+                                        <label class="field">
+                                            <span>Monto (RD$) *</span>
+                                            <input type="number" name="inversiones[<?= $index ?>][monto]" min="0" max="999999.99" step="0.01" value="<?= htmlspecialchars($inversion['monto'] ?? '') ?>" placeholder="1500.00">
+                                        </label>
+                                        <label class="field">
+                                            <span>Fecha limite de pago</span>
+                                            <input type="date" name="inversiones[<?= $index ?>][fecha_limite_pago]" value="<?= htmlspecialchars($inversion['fecha_limite_pago'] ?? '') ?>">
+                                        </label>
+                                        <label class="field span-investment-full">
+                                            <span>Descripcion</span>
+                                            <input type="text" name="inversiones[<?= $index ?>][descripcion]" maxlength="255" value="<?= htmlspecialchars($inversion['descripcion'] ?? '') ?>" placeholder="Ej: Incluye hidratacion y merienda.">
+                                        </label>
+                                    </div>
+                                    <button type="button" class="investment-includes-button detail-modal-trigger" data-modal-target="modalInversionIncluye<?= $index ?>">
+                                        Agregar que incluye
+                                        <span id="inversionIncluyeCount<?= $index ?>"><?= $investmentCount ?></span>
+                                    </button>
+
+                                    <div class="detail-modal investment-include-modal" id="modalInversionIncluye<?= $index ?>" aria-hidden="true">
+                                        <div class="detail-modal-backdrop" data-modal-close></div>
+                                        <div class="detail-modal-panel">
+                                            <div class="detail-modal-head">
+                                                <div>
+                                                    <h3 data-investment-modal-title>Incluye - Inversion <?= $investmentNumber ?></h3>
+                                                    <p>Selecciona los servicios o suplementos incluidos en esta opcion.</p>
+                                                </div>
+                                                <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
+                                            </div>
+                                            <div class="detail-modal-list" data-count-target="inversionIncluyeCount<?= $index ?>">
+                                                <?php foreach ($incluyeItems as $item): ?>
+                                                    <label class="modal-check-item">
+                                                        <input type="checkbox" name="inversiones[<?= $index ?>][incluye][]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $inversion['incluye_ids_array'] ?? [], true) ? 'checked' : '' ?>>
+                                                        <span>
+                                                            <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                                            <?php if (!empty($item['descripcion'])): ?>
+                                                                <small><?= htmlspecialchars($item['descripcion']) ?></small>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <div class="detail-modal-actions">
+                                                <button type="button" class="btn-primary" data-modal-close>Listo</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title span-6">
+                        <span>Puntos de encuentro</span>
+                        <p>Define hasta dos ubicaciones con sus horas y enlaces de mapa.</p>
+                    </div>
+
                     <div class="field span-6">
                         <label class="section-label">Puntos de encuentro</label>
+                        <div class="detail-buttons-row points-admin-row">
+                            <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_puntos_encuentro.php" class="detail-admin-link">
+                                Mantener puntos
+                            </a>
+                        </div>
                         <div class="meeting-grid">
                             <?php for ($i = 0; $i < 2; $i++): ?>
                                 <?php $punto = $editPuntos[$i] ?? []; ?>
+                                <?php
+                                $selectedPuntoId = (int) ($punto['punto_encuentro_id'] ?? 0);
+                                if ($selectedPuntoId <= 0 && !empty($punto['nombre_punto'])) {
+                                    foreach ($puntosCatalogo as $catalogoPunto) {
+                                        if (strcasecmp(trim($catalogoPunto['nombre']), trim((string) $punto['nombre_punto'])) === 0) {
+                                            $selectedPuntoId = (int) $catalogoPunto['id'];
+                                            break;
+                                        }
+                                    }
+                                }
+                                ?>
                                 <div class="meeting-card">
                                     <strong>Punto <?= $i + 1 ?></strong>
-                                    <input type="text" name="puntos[<?= $i ?>][nombre_punto]" value="<?= htmlspecialchars($punto['nombre_punto'] ?? '') ?>" placeholder="Nombre del punto">
-                                    <input type="text" name="puntos[<?= $i ?>][direccion_referencia]" value="<?= htmlspecialchars($punto['direccion_referencia'] ?? '') ?>" placeholder="Referencia o direccion">
+                                    <label>
+                                        <span>Titulo del punto</span>
+                                        <select name="puntos[<?= $i ?>][punto_encuentro_id]" class="meeting-point-select">
+                                            <option value="">Seleccione un punto...</option>
+                                            <?php foreach ($puntosCatalogo as $catalogoPunto): ?>
+                                                <option
+                                                    value="<?= (int) $catalogoPunto['id'] ?>"
+                                                    data-nombre="<?= htmlspecialchars($catalogoPunto['nombre']) ?>"
+                                                    data-direccion="<?= htmlspecialchars($catalogoPunto['direccion_referencia'] ?? '') ?>"
+                                                    data-url="<?= htmlspecialchars($catalogoPunto['url_mapa'] ?? '') ?>"
+                                                    <?= $selectedPuntoId === (int) $catalogoPunto['id'] ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($catalogoPunto['nombre']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Referencia o direccion</span>
+                                        <input type="text" name="puntos[<?= $i ?>][direccion_referencia]" value="<?= htmlspecialchars($punto['direccion_referencia'] ?? '') ?>" placeholder="Se completa al elegir el punto" data-meeting-address readonly>
+                                    </label>
                                     <div class="time-row">
-                                        <input type="time" name="puntos[<?= $i ?>][hora_encuentro]" value="<?= htmlspecialchars(isset($punto['hora_encuentro']) ? substr($punto['hora_encuentro'], 0, 5) : '') ?>">
-                                        <input type="time" name="puntos[<?= $i ?>][hora_salida]" value="<?= htmlspecialchars(isset($punto['hora_salida']) ? substr($punto['hora_salida'], 0, 5) : '') ?>">
+                                        <label>
+                                            <span>Hora de llegada</span>
+                                            <input type="time" name="puntos[<?= $i ?>][hora_encuentro]" value="<?= htmlspecialchars(isset($punto['hora_encuentro']) ? substr($punto['hora_encuentro'], 0, 5) : '') ?>">
+                                        </label>
+                                        <label>
+                                            <span>Hora de salida</span>
+                                            <input type="time" name="puntos[<?= $i ?>][hora_salida]" value="<?= htmlspecialchars(isset($punto['hora_salida']) ? substr($punto['hora_salida'], 0, 5) : '') ?>">
+                                        </label>
                                     </div>
-                                    <input type="url" name="puntos[<?= $i ?>][url_mapa]" value="<?= htmlspecialchars($punto['url_mapa'] ?? '') ?>" placeholder="URL de Google Maps">
+                                    <label>
+                                        <span>URL de Google Maps</span>
+                                        <input type="url" name="puntos[<?= $i ?>][url_mapa]" value="<?= htmlspecialchars($punto['url_mapa'] ?? '') ?>" placeholder="Se completa al elegir el punto" data-meeting-map readonly>
+                                    </label>
                                 </div>
                             <?php endfor; ?>
                         </div>
@@ -479,34 +648,70 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </div>
 
-                <div class="detail-modal" id="modalIncluye" aria-hidden="true">
-                    <div class="detail-modal-backdrop" data-modal-close></div>
-                    <div class="detail-modal-panel">
-                        <div class="detail-modal-head">
-                            <div>
-                                <h3>Este sendero incluye</h3>
-                                <p>Selecciona los servicios o articulos incluidos en esta actividad.</p>
+                <template id="investmentOptionTemplate">
+                    <article class="investment-admin-card" data-investment-card>
+                        <div class="investment-admin-card-head">
+                            <strong data-investment-title>Inversion __ORDER__</strong>
+                            <label>
+                                <input type="checkbox" data-name-template="inversiones[__INDEX__][activo]" value="1" checked>
+                                Activa
+                            </label>
+                        </div>
+                        <input type="hidden" data-name-template="inversiones[__INDEX__][id]" value="0">
+                        <input type="hidden" data-name-template="inversiones[__INDEX__][orden]" value="__ORDER__">
+                        <div class="investment-admin-grid">
+                            <label class="field">
+                                <span>Nombre opcional</span>
+                                <input type="text" data-name-template="inversiones[__INDEX__][nombre]" maxlength="120" placeholder="Ej: Con suplementos">
+                            </label>
+                            <label class="field">
+                                <span>Monto (RD$) *</span>
+                                <input type="number" data-name-template="inversiones[__INDEX__][monto]" min="0" max="999999.99" step="0.01" placeholder="1500.00">
+                            </label>
+                            <label class="field">
+                                <span>Fecha limite de pago</span>
+                                <input type="date" data-name-template="inversiones[__INDEX__][fecha_limite_pago]">
+                            </label>
+                            <label class="field span-investment-full">
+                                <span>Descripcion</span>
+                                <input type="text" data-name-template="inversiones[__INDEX__][descripcion]" maxlength="255" placeholder="Ej: Incluye hidratacion y merienda.">
+                            </label>
+                        </div>
+                        <button type="button" class="investment-includes-button detail-modal-trigger" data-modal-target="modalInversionIncluye__INDEX__">
+                            Agregar que incluye
+                            <span id="inversionIncluyeCount__INDEX__">0</span>
+                        </button>
+
+                        <div class="detail-modal investment-include-modal" id="modalInversionIncluye__INDEX__" aria-hidden="true">
+                            <div class="detail-modal-backdrop" data-modal-close></div>
+                            <div class="detail-modal-panel">
+                                <div class="detail-modal-head">
+                                    <div>
+                                        <h3 data-investment-modal-title>Incluye - Inversion __ORDER__</h3>
+                                        <p>Selecciona los servicios o suplementos incluidos en esta opcion.</p>
+                                    </div>
+                                    <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
+                                </div>
+                                <div class="detail-modal-list" data-count-target="inversionIncluyeCount__INDEX__">
+                                    <?php foreach ($incluyeItems as $item): ?>
+                                        <label class="modal-check-item">
+                                            <input type="checkbox" data-name-template="inversiones[__INDEX__][incluye][]" value="<?= (int) $item['id'] ?>">
+                                            <span>
+                                                <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                                <?php if (!empty($item['descripcion'])): ?>
+                                                    <small><?= htmlspecialchars($item['descripcion']) ?></small>
+                                                <?php endif; ?>
+                                            </span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="detail-modal-actions">
+                                    <button type="button" class="btn-primary" data-modal-close>Listo</button>
+                                </div>
                             </div>
-                            <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
                         </div>
-                        <div class="detail-modal-list" data-count-target="incluyeCount">
-                            <?php foreach ($incluyeItems as $item): ?>
-                                <label class="modal-check-item">
-                                    <input type="checkbox" name="incluye[]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $editIncluye, true) ? 'checked' : '' ?>>
-                                    <span>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <small><?= htmlspecialchars($item['descripcion']) ?></small>
-                                        <?php endif; ?>
-                                    </span>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="detail-modal-actions">
-                            <button type="button" class="btn-primary" data-modal-close>Listo</button>
-                        </div>
-                    </div>
-                </div>
+                    </article>
+                </template>
             </form>
         </section>
 

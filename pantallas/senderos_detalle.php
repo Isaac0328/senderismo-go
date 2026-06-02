@@ -77,6 +77,28 @@ function dinero_detalle($monto): string
     return 'RD$ ' . number_format((float) $monto, 2) . ' pesos';
 }
 
+function dificultad_color_detalle(int $nivel): string
+{
+    if ($nivel <= 35) {
+        return 'easy';
+    }
+    if ($nivel <= 70) {
+        return 'medium';
+    }
+    return 'hard';
+}
+
+function dificultad_face_detalle(int $nivel): string
+{
+    if ($nivel <= 35) {
+        return ':)';
+    }
+    if ($nivel <= 70) {
+        return ':|';
+    }
+    return ':O';
+}
+
 function dias_restantes_detalle(?string $fecha): int
 {
     if (empty($fecha)) {
@@ -109,6 +131,7 @@ $sqlSendero = "
         s.fecha_limite_pago,
         s.estado,
         nd.nombre AS nivel_dificultad,
+        nd.nivel_numero,
         tc.nombre AS tipo_camino_vehiculo
     FROM senderos s
     INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
@@ -212,25 +235,45 @@ if ($stmtAnotaciones) {
     mysqli_stmt_close($stmtAnotaciones);
 }
 
-$incluye = [];
-$stmtIncluye = mysqli_prepare(
+$inversiones = [];
+$stmtInversiones = mysqli_prepare(
     $conn,
-    "SELECT i.nombre, i.descripcion
-     FROM sendero_elementos_incluidos si
-     INNER JOIN elementos_incluidos i ON i.id = si.incluye_id
+    "SELECT si.id, si.nombre, si.descripcion, si.monto, si.fecha_limite_pago, si.orden,
+            i.nombre AS incluye_nombre, i.descripcion AS incluye_descripcion
+     FROM sendero_inversiones si
+     LEFT JOIN sendero_inversion_incluye sii ON sii.inversion_id = si.id
+     LEFT JOIN elementos_incluidos i ON i.id = sii.incluye_id AND i.activo = 1
      WHERE si.sendero_id = ?
-       AND i.activo = 1
-     ORDER BY i.nombre ASC"
+       AND si.activo = 1
+     ORDER BY si.orden ASC, si.id ASC, i.nombre ASC"
 );
-if ($stmtIncluye) {
-    mysqli_stmt_bind_param($stmtIncluye, "i", $idSendero);
-    mysqli_stmt_execute($stmtIncluye);
-    $resIncluye = mysqli_stmt_get_result($stmtIncluye);
-    while ($row = mysqli_fetch_assoc($resIncluye)) {
-        $incluye[] = $row;
+if ($stmtInversiones) {
+    mysqli_stmt_bind_param($stmtInversiones, "i", $idSendero);
+    mysqli_stmt_execute($stmtInversiones);
+    $resInversiones = mysqli_stmt_get_result($stmtInversiones);
+    while ($row = mysqli_fetch_assoc($resInversiones)) {
+        $idInversion = (int) $row['id'];
+        if (!isset($inversiones[$idInversion])) {
+            $inversiones[$idInversion] = [
+                'id' => $idInversion,
+                'nombre' => $row['nombre'],
+                'descripcion' => $row['descripcion'],
+                'monto' => $row['monto'],
+                'fecha_limite_pago' => $row['fecha_limite_pago'],
+                'orden' => (int) $row['orden'],
+                'incluye' => [],
+            ];
+        }
+        if (!empty($row['incluye_nombre'])) {
+            $inversiones[$idInversion]['incluye'][] = [
+                'nombre' => $row['incluye_nombre'],
+                'descripcion' => $row['incluye_descripcion'],
+            ];
+        }
     }
-    mysqli_stmt_close($stmtIncluye);
+    mysqli_stmt_close($stmtInversiones);
 }
+$inversiones = array_values($inversiones);
 
 $tarjetaPago = null;
 $resPago = mysqli_query($conn, "SELECT * FROM tarjeta_pago WHERE id = 1 AND activo = 1 LIMIT 1");
@@ -246,6 +289,8 @@ $esVisitado = ($sendero['estado'] ?? '') === 'visitado';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
 $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
+$nivelNumero = min(100, max(0, (int) ($sendero['nivel_numero'] ?? 50)));
+$dificultadClase = dificultad_color_detalle($nivelNumero);
 ?>
 
 <div class="sendero-detalle-page">
@@ -316,9 +361,13 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                 </div>
             <?php endif; ?>
             <div class="summary-card">
-                <i data-feather="trending-up"></i>
+                <span class="difficulty-face <?= $dificultadClase ?>" aria-hidden="true">
+                    <span class="face-eyes"></span>
+                    <span class="face-mouth"></span>
+                </span>
                 <span>Dificultad</span>
                 <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?></strong>
+                <small><?= $nivelNumero ?>/100</small>
             </div>
             <div class="summary-card">
                 <i data-feather="activity"></i>
@@ -352,7 +401,7 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                     <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
                 </div>
                 <div class="terrain-tags">
-                    <span><?= htmlspecialchars($sendero['nivel_dificultad']) ?></span>
+                    <span class="difficulty-tag <?= $dificultadClase ?>"><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</span>
                     <?php foreach ($tiposTerreno as $terreno): ?>
                         <span><?= htmlspecialchars($terreno) ?></span>
                     <?php endforeach; ?>
@@ -421,76 +470,78 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                 </div>
             </section>
 
-            <section class="detail-lists-grid">
-                <article class="detail-section list-panel">
-                    <span class="section-kicker">Preparacion</span>
-                    <h2>Anotaciones importantes</h2>
+            <section class="detail-section list-panel">
+                <span class="section-kicker">Preparacion</span>
+                <h2>Anotaciones importantes</h2>
 
-                    <?php if (!empty($anotaciones)): ?>
-                        <div class="detail-list">
-                            <?php foreach ($anotaciones as $item): ?>
-                                <div class="detail-list-item">
-                                    <i data-feather="check-circle"></i>
-                                    <div>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
+                <?php if (!empty($anotaciones)): ?>
+                    <div class="detail-list">
+                        <?php foreach ($anotaciones as $item): ?>
+                            <div class="detail-list-item">
+                                <i data-feather="check-circle"></i>
+                                <div>
+                                    <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                    <?php if (!empty($item['descripcion'])): ?>
+                                        <p><?= htmlspecialchars($item['descripcion']) ?></p>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-block">No hay anotaciones registradas.</div>
-                    <?php endif; ?>
-                </article>
-
-                <article class="detail-section list-panel">
-                    <span class="section-kicker">Incluido</span>
-                    <h2>Este sendero incluye</h2>
-
-                    <?php if (!empty($incluye)): ?>
-                        <div class="detail-list">
-                            <?php foreach ($incluye as $item): ?>
-                                <div class="detail-list-item">
-                                    <i data-feather="plus-circle"></i>
-                                    <div>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-block">No hay elementos incluidos registrados.</div>
-                    <?php endif; ?>
-                </article>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-block">No hay anotaciones registradas.</div>
+                <?php endif; ?>
             </section>
 
             <section class="payment-section">
-                <article class="detail-section investments-panel">
+                <article class="detail-section list-panel">
                     <span class="section-kicker">Inversiones</span>
-                    <h2>Inversiones</h2>
-                    <div class="payment-lines">
-                        <div class="payment-line payment-amount">
-                            <i data-feather="credit-card"></i>
-                            <span>
-                                <small>Inversion total</small>
-                                <strong><?= dinero_detalle($sendero['inversion_total']) ?></strong>
-                            </span>
+                    <h2>Elige tu opcion</h2>
+                    <?php if (!empty($inversiones)): ?>
+                        <div class="investment-public-grid">
+                            <?php foreach ($inversiones as $idx => $inversion): ?>
+                                <?php
+                                $numeroInversion = (int) ($inversion['orden'] ?? ($idx + 1));
+                                $tituloInversion = 'Inversion ' . $numeroInversion;
+                                $nombreOpcional = trim((string) ($inversion['nombre'] ?? ''));
+                                $mostrarNombreOpcional = $nombreOpcional !== '' && strcasecmp($nombreOpcional, $tituloInversion) !== 0;
+                                ?>
+                                <article class="investment-public-card">
+                                    <div class="investment-public-top">
+                                        <span><?= htmlspecialchars($tituloInversion) ?></span>
+                                        <strong><?= dinero_detalle($inversion['monto']) ?></strong>
+                                    </div>
+                                    <?php if ($mostrarNombreOpcional): ?>
+                                        <p class="investment-alias"><?= htmlspecialchars($nombreOpcional) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['descripcion'])): ?>
+                                        <p><?= htmlspecialchars($inversion['descripcion']) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['fecha_limite_pago'])): ?>
+                                        <div class="investment-limit">
+                                            <i data-feather="calendar"></i>
+                                            Pago hasta <?= fecha_larga_detalle($inversion['fecha_limite_pago']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="investment-included-list">
+                                        <b>Incluye</b>
+                                        <?php if (!empty($inversion['incluye'])): ?>
+                                            <?php foreach ($inversion['incluye'] as $item): ?>
+                                                <span><i data-feather="check"></i><?= htmlspecialchars($item['nombre']) ?></span>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <span><i data-feather="minus"></i>No tiene suplementos asignados.</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="payment-line">
-                            <i data-feather="info"></i>
-                            <span>
-                                Solo reservas tu cupo con el pago total del sendero<?= !empty($sendero['fecha_limite_pago']) ? ', a mas tardar el ' . fecha_larga_detalle($sendero['fecha_limite_pago']) . '.' : '.' ?>
-                            </span>
-                        </div>
-                        <div class="payment-line">
-                            <i data-feather="info"></i>
-                            <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un companero. <strong>Deben compartir el gasto de combustible.</strong></span>
-                        </div>
+                    <?php else: ?>
+                        <div class="empty-block">Las inversiones se publicaran proximamente.</div>
+                    <?php endif; ?>
+                    <div class="payment-line fuel-note">
+                        <i data-feather="info"></i>
+                        <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un companero. <strong>Deben compartir el gasto de combustible.</strong></span>
                     </div>
                 </article>
 

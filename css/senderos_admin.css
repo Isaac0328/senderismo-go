@@ -145,6 +145,38 @@
     grid-column: 1 / -1;
 }
 
+.form-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 8px 0 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-left: 5px solid #e10600;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(225, 6, 0, .06), #fff);
+}
+
+.form-section-title:first-child {
+    margin-top: 0;
+}
+
+.form-section-title span {
+    color: #111;
+    font-size: .9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.form-section-title p {
+    margin: 0;
+    color: #666;
+    font-size: .78rem;
+    line-height: 1.35;
+    text-align: right;
+}
+
 .field label,
 .section-label {
     display: block;
@@ -158,6 +190,7 @@
 .field select,
 .field textarea,
 .meeting-card input,
+.meeting-card select,
 .time-combo input[type="number"] {
     width: 100%;
     min-height: 38px;
@@ -167,6 +200,11 @@
     background: #fff;
     outline: none;
     font-size: .9rem;
+}
+
+.meeting-card input[readonly] {
+    background: #f2f2f2;
+    color: #555;
 }
 
 .time-combo {
@@ -217,6 +255,10 @@
     gap: 7px;
 }
 
+.checks-grid.compact {
+    gap: 6px;
+}
+
 .check-pill {
     position: relative;
     display: inline-flex;
@@ -259,6 +301,141 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.points-admin-row {
+    margin: 0 0 10px;
+}
+
+.investment-admin-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.investment-admin-head p {
+    margin: 2px 0 0;
+    color: #666;
+    font-size: .84rem;
+    line-height: 1.35;
+}
+
+.investment-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 12px;
+    background: #e10600;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.investment-options-admin {
+    display: grid;
+    gap: 10px;
+}
+
+.investment-admin-card {
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .05);
+}
+
+.investment-admin-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.investment-admin-card-head strong {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
+    font-size: .92rem;
+    font-weight: 900;
+}
+
+.investment-admin-card-head label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    color: #222;
+    font-size: .82rem;
+    font-weight: 900;
+}
+
+.investment-admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(120px, .5fr) minmax(150px, .6fr);
+    gap: 9px;
+}
+
+.investment-admin-grid .field span {
+    display: block;
+    margin-bottom: 5px;
+    color: #222;
+    font-size: .8rem;
+    font-weight: 900;
+}
+
+.span-investment-full {
+    grid-column: 1 / -1;
+}
+
+.investment-includes {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.investment-includes > span {
+    color: #222;
+    font-size: .8rem;
+    font-weight: 900;
+}
+
+.investment-includes-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    margin-top: 10px;
+    border-radius: 8px;
+    padding: 8px 11px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    background: #111;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.investment-includes-button span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: 999px;
+    background: #e10600;
+    color: #fff;
+    font-size: .72rem;
 }
 
 .detail-modal-trigger,
@@ -307,6 +484,19 @@
 .meeting-card strong {
     color: #111;
     font-size: .86rem;
+}
+
+.meeting-card label {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+}
+
+.meeting-card label span {
+    color: #444;
+    font-size: .76rem;
+    font-weight: 900;
+    text-transform: uppercase;
 }
 
 .time-row {
@@ -686,12 +876,32 @@
     .span-2,
     .span-3,
     .span-6,
+    .form-section-title,
     .active-toggle,
     .form-actions {
         grid-column: span 1;
     }
 
+    .form-section-title {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .form-section-title p {
+        text-align: left;
+    }
+
     .meeting-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .investment-admin-head,
+    .investment-admin-card-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .investment-admin-grid {
         grid-template-columns: 1fr;
     }
 
@@ -715,6 +925,7 @@
     .btn-secondary,
     .detail-modal-trigger,
     .detail-admin-link,
+    .investment-includes-button,
     .btn-primary {
         width: 100%;
     }
@@ -735,6 +946,10 @@
     .detail-modal-actions {
         align-items: stretch;
         flex-direction: column;
+        width: 100%;
+    }
+
+    .investment-add-btn {
         width: 100%;
     }
 

@@ -109,7 +109,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">6 activos</span>
+                    <span class="panel-count">7 activos</span>
                 </div>
 
                 <div class="panel-list">
@@ -136,6 +136,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-copy">
                             <span class="panel-item-title">Senderos</span>
                             <span class="panel-item-sub">Rutas, niveles, fechas y puntos de encuentro</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
+                    <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_puntos_encuentro.php">
+                        <span class="panel-icon"><i data-feather="navigation"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Puntos de encuentro</span>
+                            <span class="panel-item-sub">Ubicaciones reutilizables para salidas</span>
                         </span>
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>

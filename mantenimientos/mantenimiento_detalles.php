@@ -29,10 +29,14 @@ $jsFiles = [
 
 require_once __DIR__ . '/../bd/conexion.php';
 
-function fetch_catalog(mysqli $conn, string $table): array
+function fetch_catalog(mysqli $conn, string $table, bool $withLevel = false): array
 {
     $items = [];
-    $res = mysqli_query($conn, "SELECT id, nombre, descripcion, activo, created_at FROM {$table} ORDER BY activo DESC, nombre ASC");
+    $fields = $withLevel
+        ? "id, nombre, descripcion, nivel_numero, activo, created_at"
+        : "id, nombre, descripcion, activo, created_at";
+    $order = $withLevel ? "activo DESC, nivel_numero ASC, nombre ASC" : "activo DESC, nombre ASC";
+    $res = mysqli_query($conn, "SELECT {$fields} FROM {$table} ORDER BY {$order}");
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
             $items[] = $row;
@@ -47,6 +51,7 @@ $catalogs = [
         'subtitle' => 'Escalas usadas para clasificar cada sendero.',
         'table' => 'niveles_dificultad',
         'placeholder' => 'Ej: Basico, Intermedio, Avanzado',
+        'with_level' => true,
     ],
     'terreno' => [
         'title' => 'Tipos de terreno',
@@ -75,7 +80,7 @@ $catalogs = [
 ];
 
 foreach ($catalogs as $key => $config) {
-    $catalogs[$key]['items'] = fetch_catalog($conn, $config['table']);
+    $catalogs[$key]['items'] = fetch_catalog($conn, $config['table'], !empty($config['with_level']));
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -141,6 +146,14 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <textarea name="descripcion" maxlength="255" rows="3" placeholder="Detalle opcional que ayuda a explicar este item." data-desc-field="<?= $key ?>"></textarea>
                             </div>
 
+                            <?php if (!empty($config['with_level'])): ?>
+                                <div class="field">
+                                    <label>Nivel de dificultad (0 a 100) *</label>
+                                    <input type="number" name="nivel_numero" min="0" max="100" required value="50" data-level-field="<?= $key ?>">
+                                    <small class="field-note">Este numero define el color de la carita en el detalle del sendero.</small>
+                                </div>
+                            <?php endif; ?>
+
                             <label class="active-row">
                                 <input type="checkbox" name="activo" value="1" checked data-active-field="<?= $key ?>">
                                 <span>Activo</span>
@@ -166,6 +179,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <span class="<?= (int) $item['activo'] === 1 ? 'pill active' : 'pill inactive' ?>">
                                                 <?= (int) $item['activo'] === 1 ? 'Activo' : 'Inactivo' ?>
                                             </span>
+                                            <?php if (!empty($config['with_level'])): ?>
+                                                <span class="pill level">Nivel <?= (int) ($item['nivel_numero'] ?? 50) ?>/100</span>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="catalog-item-actions">
                                             <button type="button"
@@ -174,6 +190,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 data-id="<?= (int) $item['id'] ?>"
                                                 data-nombre="<?= htmlspecialchars($item['nombre']) ?>"
                                                 data-descripcion="<?= htmlspecialchars($item['descripcion'] ?? '') ?>"
+                                                data-nivel="<?= (int) ($item['nivel_numero'] ?? 50) ?>"
                                                 data-activo="<?= (int) $item['activo'] ?>">
                                                 Editar
                                             </button>

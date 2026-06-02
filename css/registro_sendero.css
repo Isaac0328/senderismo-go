@@ -188,6 +188,60 @@
     font-weight: 900;
 }
 
+.investment-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.investment-choice-card {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+
+.investment-choice-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.investment-choice-card > span {
+    display: grid;
+    gap: 6px;
+    min-height: 128px;
+    border: 2px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #f8f8f8;
+    padding: 13px;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.investment-choice-card strong {
+    color: #111;
+    font-size: .95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.investment-choice-card b {
+    color: #b90000;
+    font-size: 1.45rem;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.investment-choice-card small {
+    color: #555;
+    line-height: 1.35;
+}
+
+.investment-choice-card input:checked + span {
+    border-color: #111;
+    background: #fff;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .10);
+}
+
 .consent-box {
     position: relative;
     display: grid;

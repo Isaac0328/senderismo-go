@@ -198,18 +198,62 @@ try {
     $distanciaKm = ($_POST['distancia_km'] ?? '') !== '' ? max(0, (float) $_POST['distancia_km']) : null;
     $desnivelMts = ($_POST['desnivel_mts'] ?? '') !== '' ? max(0, (int) $_POST['desnivel_mts']) : null;
     $coberturaSenal = ($_POST['cobertura_senal_pct'] ?? '') !== '' ? min(100, max(0, (int) $_POST['cobertura_senal_pct'])) : null;
-    $inversionTotal = ($_POST['inversion_total'] ?? '') !== '' ? max(0, (float) $_POST['inversion_total']) : null;
-    $fechaLimitePago = normalizar_fecha_sendero((string) ($_POST['fecha_limite_pago'] ?? ''));
+    $inversionesInput = is_array($_POST['inversiones'] ?? null) ? $_POST['inversiones'] : [];
     $estado = $_POST['estado'] ?? 'pendiente';
     $activo = isset($_POST['activo']) ? 1 : 0;
     $terrenos = array_map('intval', $_POST['tipos_terreno'] ?? []);
     $anotaciones = array_map('intval', $_POST['anotaciones'] ?? []);
-    $incluye = array_map('intval', $_POST['incluye'] ?? []);
+    $inversiones = [];
+    foreach ($inversionesInput as $idx => $inversion) {
+        if (!is_array($inversion)) {
+            continue;
+        }
+
+        $ordenInversion = max(1, (int) ($inversion['orden'] ?? ((int) $idx + 1)));
+        $nombreInversion = trim((string) ($inversion['nombre'] ?? ''));
+        $montoInversion = ($inversion['monto'] ?? '') !== '' ? max(0, (float) $inversion['monto']) : null;
+
+        if ($nombreInversion === '' && $montoInversion === null) {
+            continue;
+        }
+
+        if ($nombreInversion === '') {
+            $nombreInversion = 'Inversion ' . $ordenInversion;
+        }
+
+        $inversiones[] = [
+            'id' => (int) ($inversion['id'] ?? 0),
+            'nombre' => $nombreInversion,
+            'descripcion' => trim((string) ($inversion['descripcion'] ?? '')),
+            'monto' => $montoInversion ?? 0,
+            'fecha_limite_pago' => normalizar_fecha_sendero((string) ($inversion['fecha_limite_pago'] ?? '')),
+            'orden' => $ordenInversion,
+            'activo' => isset($inversion['activo']) ? 1 : 0,
+            'incluye' => array_values(array_unique(array_filter(array_map('intval', $inversion['incluye'] ?? [])))),
+        ];
+    }
 
     if ($nombre === '' || $lugar === '' || $nivelId <= 0) {
         $_SESSION['senderos_error'] = "Completa nombre, fecha en formato dia/mes/año, lugar y dificultad.";
         redirect_senderos($conn, $id);
     }
+
+    $inversionesActivas = array_values(array_filter($inversiones, static fn($item) => (int) $item['activo'] === 1));
+    if ($estado === 'pendiente' && empty($inversionesActivas)) {
+        $_SESSION['senderos_error'] = "Agrega al menos una inversion activa para este sendero.";
+        redirect_senderos($conn, $id);
+    }
+
+    foreach ($inversionesActivas as $inversion) {
+        if ((float) $inversion['monto'] <= 0) {
+            $_SESSION['senderos_error'] = "Cada inversion activa debe tener monto mayor a cero.";
+            redirect_senderos($conn, $id);
+        }
+    }
+
+    $inversionBase = $inversionesActivas[0] ?? ($inversiones[0] ?? null);
+    $inversionTotal = $inversionBase ? (float) $inversionBase['monto'] : null;
+    $fechaLimitePago = $inversionBase['fecha_limite_pago'] ?? '';
 
     if (!in_array($estado, ['pendiente', 'visitado'], true)) {
         $estado = 'pendiente';
@@ -311,12 +355,66 @@ try {
         mysqli_stmt_close($stmt);
     }
 
+    $existingInvestmentIds = [];
+    if ($id > 0) {
+        $resExisting = mysqli_query($conn, "SELECT id FROM sendero_inversiones WHERE sendero_id = " . (int) $senderoId);
+        if ($resExisting) {
+            while ($row = mysqli_fetch_assoc($resExisting)) {
+                $existingInvestmentIds[] = (int) $row['id'];
+            }
+        }
+    }
+
+    $savedInvestmentIds = [];
+    $allIncluye = [];
+    foreach ($inversiones as $inversion) {
+        $investmentId = (int) $inversion['id'];
+        if ($investmentId > 0 && in_array($investmentId, $existingInvestmentIds, true)) {
+            $stmt = mysqli_prepare(
+                $conn,
+                "UPDATE sendero_inversiones
+                 SET nombre = ?, descripcion = ?, monto = ?, fecha_limite_pago = ?, orden = ?, activo = ?
+                 WHERE id = ? AND sendero_id = ?"
+            );
+            mysqli_stmt_bind_param($stmt, "ssdsiiii", $inversion['nombre'], $inversion['descripcion'], $inversion['monto'], $inversion['fecha_limite_pago'], $inversion['orden'], $inversion['activo'], $investmentId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO sendero_inversiones (sendero_id, nombre, descripcion, monto, fecha_limite_pago, orden, activo)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            mysqli_stmt_bind_param($stmt, "issdsii", $senderoId, $inversion['nombre'], $inversion['descripcion'], $inversion['monto'], $inversion['fecha_limite_pago'], $inversion['orden'], $inversion['activo']);
+            mysqli_stmt_execute($stmt);
+            $investmentId = mysqli_insert_id($conn);
+            mysqli_stmt_close($stmt);
+        }
+
+        $savedInvestmentIds[] = $investmentId;
+        mysqli_query($conn, "DELETE FROM sendero_inversion_incluye WHERE inversion_id = " . (int) $investmentId);
+        foreach ($inversion['incluye'] as $incluyeId) {
+            if ($incluyeId <= 0) {
+                continue;
+            }
+            $allIncluye[] = $incluyeId;
+            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_inversion_incluye (inversion_id, incluye_id) VALUES (?, ?)");
+            mysqli_stmt_bind_param($stmt, "ii", $investmentId, $incluyeId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    foreach (array_diff($existingInvestmentIds, $savedInvestmentIds) as $disabledId) {
+        mysqli_query($conn, "UPDATE sendero_inversiones SET activo = 0 WHERE id = " . (int) $disabledId . " AND sendero_id = " . (int) $senderoId);
+    }
+
     mysqli_query($conn, "DELETE FROM sendero_elementos_incluidos WHERE sendero_id = " . (int) $senderoId);
-    foreach (array_unique($incluye) as $incluyeId) {
+    foreach (array_unique($allIncluye) as $incluyeId) {
         if ($incluyeId <= 0) {
             continue;
         }
-        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_elementos_incluidos (sendero_id, incluye_id) VALUES (?, ?)");
+        $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_elementos_incluidos (sendero_id, incluye_id) VALUES (?, ?)");
         mysqli_stmt_bind_param($stmt, "ii", $senderoId, $incluyeId);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
@@ -326,11 +424,29 @@ try {
     $puntos = $_POST['puntos'] ?? [];
     $orden = 1;
     foreach ($puntos as $punto) {
+        $puntoEncuentroId = (int) ($punto['punto_encuentro_id'] ?? 0);
         $nombrePunto = trim($punto['nombre_punto'] ?? '');
         $direccion = trim($punto['direccion_referencia'] ?? '');
         $horaEncuentro = trim($punto['hora_encuentro'] ?? '');
         $horaSalida = trim($punto['hora_salida'] ?? '');
         $urlMapa = trim($punto['url_mapa'] ?? '');
+
+        if ($puntoEncuentroId > 0) {
+            $stmt = mysqli_prepare($conn, "SELECT nombre, direccion_referencia, url_mapa FROM puntos_encuentro WHERE id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, "i", $puntoEncuentroId);
+            mysqli_stmt_execute($stmt);
+            $resPuntoCatalogo = mysqli_stmt_get_result($stmt);
+            $catalogoPunto = mysqli_fetch_assoc($resPuntoCatalogo);
+            mysqli_stmt_close($stmt);
+
+            if ($catalogoPunto) {
+                $nombrePunto = trim((string) $catalogoPunto['nombre']);
+                $direccion = trim((string) ($catalogoPunto['direccion_referencia'] ?? ''));
+                $urlMapa = trim((string) ($catalogoPunto['url_mapa'] ?? ''));
+            } else {
+                $puntoEncuentroId = 0;
+            }
+        }
 
         if ($nombrePunto === '' || $horaEncuentro === '' || $horaSalida === '') {
             continue;
@@ -339,10 +455,11 @@ try {
         $stmt = mysqli_prepare(
             $conn,
             "INSERT INTO sendero_puntos_encuentro
-             (sendero_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
+             (sendero_id, punto_encuentro_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
         );
-        mysqli_stmt_bind_param($stmt, "isssssi", $senderoId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
+        $puntoEncuentroId = $puntoEncuentroId > 0 ? $puntoEncuentroId : null;
+        mysqli_stmt_bind_param($stmt, "iisssssi", $senderoId, $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         $orden++;

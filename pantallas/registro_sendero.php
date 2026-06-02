@@ -40,6 +40,11 @@ function checked_value($current, string $value): string
     return (string) $current === $value ? 'checked' : '';
 }
 
+function dinero_registro($monto): string
+{
+    return 'RD$ ' . number_format((float) $monto, 2);
+}
+
 $stmt = mysqli_prepare($conn, "SELECT id, nombre, fecha_sendero, lugar, provincia, estado FROM senderos WHERE id = ? AND activo = 1 LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $idSendero);
 mysqli_stmt_execute($stmt);
@@ -78,10 +83,23 @@ if (is_array($oldData) && (int) ($oldData['sendero_id'] ?? 0) === $idSendero) {
 }
 
 $registroExistente = false;
-$stmt = mysqli_prepare($conn, "SELECT id FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
+$registroInversionId = 0;
+$stmt = mysqli_prepare($conn, "SELECT id, inversion_id FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
 mysqli_stmt_bind_param($stmt, "ii", $usuarioId, $idSendero);
 mysqli_stmt_execute($stmt);
-$registroExistente = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$registroRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$registroExistente = (bool) $registroRow;
+$registroInversionId = (int) ($registroRow['inversion_id'] ?? 0);
+mysqli_stmt_close($stmt);
+
+$inversiones = [];
+$stmt = mysqli_prepare($conn, "SELECT id, nombre, descripcion, monto, fecha_limite_pago, orden FROM sendero_inversiones WHERE sendero_id = ? AND activo = 1 ORDER BY orden ASC, id ASC");
+mysqli_stmt_bind_param($stmt, "i", $idSendero);
+mysqli_stmt_execute($stmt);
+$resInversiones = mysqli_stmt_get_result($stmt);
+while ($row = mysqli_fetch_assoc($resInversiones)) {
+    $inversiones[] = $row;
+}
 mysqli_stmt_close($stmt);
 
 $pageTitle = "Registro de Sendero | Senderismo Go!";
@@ -178,6 +196,44 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 <div class="section-title-row">
                     <span>2</span>
                     <div>
+                        <h2>Tipo de inversion</h2>
+                        <p>Elige la opcion con la que deseas reservar tu cupo.</p>
+                    </div>
+                </div>
+
+                <div class="investment-choice-grid">
+                    <?php if (empty($inversiones)): ?>
+                        <div class="registro-alert error">Este sendero aun no tiene inversiones disponibles.</div>
+                    <?php endif; ?>
+                    <?php foreach ($inversiones as $idx => $inversion): ?>
+                        <?php
+                        $selectedInvestment = (int) ($formData['inversion_id'] ?? $registroInversionId) === (int) $inversion['id'];
+                        $numeroInversion = (int) ($inversion['orden'] ?? ($idx + 1));
+                        $tituloInversion = 'Inversion ' . $numeroInversion;
+                        $nombreOpcional = trim((string) ($inversion['nombre'] ?? ''));
+                        $mostrarNombreOpcional = $nombreOpcional !== '' && strcasecmp($nombreOpcional, $tituloInversion) !== 0;
+                        ?>
+                        <label class="investment-choice-card">
+                            <input type="radio" name="inversion_id" value="<?= (int) $inversion['id'] ?>" <?= $selectedInvestment ? 'checked' : '' ?> required>
+                            <span>
+                                <strong><?= h($tituloInversion) ?></strong>
+                                <b><?= h(dinero_registro($inversion['monto'])) ?></b>
+                                <?php if ($mostrarNombreOpcional): ?>
+                                    <small><?= h($nombreOpcional) ?></small>
+                                <?php endif; ?>
+                                <?php if (!empty($inversion['descripcion'])): ?>
+                                    <small><?= h($inversion['descripcion']) ?></small>
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+
+            <section class="registro-section">
+                <div class="section-title-row">
+                    <span>3</span>
+                    <div>
                         <h2>Salud y experiencia</h2>
                         <p>Esta informacion ayuda a la organizacion a prepararse mejor para la ruta.</p>
                     </div>
@@ -239,7 +295,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <section class="registro-section">
                 <div class="section-title-row">
-                    <span>3</span>
+                    <span>4</span>
                     <div>
                         <h2>Contacto de emergencia</h2>
                         <p>Usaremos este contacto solo si ocurre alguna situacion durante la actividad.</p>
@@ -264,7 +320,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <section class="registro-section">
                 <div class="section-title-row">
-                    <span>4</span>
+                    <span>5</span>
                     <div>
                         <h2>Consentimientos</h2>
                         <p>Debes aceptar estos terminos para completar el registro.</p>

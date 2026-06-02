@@ -38,6 +38,15 @@ function fecha_reporte_sendero(?string $fecha, bool $conHora = false): string
     return date($conHora ? 'd/m/Y h:i A' : 'd/m/Y', $timestamp);
 }
 
+function dinero_reporte_sendero($monto): string
+{
+    if ($monto === null || $monto === '') {
+        return 'Sin monto';
+    }
+
+    return 'RD$ ' . number_format((float) $monto, 2);
+}
+
 $senderos = [];
 $resSenderos = mysqli_query($conn, "
     SELECT
@@ -75,6 +84,8 @@ if ($senderoSeleccionado) {
             rs.estado AS estado_registro,
             rs.fecha_registro,
             rs.updated_at,
+            si.nombre AS inversion_nombre,
+            si.monto AS inversion_monto,
             u.id AS usuario_id,
             u.nombre,
             u.apellido,
@@ -98,6 +109,7 @@ if ($senderoSeleccionado) {
         FROM registros_senderos rs
         INNER JOIN usuarios u ON u.id = rs.usuario_id
         INNER JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
+        LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
         ORDER BY rs.fecha_registro DESC, u.nombre ASC, u.apellido ASC
     ";
@@ -237,6 +249,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Participante</th>
                                     <th>Contacto</th>
                                     <th>Salud</th>
+                                    <th>Inversion</th>
                                     <th>Experiencia</th>
                                     <th>Emergencia</th>
                                     <th>Fecha registro</th>
@@ -259,6 +272,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <span><?= (int) $row['es_alergico'] === 1 ? 'Alergico: ' . hrs($row['alergias_detalle'] ?: 'No especificado') : 'No alergico' ?></span>
                                             <span><?= hrs($row['enfermedad']) ?></span>
                                             <span>Seguro: <?= hrs($row['seguro_medico']) ?></span>
+                                        </td>
+                                        <td>
+                                            <strong><?= hrs($row['inversion_nombre'] ?: 'Sin inversion') ?></strong>
+                                            <span><?= hrs(dinero_reporte_sendero($row['inversion_monto'])) ?></span>
                                         </td>
                                         <td>
                                             <strong><?= hrs($row['experiencia_senderismo']) ?></strong>
@@ -309,6 +326,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <?= hrs($row['enfermedad']) ?><br>
                                             Seguro: <?= hrs($row['seguro_medico']) ?>
                                         </dd>
+                                    </div>
+                                    <div>
+                                        <dt>Inversion</dt>
+                                        <dd><?= hrs($row['inversion_nombre'] ?: 'Sin inversion') ?><br><?= hrs(dinero_reporte_sendero($row['inversion_monto'])) ?></dd>
                                     </div>
                                     <div>
                                         <dt>Experiencia</dt>

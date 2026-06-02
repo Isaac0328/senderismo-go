@@ -1,0 +1,55 @@
+.puntos-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.puntos-card {
+    max-width: 1120px;
+}
+
+.puntos-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, .75fr) minmax(0, 1.25fr);
+    gap: 0;
+}
+
+.puntos-form {
+    border-right: 1px solid rgba(0, 0, 0, .06);
+    border-bottom: 0;
+}
+
+.puntos-list {
+    max-height: 560px;
+}
+
+.punto-item a {
+    display: inline-flex;
+    width: fit-content;
+    margin: 0 0 7px;
+    color: #b90000;
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+@media (max-width: 900px) {
+    .puntos-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .puntos-form {
+        border-right: 0;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+}
+
+@media (max-width: 680px) {
+    .puntos-header-actions {
+        align-items: stretch;
+        flex-direction: column;
+        width: 100%;
+    }
+}

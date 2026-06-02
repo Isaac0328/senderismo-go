@@ -26,6 +26,7 @@ $catalogs = [
     'dificultad' => [
         'table' => 'niveles_dificultad',
         'label' => 'nivel de dificultad',
+        'with_level' => true,
     ],
     'camino' => [
         'table' => 'tipos_camino_vehiculo',
@@ -66,11 +67,13 @@ try {
 
     $table = $catalogs[$catalog]['table'];
     $label = $catalogs[$catalog]['label'];
+    $withLevel = !empty($catalogs[$catalog]['with_level']);
 
     if ($action === 'save') {
         $nombre = trim($_POST['nombre'] ?? '');
         $descripcion = trim($_POST['descripcion'] ?? '');
         $activo = isset($_POST['activo']) ? 1 : 0;
+        $nivelNumero = min(100, max(0, (int) ($_POST['nivel_numero'] ?? 50)));
 
         if ($nombre === '') {
             $_SESSION['detalles_error'] = "El nombre del {$label} es obligatorio.";
@@ -78,16 +81,28 @@ try {
         }
 
         if ($id > 0) {
-            $sql = "UPDATE {$table} SET nombre = ?, descripcion = ?, activo = ? WHERE id = ?";
+            $sql = $withLevel
+                ? "UPDATE {$table} SET nombre = ?, descripcion = ?, nivel_numero = ?, activo = ? WHERE id = ?"
+                : "UPDATE {$table} SET nombre = ?, descripcion = ?, activo = ? WHERE id = ?";
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "ssii", $nombre, $descripcion, $activo, $id);
+            if ($withLevel) {
+                mysqli_stmt_bind_param($stmt, "ssiii", $nombre, $descripcion, $nivelNumero, $activo, $id);
+            } else {
+                mysqli_stmt_bind_param($stmt, "ssii", $nombre, $descripcion, $activo, $id);
+            }
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
             $_SESSION['detalles_success'] = ucfirst($label) . " actualizado correctamente.";
         } else {
-            $sql = "INSERT INTO {$table} (nombre, descripcion, activo) VALUES (?, ?, ?)";
+            $sql = $withLevel
+                ? "INSERT INTO {$table} (nombre, descripcion, nivel_numero, activo) VALUES (?, ?, ?, ?)"
+                : "INSERT INTO {$table} (nombre, descripcion, activo) VALUES (?, ?, ?)";
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "ssi", $nombre, $descripcion, $activo);
+            if ($withLevel) {
+                mysqli_stmt_bind_param($stmt, "ssii", $nombre, $descripcion, $nivelNumero, $activo);
+            } else {
+                mysqli_stmt_bind_param($stmt, "ssi", $nombre, $descripcion, $activo);
+            }
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
             $_SESSION['detalles_success'] = ucfirst($label) . " creado correctamente.";
