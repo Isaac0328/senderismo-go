@@ -64,6 +64,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 <h1 class="usuarios-title">Mantenimiento de Usuarios</h1>
                 <p class="usuarios-subtitle">Crea, edita, asigna roles y activa/inactiva usuarios.</p>
             </div>
+            <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="usuarios-panel-link">
+                <i data-feather="arrow-left"></i>
+                Volver al panel
+            </a>
         </div>
 
         <?php if (!empty($_SESSION['usuarios_success'])): ?>
