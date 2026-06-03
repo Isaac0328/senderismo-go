@@ -81,9 +81,9 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                             <span>Recordar sesión</span>
                         </label>
 
-                        <span class="forgot-password is-disabled" aria-disabled="true">
+                        <a class="forgot-password" href="<?= BASE_URL ?>pantallas/recuperar_password.php">
                             ¿Olvidaste tu contraseña?
-                        </span>
+                        </a>
                     </div>
 
                     <button type="submit" class="btn-login" id="loginButton">

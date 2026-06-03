@@ -291,6 +291,20 @@
     color: #1f6b1f;
 }
 
+.alert-dev {
+    background: #fff8df;
+    border: 1px solid #f2d377;
+    color: #5f4300;
+    word-break: break-word;
+}
+
+.alert-dev a {
+    display: block;
+    margin-top: 6px;
+    color: #111;
+    font-weight: 800;
+}
+
 /* Footer */
 .login-footer {
     margin-top: 18px;
