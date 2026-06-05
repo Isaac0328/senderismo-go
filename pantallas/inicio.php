@@ -49,6 +49,12 @@ include_once "../componentes/barra_navegacion.php";
                 CONOCER MÁS
                 <span>↓</span>
             </a>
+
+            <a href="<?= BASE_URL ?>pantallas/senderos.php" class="hero-quick-link" aria-label="Ir a próximos senderos">
+                <i data-feather="calendar"></i>
+                <span>Ver próximos senderos</span>
+                <strong>Agenda</strong>
+            </a>
         </div>
     </section>
 

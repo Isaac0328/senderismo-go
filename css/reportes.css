@@ -360,6 +360,12 @@
     padding: 0 14px 14px;
 }
 
+.sendero-report-filter select,
+.sendero-report-filter button,
+.sendero-report-filter a {
+    min-width: 0;
+}
+
 .sendero-report-filter button svg {
     width: 16px;
     height: 16px;
@@ -461,6 +467,60 @@
     color: #b90000;
     font-size: 2rem;
     font-weight: 900;
+}
+
+.selected-sendero-actions {
+    display: grid;
+    justify-items: end;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+.selected-sendero-actions > strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 8px;
+    background: #fff;
+    color: #b90000;
+    font-size: 2rem;
+    font-weight: 900;
+}
+
+.report-export-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.report-export-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    border-radius: 8px;
+    padding: 8px 11px;
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .22);
+    font-size: .82rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: transform .2s ease, background .2s ease;
+}
+
+.report-export-actions a:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, .22);
+}
+
+.report-export-actions svg {
+    width: 15px;
+    height: 15px;
 }
 
 .sendero-users-table table {
@@ -589,7 +649,17 @@
 
 @media (max-width: 760px) {
     .reportes-page {
-        padding: 88px 12px 22px;
+        padding: 88px 8px 22px;
+        overflow-x: hidden;
+    }
+
+    .reportes-container,
+    .report-card,
+    .report-table-card,
+    .report-filter-card {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .reportes-header {
@@ -613,6 +683,22 @@
 
     .sendero-report-filter {
         grid-template-columns: 1fr;
+        padding: 0 10px 12px;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .sendero-report-filter select,
+    .sendero-report-filter button,
+    .sendero-report-filter a {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .sendero-report-filter select {
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .selected-sendero-banner {
@@ -625,11 +711,24 @@
         font-size: 1.05rem;
     }
 
-    .selected-sendero-banner > strong {
+    .selected-sendero-banner > strong,
+    .selected-sendero-actions > strong {
         width: 100%;
         height: auto;
         min-height: 46px;
         font-size: 1.55rem;
+    }
+
+    .selected-sendero-actions,
+    .report-export-actions {
+        width: 100%;
+        justify-items: stretch;
+        justify-content: stretch;
+    }
+
+    .report-export-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .metric-card {

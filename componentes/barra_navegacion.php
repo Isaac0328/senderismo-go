@@ -90,14 +90,6 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
                         </div>
                     </div>
 
-                    <!-- Logout mobile -->
-                    <div class="md:hidden">
-                        <a href="<?= BASE_URL ?>sesion/cerrar_sesion.php" class="mobile-nav-link text-red-600">
-                            <i data-feather="log-out"></i>
-                            <span>Salir</span>
-                        </a>
-                    </div>
-
                 <?php else: ?>
                     <!-- Login desktop -->
                     <div class="hidden md:block">
@@ -106,12 +98,6 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
                         </a>
                     </div>
 
-                    <!-- Login mobile -->
-                    <div class="md:hidden">
-                        <a href="<?= BASE_URL ?>pantallas/inicio_sesion.php" class="mobile-nav-link">
-                            <i data-feather="log-in"></i>
-                        </a>
-                    </div>
                 <?php endif; ?>
 
                 <!-- Botón menú mobile -->

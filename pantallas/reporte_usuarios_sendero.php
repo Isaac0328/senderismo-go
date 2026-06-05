@@ -140,6 +140,15 @@ foreach ($participantes as $participante) {
     }
 }
 
+$exportExcelUrl = BASE_URL . 'procesos/proceso_exportar_usuarios_sendero.php?' . http_build_query([
+    'sendero_id' => $senderoId,
+    'formato' => 'excel',
+]);
+$exportPdfUrl = BASE_URL . 'procesos/proceso_exportar_usuarios_sendero.php?' . http_build_query([
+    'sendero_id' => $senderoId,
+    'formato' => 'pdf',
+]);
+
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
 ?>
@@ -196,7 +205,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <h2><?= hrs($senderoSeleccionado['nombre']) ?></h2>
                     <p>Fecha del sendero: <?= hrs(fecha_reporte_sendero($senderoSeleccionado['fecha_sendero'])) ?></p>
                 </div>
-                <strong><?= $totalParticipantes ?></strong>
+                <div class="selected-sendero-actions">
+                    <strong><?= $totalParticipantes ?></strong>
+                    <div class="report-export-actions">
+                        <a href="<?= hrs($exportExcelUrl) ?>">
+                            <i data-feather="download"></i>
+                            Excel
+                        </a>
+                        <a href="<?= hrs($exportPdfUrl) ?>" target="_blank" rel="noopener">
+                            <i data-feather="file-text"></i>
+                            PDF
+                        </a>
+                    </div>
+                </div>
             </section>
 
             <section class="metrics-grid">
