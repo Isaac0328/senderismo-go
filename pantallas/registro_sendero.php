@@ -155,43 +155,19 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <span>1</span>
                     <div>
                         <h2>Datos del senderista</h2>
-                        <p>Estos datos se toman de tu cuenta y se completan con informacion de contacto.</p>
+                        <p>Estos datos estan guardados en tu cuenta. Si necesitas cambiarlos, contacta al administrador o actualizalos desde tu perfil cuando este disponible.</p>
                     </div>
                 </div>
 
-                <div class="registro-grid">
-                    <label class="field">
-                        <span>Nombre *</span>
-                        <input type="text" value="<?= h($usuario['nombre']) ?>" readonly>
-                    </label>
-                    <label class="field">
-                        <span>Apellidos *</span>
-                        <input type="text" value="<?= h($usuario['apellido']) ?>" readonly>
-                    </label>
-                    <label class="field">
-                        <span>Correo electronico *</span>
-                        <input type="email" value="<?= h($usuario['email']) ?>" readonly>
-                    </label>
-                    <label class="field">
-                        <span>Numero telefonico *</span>
-                        <input name="telefono" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" placeholder="# Sin guiones" value="<?= h($formData['telefono'] ?? '') ?>" required>
-                    </label>
-                    <label class="field">
-                        <span>Edad *</span>
-                        <select name="rango_edad" required>
-                            <option value="">Elije una respuesta</option>
-                            <?php foreach ($rangosEdad as $rango): ?>
-                                <option value="<?= h($rango) ?>" <?= selected_value($formData['rango_edad'] ?? '', $rango) ?>><?= h($rango) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="field">
-                        <span>Identificacion *</span>
-                        <input name="identificacion" type="text" value="<?= h($formData['identificacion'] ?? '') ?>" required>
-                    </label>
+                <div class="registro-grid details-summary-grid">
+                    <div class="detail-summary-card"><span>Nombre</span><strong><?= h($usuario['nombre'] . ' ' . $usuario['apellido']) ?></strong></div>
+                    <div class="detail-summary-card"><span>Correo</span><strong><?= h($usuario['email']) ?></strong></div>
+                    <div class="detail-summary-card"><span>Telefono</span><strong><?= h($detalle['telefono'] ?? 'Sin registrar') ?></strong></div>
+                    <div class="detail-summary-card"><span>Edad</span><strong><?= h($detalle['rango_edad'] ?? 'Sin registrar') ?></strong></div>
+                    <div class="detail-summary-card"><span>Sangre</span><strong><?= h($detalle['grupo_sanguineo'] ?? 'Sin registrar') ?></strong></div>
+                    <div class="detail-summary-card"><span>Emergencia</span><strong><?= h(($detalle['emergencia_nombre'] ?? 'Sin registrar') . (!empty($detalle['emergencia_telefono']) ? ' / ' . $detalle['emergencia_telefono'] : '')) ?></strong></div>
                 </div>
             </section>
-
             <section class="registro-section">
                 <div class="section-title-row">
                     <span>2</span>
@@ -233,94 +209,6 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <section class="registro-section">
                 <div class="section-title-row">
                     <span>3</span>
-                    <div>
-                        <h2>Salud y experiencia</h2>
-                        <p>Esta informacion ayuda a la organizacion a prepararse mejor para la ruta.</p>
-                    </div>
-                </div>
-
-                <div class="registro-grid">
-                    <div class="field">
-                        <span>Es alergico? *</span>
-                        <div class="radio-row">
-                            <label><input type="radio" name="es_alergico" value="1" <?= checked_value($formData['es_alergico'] ?? '0', '1') ?> required> Si</label>
-                            <label><input type="radio" name="es_alergico" value="0" <?= checked_value($formData['es_alergico'] ?? '0', '0') ?> required> No</label>
-                        </div>
-                    </div>
-                    <label class="field">
-                        <span>Especifique a que es alergico</span>
-                        <input name="alergias_detalle" type="text" value="<?= h($formData['alergias_detalle'] ?? '') ?>">
-                    </label>
-                    <label class="field">
-                        <span>Grupo sanguineo *</span>
-                        <select name="grupo_sanguineo" required>
-                            <option value="">Elije una respuesta</option>
-                            <?php foreach ($gruposSanguineos as $grupo): ?>
-                                <option value="<?= h($grupo) ?>" <?= selected_value($formData['grupo_sanguineo'] ?? '', $grupo) ?>><?= h($grupo) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="field span-2">
-                        <span>Padece alguna enfermedad? Cual? *</span>
-                        <input name="enfermedad" type="text" placeholder="Si no aplica, escribe No" value="<?= h($formData['enfermedad'] ?? '') ?>" required>
-                    </label>
-                    <label class="field span-2">
-                        <span>Tiene seguro medico? Cual? *</span>
-                        <input name="seguro_medico" type="text" placeholder="Si no aplica, escribe No" value="<?= h($formData['seguro_medico'] ?? '') ?>" required>
-                    </label>
-                    <label class="field">
-                        <span>Experiencia haciendo senderismo *</span>
-                        <select name="experiencia_senderismo" required>
-                            <option value="">Elije una respuesta</option>
-                            <?php foreach ($experiencias as $experiencia): ?>
-                                <option value="<?= h($experiencia) ?>" <?= selected_value($formData['experiencia_senderismo'] ?? '', $experiencia) ?>><?= h($experiencia) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="field">
-                        <span>Por cual via te enteraste? *</span>
-                        <select name="via_entero" required>
-                            <option value="">Elije una respuesta</option>
-                            <?php foreach ($vias as $via): ?>
-                                <option value="<?= h($via) ?>" <?= selected_value($formData['via_entero'] ?? '', $via) ?>><?= h($via) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="field">
-                        <span>Si fue amigos, escriba su nombre</span>
-                        <input name="referido_nombre" type="text" value="<?= h($formData['referido_nombre'] ?? '') ?>">
-                    </label>
-                </div>
-            </section>
-
-            <section class="registro-section">
-                <div class="section-title-row">
-                    <span>4</span>
-                    <div>
-                        <h2>Contacto de emergencia</h2>
-                        <p>Usaremos este contacto solo si ocurre alguna situacion durante la actividad.</p>
-                    </div>
-                </div>
-
-                <div class="registro-grid">
-                    <label class="field">
-                        <span>Nombre de contacto de emergencia *</span>
-                        <input name="emergencia_nombre" type="text" value="<?= h($formData['emergencia_nombre'] ?? '') ?>" required>
-                    </label>
-                    <label class="field">
-                        <span>Parentesco *</span>
-                        <input name="emergencia_parentesco" type="text" value="<?= h($formData['emergencia_parentesco'] ?? '') ?>" required>
-                    </label>
-                    <label class="field">
-                        <span>Numero de telefono *</span>
-                        <input name="emergencia_telefono" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" placeholder="# Sin guiones" value="<?= h($formData['emergencia_telefono'] ?? '') ?>" required>
-                    </label>
-                </div>
-            </section>
-
-            <section class="registro-section">
-                <div class="section-title-row">
-                    <span>5</span>
                     <div>
                         <h2>Consentimientos</h2>
                         <p>Debes aceptar estos terminos para completar el registro.</p>

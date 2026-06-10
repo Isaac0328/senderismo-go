@@ -39,17 +39,44 @@ if ($rRoles) {
     }
 }
 
-// Usuarios (SP listar)
+// Usuarios con detalles de participante cuando existan.
 $usuarios = [];
-$res = mysqli_query($conn, "CALL sp_usuarios_listar()");
+$res = mysqli_query($conn, "
+    SELECT
+        u.id,
+        u.nombre,
+        u.apellido,
+        u.user,
+        u.email,
+        u.rol_id,
+        r.nombre AS rol_nombre,
+        u.estado,
+        u.created_at,
+        u.last_login,
+        du.telefono,
+        du.rango_edad,
+        du.identificacion,
+        du.es_alergico,
+        du.alergias_detalle,
+        du.grupo_sanguineo,
+        du.enfermedad,
+        du.seguro_medico,
+        du.experiencia_senderismo,
+        du.via_entero,
+        du.referido_nombre,
+        du.emergencia_nombre,
+        du.emergencia_parentesco,
+        du.emergencia_telefono
+    FROM usuarios u
+    INNER JOIN roles r ON r.id = u.rol_id
+    LEFT JOIN detalles_usuarios du ON du.usuario_id = u.id
+    ORDER BY u.id DESC
+");
 if ($res) {
     while ($row = mysqli_fetch_assoc($res)) {
         $usuarios[] = $row;
     }
     mysqli_free_result($res);
-}
-while (mysqli_more_results($conn)) {
-    mysqli_next_result($conn);
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -144,6 +171,93 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </div>
 
+
+                    <div class="form-section-title">Detalles del senderista</div>
+
+                    <div class="form-group">
+                        <label for="telefono">Telefono</label>
+                        <input type="text" name="telefono" id="telefono" maxlength="20" placeholder="8090000000">
+                    </div>
+                    <div class="form-group">
+                        <label for="rango_edad">Edad</label>
+                        <select name="rango_edad" id="rango_edad">
+                            <option value="">Seleccione...</option>
+                            <option value="0-18">0-18</option>
+                            <option value="19-30">19-30</option>
+                            <option value="31-40">31-40</option>
+                            <option value="41-50">41-50</option>
+                            <option value="51-60">51-60</option>
+                            <option value="61+">61+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="identificacion">Identificacion</label>
+                        <input type="text" name="identificacion" id="identificacion" maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="grupo_sanguineo">Sangre</label>
+                        <select name="grupo_sanguineo" id="grupo_sanguineo">
+                            <option value="">Seleccione...</option>
+                            <option value="O+">O+</option><option value="O-">O-</option>
+                            <option value="A+">A+</option><option value="A-">A-</option>
+                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            <option value="B+">B+</option><option value="B-">B-</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="es_alergico">Alergico</label>
+                        <select name="es_alergico" id="es_alergico">
+                            <option value="0">No</option>
+                            <option value="1">Si</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="alergias_detalle">Detalle alergia</label>
+                        <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255">
+                    </div>
+                    <div class="form-group span-4">
+                        <label for="enfermedad">Enfermedad</label>
+                        <input type="text" name="enfermedad" id="enfermedad" maxlength="255" placeholder="Si no aplica, No">
+                    </div>
+                    <div class="form-group span-4">
+                        <label for="seguro_medico">Seguro medico</label>
+                        <input type="text" name="seguro_medico" id="seguro_medico" maxlength="255" placeholder="Si no aplica, No">
+                    </div>
+                    <div class="form-group">
+                        <label for="experiencia_senderismo">Experiencia</label>
+                        <select name="experiencia_senderismo" id="experiencia_senderismo">
+                            <option value="">Seleccione...</option>
+                            <option value="Primera vez">Primera vez</option>
+                            <option value="Principiante">Principiante</option>
+                            <option value="Intermedio">Intermedio</option>
+                            <option value="Avanzado">Avanzado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="via_entero">Via</label>
+                        <select name="via_entero" id="via_entero">
+                            <option value="">Seleccione...</option>
+                            <option value="Instagram">Instagram</option><option value="Facebook">Facebook</option>
+                            <option value="TikTok">TikTok</option><option value="WhatsApp">WhatsApp</option>
+                            <option value="Google">Google</option><option value="Amigos">Amigos</option><option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="referido_nombre">Referido</label>
+                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencia_nombre">Emergencia</label>
+                        <input type="text" name="emergencia_nombre" id="emergencia_nombre" maxlength="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencia_parentesco">Parentesco</label>
+                        <input type="text" name="emergencia_parentesco" id="emergencia_parentesco" maxlength="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencia_telefono">Tel. emergencia</label>
+                        <input type="text" name="emergencia_telefono" id="emergencia_telefono" maxlength="20">
+                    </div>
                     <div class="form-actions">
                         <button type="submit" class="btn-primary" id="submitBtn">Guardar</button>
                         <button type="button" class="btn-secondary" id="resetBtn">Limpiar</button>
@@ -171,6 +285,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <th>User</th>
                                 <th>Email</th>
                                 <th>Rol</th>
+                                <th>Detalles</th>
                                 <th style="width:90px;">Estado</th>
                                 <th style="width:240px;">Acciones</th>
                             </tr>
@@ -178,20 +293,38 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <tbody>
                             <?php if (count($usuarios) === 0): ?>
                                 <tr>
-                                    <td colspan="7" class="empty">No hay usuarios para mostrar.</td>
+                                    <td colspan="8" class="empty">No hay usuarios para mostrar.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($usuarios as $u): ?>
                                     <?php
                                     $estadoTxt = ((int) $u['estado'] === 1) ? 'Activo' : 'Inactivo';
                                     $estadoClass = ((int) $u['estado'] === 1) ? 'pill ok' : 'pill off';
+                                    $tieneDetalles = !empty($u['telefono']) || !empty($u['grupo_sanguineo']) || !empty($u['emergencia_nombre']);
+                                    $alergiaTxt = ((int) ($u['es_alergico'] ?? 0) === 1)
+                                        ? 'Alergico: ' . ($u['alergias_detalle'] ?: 'Si')
+                                        : 'No alergico';
                                     ?>
                                     <tr data-id="<?= (int) $u['id'] ?>" data-nombre="<?= htmlspecialchars($u['nombre']) ?>"
                                         data-apellido="<?= htmlspecialchars($u['apellido']) ?>"
                                         data-user="<?= htmlspecialchars($u['user']) ?>"
                                         data-email="<?= htmlspecialchars($u['email']) ?>" data-rol_id="<?= (int) $u['rol_id'] ?>"
                                         data-estado="<?= (int) $u['estado'] ?>"
-                                        data-rol_nombre="<?= htmlspecialchars($u['rol_nombre']) ?>">
+                                        data-rol_nombre="<?= htmlspecialchars($u['rol_nombre']) ?>"
+                                        data-telefono="<?= htmlspecialchars($u['telefono'] ?? '') ?>"
+                                        data-rango_edad="<?= htmlspecialchars($u['rango_edad'] ?? '') ?>"
+                                        data-identificacion="<?= htmlspecialchars($u['identificacion'] ?? '') ?>"
+                                        data-es_alergico="<?= (int) ($u['es_alergico'] ?? 0) ?>"
+                                        data-alergias_detalle="<?= htmlspecialchars($u['alergias_detalle'] ?? '') ?>"
+                                        data-grupo_sanguineo="<?= htmlspecialchars($u['grupo_sanguineo'] ?? '') ?>"
+                                        data-enfermedad="<?= htmlspecialchars($u['enfermedad'] ?? '') ?>"
+                                        data-seguro_medico="<?= htmlspecialchars($u['seguro_medico'] ?? '') ?>"
+                                        data-experiencia_senderismo="<?= htmlspecialchars($u['experiencia_senderismo'] ?? '') ?>"
+                                        data-via_entero="<?= htmlspecialchars($u['via_entero'] ?? '') ?>"
+                                        data-referido_nombre="<?= htmlspecialchars($u['referido_nombre'] ?? '') ?>"
+                                        data-emergencia_nombre="<?= htmlspecialchars($u['emergencia_nombre'] ?? '') ?>"
+                                        data-emergencia_parentesco="<?= htmlspecialchars($u['emergencia_parentesco'] ?? '') ?>"
+                                        data-emergencia_telefono="<?= htmlspecialchars($u['emergencia_telefono'] ?? '') ?>">
                                         <td>
                                             <?= (int) $u['id'] ?>
                                         </td>
@@ -206,6 +339,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         </td>
                                         <td>
                                             <?= htmlspecialchars($u['rol_nombre']) ?>
+                                        </td>
+                                        <td class="details-cell">
+                                            <?php if ($tieneDetalles): ?>
+                                                <div class="user-detail-summary">
+                                                    <span><strong>Tel:</strong> <?= htmlspecialchars($u['telefono'] ?: 'N/A') ?></span>
+                                                    <span><strong>Edad:</strong> <?= htmlspecialchars($u['rango_edad'] ?: 'N/A') ?></span>
+                                                    <span><strong>Sangre:</strong> <?= htmlspecialchars($u['grupo_sanguineo'] ?: 'N/A') ?></span>
+                                                    <span><strong><?= htmlspecialchars($alergiaTxt) ?></strong></span>
+                                                    <span><strong>Emergencia:</strong> <?= htmlspecialchars($u['emergencia_nombre'] ?: 'N/A') ?><?= !empty($u['emergencia_telefono']) ? ' / ' . htmlspecialchars($u['emergencia_telefono']) : '' ?></span>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="details-empty">Sin detalles registrados</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td><span class="<?= $estadoClass ?>">
                                                 <?= $estadoTxt ?>
