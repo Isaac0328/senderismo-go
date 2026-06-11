@@ -45,6 +45,31 @@ function dinero_registro($monto): string
     return 'RD$ ' . number_format((float) $monto, 2);
 }
 
+function perfil_senderista_completo(array $detalle): bool
+{
+    $requeridos = [
+        'telefono',
+        'rango_edad',
+        'identificacion',
+        'grupo_sanguineo',
+        'enfermedad',
+        'seguro_medico',
+        'experiencia_senderismo',
+        'via_entero',
+        'emergencia_nombre',
+        'emergencia_parentesco',
+        'emergencia_telefono',
+    ];
+
+    foreach ($requeridos as $campo) {
+        if (trim((string) ($detalle[$campo] ?? '')) === '') {
+            return false;
+        }
+    }
+
+    return (int) ($detalle['es_alergico'] ?? 0) !== 1 || trim((string) ($detalle['alergias_detalle'] ?? '')) !== '';
+}
+
 $stmt = mysqli_prepare($conn, "SELECT id, nombre, fecha_sendero, lugar, provincia, estado FROM senderos WHERE id = ? AND activo = 1 LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $idSendero);
 mysqli_stmt_execute($stmt);
@@ -74,6 +99,12 @@ mysqli_stmt_bind_param($stmt, "i", $usuarioId);
 mysqli_stmt_execute($stmt);
 $detalle = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
 mysqli_stmt_close($stmt);
+
+if (!perfil_senderista_completo($detalle)) {
+    $_SESSION['perfil_senderista_info'] = "Completa tus datos de senderista antes de reservar este sendero.";
+    header("Location: " . BASE_URL . "pantallas/completar_perfil.php?sendero_id=" . (int) $idSendero);
+    exit;
+}
 
 $formData = $detalle;
 $oldData = $_SESSION['registro_sendero_old'] ?? null;
@@ -143,6 +174,11 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <?php unset($_SESSION['registro_sendero_error']); ?>
         <?php endif; ?>
 
+        <?php if (!empty($_SESSION['registro_sendero_info'])): ?>
+            <div class="registro-alert success"><?= h($_SESSION['registro_sendero_info']) ?></div>
+            <?php unset($_SESSION['registro_sendero_info']); ?>
+        <?php endif; ?>
+
         <?php if ($registroExistente): ?>
             <div class="registro-alert success">Ya tienes un registro activo para este sendero. Puedes actualizar tus datos y enviarlos nuevamente.</div>
         <?php endif; ?>
@@ -163,9 +199,6 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <div class="detail-summary-card"><span>Nombre</span><strong><?= h($usuario['nombre'] . ' ' . $usuario['apellido']) ?></strong></div>
                     <div class="detail-summary-card"><span>Correo</span><strong><?= h($usuario['email']) ?></strong></div>
                     <div class="detail-summary-card"><span>Telefono</span><strong><?= h($detalle['telefono'] ?? 'Sin registrar') ?></strong></div>
-                    <div class="detail-summary-card"><span>Edad</span><strong><?= h($detalle['rango_edad'] ?? 'Sin registrar') ?></strong></div>
-                    <div class="detail-summary-card"><span>Sangre</span><strong><?= h($detalle['grupo_sanguineo'] ?? 'Sin registrar') ?></strong></div>
-                    <div class="detail-summary-card"><span>Emergencia</span><strong><?= h(($detalle['emergencia_nombre'] ?? 'Sin registrar') . (!empty($detalle['emergencia_telefono']) ? ' / ' . $detalle['emergencia_telefono'] : '')) ?></strong></div>
                 </div>
             </section>
             <section class="registro-section">

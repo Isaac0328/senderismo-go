@@ -46,6 +46,31 @@ function guardar_formulario_anterior(int $senderoId, array $data): void
     $_SESSION['registro_sendero_old'] = array_merge(['sendero_id' => $senderoId], $data);
 }
 
+function perfil_senderista_completo_registro(array $detalle): bool
+{
+    $requeridos = [
+        'telefono',
+        'rango_edad',
+        'identificacion',
+        'grupo_sanguineo',
+        'enfermedad',
+        'seguro_medico',
+        'experiencia_senderismo',
+        'via_entero',
+        'emergencia_nombre',
+        'emergencia_parentesco',
+        'emergencia_telefono',
+    ];
+
+    foreach ($requeridos as $campo) {
+        if (trim((string) ($detalle[$campo] ?? '')) === '') {
+            return false;
+        }
+    }
+
+    return (int) ($detalle['es_alergico'] ?? 0) !== 1 || trim((string) ($detalle['alergias_detalle'] ?? '')) !== '';
+}
+
 if ($senderoId <= 0) {
     $_SESSION['registro_sendero_error'] = "Sendero no valido.";
     registro_redirect($conn, 0);
@@ -71,19 +96,28 @@ mysqli_stmt_close($stmt);
 $consentimiento = isset($_POST['consentimiento']);
 $rgpd = isset($_POST['rgpd']);
 
-$stmt = mysqli_prepare($conn, "SELECT id FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT * FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $usuarioId);
 mysqli_stmt_execute($stmt);
 $detalle = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 mysqli_stmt_close($stmt);
 $detalleId = (int) ($detalle['id'] ?? 0);
 
+if ($detalleId <= 0 || !perfil_senderista_completo_registro($detalle ?: [])) {
+    guardar_formulario_anterior($senderoId, [
+        'inversion_id' => (string) $inversionId,
+        'consentimiento' => $consentimiento ? '1' : '',
+        'rgpd' => $rgpd ? '1' : '',
+    ]);
+    $_SESSION['perfil_senderista_info'] = "Completa tus datos de senderista antes de reservar este sendero.";
+    mysqli_close($conn);
+    header("Location: " . BASE_URL . "pantallas/completar_perfil.php?sendero_id=" . $senderoId);
+    exit;
+}
+
 $errores = [];
 if (!$inversionExiste) {
     $errores[] = "Selecciona un tipo de inversion valido.";
-}
-if ($detalleId <= 0) {
-    $errores[] = "Debes completar tus datos de senderista antes de reservar.";
 }
 if (!$consentimiento || !$rgpd) {
     $errores[] = "Debes aceptar el consentimiento y el acuerdo RGPD.";

@@ -109,10 +109,19 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">7 activos</span>
+                    <span class="panel-count">9 activos</span>
                 </div>
 
                 <div class="panel-list">
+                    <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_inicio.php">
+                        <span class="panel-icon"><i data-feather="home"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Inicio</span>
+                            <span class="panel-item-sub">Portada, tarjetas, galeria y llamados</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
                     <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios.php">
                         <span class="panel-icon"><i data-feather="user-check"></i></span>
                         <span class="panel-copy">
@@ -136,6 +145,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <span class="panel-copy">
                             <span class="panel-item-title">Senderos</span>
                             <span class="panel-item-sub">Rutas, niveles, fechas y puntos de encuentro</span>
+                        </span>
+                        <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+
+                    <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios_senderos.php">
+                        <span class="panel-icon"><i data-feather="user-minus"></i></span>
+                        <span class="panel-copy">
+                            <span class="panel-item-title">Usuarios por sendero</span>
+                            <span class="panel-item-sub">Inactivar, reactivar o eliminar reservas</span>
                         </span>
                         <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                     </a>

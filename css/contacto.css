@@ -268,6 +268,8 @@
     display: grid;
     place-items: center;
     border-radius: 8px;
+    color: var(--contact-green);
+    background: var(--contact-sky);
 }
 
 .channel-icon.whatsapp {

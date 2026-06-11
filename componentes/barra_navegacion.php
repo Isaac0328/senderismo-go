@@ -73,6 +73,11 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
                             </div>
 
                             <div class="p-2">
+                                <a href="<?= BASE_URL ?>pantallas/mi_perfil.php" class="dropdown-item">
+                                    <i data-feather="user"></i>
+                                    <span>Mi perfil</span>
+                                </a>
+
                                 <?php if (($_SESSION['usuario_rol_id'] ?? 0) == 1): ?>
                                     <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="dropdown-item">
                                         <i data-feather="settings"></i>
@@ -136,6 +141,10 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 
             <?php if ($isLoggedIn): ?>
                 <div class="border-t pt-2 mt-2">
+                    <a href="<?= BASE_URL ?>pantallas/mi_perfil.php" class="mobile-nav-link">
+                        <i data-feather="user"></i><span>Mi perfil</span>
+                    </a>
+
                     <?php if (($_SESSION['usuario_rol_id'] ?? 0) == 1): ?>
                         <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="mobile-nav-link">
                             <i data-feather="settings"></i><span>Administración</span>
