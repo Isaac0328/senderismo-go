@@ -46,12 +46,12 @@
     gap: 0.65rem;
     margin-top: 1rem;
     padding: 0.62rem 0.8rem 0.62rem 0.95rem;
-    color: #fff;
+    color: #fff !important;
     text-decoration: none;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.34);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+    background: rgba(7, 16, 9, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(12px);
     transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
@@ -65,12 +65,13 @@
 .hero-quick-link span {
     font-size: 0.9rem;
     font-weight: 800;
+    color: #fff;
 }
 
 .hero-quick-link strong {
     padding: 0.32rem 0.6rem;
     border-radius: 999px;
-    background: #e10600;
+    background: var(--app-accent, #e10600);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 900;
@@ -79,15 +80,16 @@
 
 .hero-quick-link:hover {
     transform: translateY(-2px);
-    background: rgba(0, 0, 0, 0.48);
-    border-color: rgba(255, 255, 255, 0.52);
+    background: rgba(0, 0, 0, 0.72);
+    border-color: rgba(255, 255, 255, 0.62);
 }
 
 /* ================= POR QUÉ ELEGIRNOS ================= */
 #porque-elegirnos {
-    background-color: #5b1a1a;
-    /* rojo oscuro */
-    color: var(--color-blanco);
+    background:
+        radial-gradient(circle at top left, rgba(62, 107, 62, 0.1), transparent 30rem),
+        linear-gradient(135deg, #f8faf7 0%, #eef4ef 100%);
+    color: #1e2f2c;
     position: relative;
     overflow: hidden;
 }
@@ -98,16 +100,35 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #3e6b3e, #4a7c4a);
+    height: 5px;
+    background: linear-gradient(90deg, #5b1a1a, #3e6b3e, #6fa36f);
     z-index: 1;
 }
 
+#porque-elegirnos .porque-header {
+    position: relative;
+    z-index: 1;
+}
+
+#porque-elegirnos .porque-overline {
+    display: inline-block;
+    margin-bottom: 1rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
+    background: rgba(62, 107, 62, 0.11);
+    color: #3e6b3e;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
 #porque-elegirnos h2 {
-    color: var(--color-blanco);
+    color: #5b1a1a;
     position: relative;
     display: inline-block;
     padding-bottom: 0.5rem;
+    letter-spacing: 0;
 }
 
 #porque-elegirnos h2::after {
@@ -116,19 +137,31 @@
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
+    width: 96px;
     height: 3px;
-    background-color: #3e6b3e;
+    background: linear-gradient(90deg, #5b1a1a, #3e6b3e);
     border-radius: 2px;
 }
 
+#porque-elegirnos .porque-header p {
+    max-width: 42rem;
+    margin: 1rem auto 0;
+    color: #55645f;
+    font-weight: 500;
+}
+
+#porque-elegirnos .porque-grid {
+    position: relative;
+    z-index: 1;
+}
+
 #porque-elegirnos .card {
-    background-color: #3e6b3e;
-    /* verde oscuro */
-    padding: 2.5rem;
-    border-radius: 0.75rem;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #ffffff;
+    padding: 2.35rem 2rem;
+    border-radius: 1.25rem;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+    border: 1px solid rgba(62, 107, 62, 0.1);
+    box-shadow: 0 16px 36px rgba(30, 47, 44, 0.08);
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -136,30 +169,61 @@
 }
 
 #porque-elegirnos .card:hover {
-    transform: translateY(-12px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.2);
-    background-color: #457845;
+    transform: translateY(-8px);
+    box-shadow: 0 26px 46px rgba(30, 47, 44, 0.14);
+    border-color: rgba(62, 107, 62, 0.26);
 }
 
-#porque-elegirnos .card i {
-    color: #ffd166;
+#porque-elegirnos .icon-circle {
+    width: 5rem;
+    height: 5rem;
+    align-items: center;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #f2faf4, #e5f1e8);
+    color: #3e6b3e;
+    box-shadow: inset 0 0 0 1px rgba(62, 107, 62, 0.08);
+    transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+#porque-elegirnos .card i,
+#porque-elegirnos .card svg {
+    color: currentColor;
+    stroke: currentColor;
     transition: transform 0.3s ease;
 }
 
-#porque-elegirnos .card:hover i {
-    transform: scale(1.2);
+#porque-elegirnos .card:hover .icon-circle {
+    background: #3e6b3e;
+    color: #ffffff;
+    transform: scale(1.04);
 }
 
 #porque-elegirnos .card h3 {
-    color: #ffd166;
+    color: #1e2f2c;
     margin-bottom: 1rem;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    text-transform: none;
 }
 
 #porque-elegirnos .card p {
-    color: rgba(255, 255, 255, 0.9);
+    color: #55645f;
     line-height: 1.6;
+    margin-bottom: 0;
+}
+
+#porque-elegirnos .card-divider {
+    width: 3rem;
+    height: 2px;
+    margin-top: 1.35rem;
+    border-radius: 999px;
+    background: #c9d8d1;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+#porque-elegirnos .card:hover .card-divider {
+    width: 5rem;
+    background: #3e6b3e;
 }
 
 /* ================= GALERÍA ================= */

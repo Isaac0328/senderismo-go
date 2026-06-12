@@ -205,6 +205,64 @@
     gap: 8px;
 }
 
+.panel-group {
+    display: grid;
+    gap: 8px;
+}
+
+.panel-group summary {
+    list-style: none;
+}
+
+.panel-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.panel-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 4px 0 2px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: rgba(225, 6, 0, 0.08);
+    color: #b90000;
+    cursor: pointer;
+    user-select: none;
+}
+
+.panel-group-title span {
+    font-size: .76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+}
+
+.panel-group-title small {
+    color: #555;
+    font-size: .72rem;
+    font-weight: 800;
+    text-align: right;
+}
+
+.panel-group-title svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+    color: #b90000;
+    transition: transform .2s ease;
+}
+
+.panel-group[open] .panel-group-title svg {
+    transform: rotate(180deg);
+}
+
+.panel-group-items {
+    display: grid;
+    gap: 8px;
+}
+
 .panel-item {
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr) auto;
@@ -411,5 +469,22 @@
 
     .panel-count {
         width: fit-content;
+    }
+
+    .panel-group-title {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 4px 8px;
+    }
+
+    .panel-group-title small {
+        grid-column: 1;
+        text-align: left;
+    }
+
+    .panel-group-title svg {
+        grid-column: 2;
+        grid-row: 1 / span 2;
     }
 }

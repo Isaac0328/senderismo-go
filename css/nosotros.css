@@ -123,19 +123,26 @@
 
 .about-btn.primary {
     background: var(--about-white);
-    color: var(--about-green-dark);
+    color: var(--app-accent-dark, var(--about-green-dark)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
 }
 
 .about-btn.secondary {
-    color: var(--about-white);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+    background: rgba(7, 16, 9, 0.58);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+}
+
+.about-btn.secondary svg {
+    stroke: #ffffff;
 }
 
 .about-btn.secondary.dark {
-    color: var(--about-green-dark);
-    border-color: rgba(16, 38, 23, 0.20);
-    background: rgba(255, 255, 255, 0.72);
+    color: var(--app-accent-dark, var(--about-green-dark)) !important;
+    border-color: rgba(16, 38, 23, 0.18);
+    background: var(--about-white);
 }
 
 .about-btn:hover {
@@ -384,7 +391,10 @@
 }
 
 .about-cta .section-label {
-    color: #f6d49a;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 
 .about-cta h2,

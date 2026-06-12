@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Por qué elegirnos? | Aventura Profesional</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fc 0%, #eef2f5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* Contenedor principal */
+        .container {
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Encabezado elegante */
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header .overline {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            color: #2c7a6e;
+            background: rgba(44, 122, 110, 0.1);
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #1a2e2a;
+            letter-spacing: -0.02em;
+        }
+
+        .section-header h2 span {
+            background: linear-gradient(120deg, #2c7a6e, #3ba18f);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        /* Grid de tarjetas profesionales */
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+        }
+
+        .card {
+            flex: 1;
+            min-width: 280px;
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 2rem 1.8rem;
+            transition: all 0.35s ease;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.1);
+            border-color: rgba(44, 122, 110, 0.2);
+        }
+
+        /* Iconos rediseñados */
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(145deg, #f0f9f6, #e6f2ef);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.8rem auto;
+            color: #2c7a6e;
+            font-size: 2.5rem;
+            transition: all 0.3s;
+        }
+
+        .card:hover .icon-circle {
+            background: #2c7a6e;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .card h3 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e2f2c;
+            margin-bottom: 1rem;
+            letter-spacing: -0.3px;
+        }
+
+        .card p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #4a5b57;
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        /* pequeña línea decorativa */
+        .card-divider {
+            width: 50px;
+            height: 2px;
+            background: #cbdcd8;
+            margin: 1.2rem auto 0 auto;
+            transition: width 0.3s;
+        }
+
+        .card:hover .card-divider {
+            width: 80px;
+            background: #2c7a6e;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .section-header h2 {
+                font-size: 2.2rem;
+            }
+            .cards-grid {
+                gap: 1.5rem;
+            }
+            .card {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 680px) {
+            body {
+                padding: 1rem;
+            }
+            .section-header h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section-header">
+            <div class="overline">razones de confianza</div>
+            <h2>¿Por qué <span>elegirnos?</span></h2>
+            <p style="max-width: 600px; margin: 1rem auto 0; color: #5a6e69;">Diseñamos cada detalle para ofrecerte una experiencia inolvidable, segura y auténtica.</p>
+        </div>
+
+        <div class="cards-grid">
+            <!-- Tarjeta 1: Rutas exclusivas -->
+            <div class="card">
+                <div class="icon-circle">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <h3>Rutas exclusivas y seguras</h3>
+                <p>Explora senderos cuidadosamente seleccionados para ofrecerte las mejores vistas y experiencias, con guías expertos que garantizan tu seguridad en todo momento.</p>
+                <div class="card-divider"></div>
+            </div>
+
+            <!-- Tarjeta 2: Todos los niveles -->
+            <div class="card">
+                <div class="icon-circle">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Experiencia para todos los niveles</h3>
+                <p>Rutas adaptadas a principiantes y expertos, asegurando que cada aventura se ajuste a tu nivel y disfrutes sin preocupaciones.</p>
+                <div class="card-divider"></div>
+            </div>
+
+            <!-- Tarjeta 3: Conexión auténtica -->
+            <div class="card">
+                <div class="icon-circle">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h3>Conexión auténtica con la naturaleza</h3>
+                <p>Más que un recorrido, te sumergimos en la naturaleza con actividades de observación, fotografía y momentos de relajación en entornos únicos.</p>
+                <div class="card-divider"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -452,6 +452,261 @@
     color: #111;
 }
 
+.minors-section {
+    border-color: rgba(8, 123, 77, .16);
+}
+
+.minors-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #f8faf6;
+    padding: 14px;
+}
+
+.minors-toolbar strong,
+.minors-toolbar small {
+    display: block;
+}
+
+.minors-toolbar strong {
+    color: #111;
+    font-weight: 900;
+}
+
+.minors-toolbar small {
+    margin-top: 3px;
+    color: #666;
+    line-height: 1.35;
+}
+
+.minors-open-btn {
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.minors-open-btn svg,
+.minor-modal-footer svg,
+.minor-modal-close svg,
+.minor-remove-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.minors-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.minors-empty,
+.minor-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 58px;
+    border: 1px dashed rgba(0, 0, 0, .16);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+    color: #555;
+    font-weight: 800;
+}
+
+.minors-empty svg {
+    color: #b90000;
+}
+
+.minor-summary-card {
+    border-style: solid;
+    background: #fff;
+}
+
+.minor-summary-card > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    font-weight: 900;
+    flex: 0 0 auto;
+}
+
+.minor-summary-card strong,
+.minor-summary-card small {
+    display: block;
+}
+
+.minor-summary-card strong {
+    color: #111;
+    font-weight: 900;
+}
+
+.minor-summary-card small {
+    margin-top: 2px;
+    color: #666;
+}
+
+.minor-modal[hidden] {
+    display: none;
+}
+
+.minor-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.minor-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .62);
+    backdrop-filter: blur(4px);
+}
+
+.minor-modal-panel {
+    position: relative;
+    width: min(980px, 100%);
+    max-height: min(88vh, 860px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    border-radius: 10px;
+    background: #f3f4f1;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .34);
+    overflow: hidden;
+}
+
+.minor-modal-header,
+.minor-modal-footer {
+    background: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+    padding: 16px;
+}
+
+.minor-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.minor-modal-header h2 {
+    margin: 8px 0 4px;
+    color: #111;
+    font-size: 1.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.minor-modal-header p {
+    margin: 0;
+    color: #666;
+    line-height: 1.45;
+}
+
+.minor-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: #e10600;
+    color: #fff;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.minor-modal-body {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    overflow: auto;
+}
+
+.minor-form-card {
+    display: grid;
+    gap: 12px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #fff;
+    padding: 14px;
+}
+
+.minor-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+}
+
+.minor-card-head strong,
+.minor-card-head small {
+    display: block;
+}
+
+.minor-card-head strong {
+    color: #111;
+    font-size: 1rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.minor-card-head small {
+    margin-top: 2px;
+    color: #666;
+}
+
+.minor-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #ffe1dd;
+    color: #9e1a0f;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.minor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.minor-grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.minor-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid rgba(0, 0, 0, .08);
+    border-bottom: 0;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
 @media (max-width: 860px) {
     .registro-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -495,5 +750,122 @@
     .btn-secondary,
     .registro-back {
         width: 100%;
+    }
+
+    .minors-toolbar,
+    .minor-card-head,
+    .minor-modal-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .minor-modal {
+        align-items: start;
+        padding: 6px;
+    }
+
+    .minor-modal-panel {
+        width: 100%;
+        max-height: calc(100vh - 12px);
+        border-radius: 8px;
+    }
+
+    .minor-modal-header,
+    .minor-modal-body,
+    .minor-modal-footer {
+        padding: 10px;
+    }
+
+    .minor-modal-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 38px;
+        gap: 8px;
+        align-items: start;
+    }
+
+    .minor-modal-header .registro-kicker {
+        min-height: 20px;
+        padding: 3px 8px;
+        font-size: .64rem;
+    }
+
+    .minor-modal-header h2 {
+        margin: 6px 0 3px;
+        font-size: 1.15rem;
+        line-height: 1.05;
+    }
+
+    .minor-modal-header p {
+        font-size: .82rem;
+        line-height: 1.32;
+    }
+
+    .minor-modal-close {
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+        padding: 0;
+    }
+
+    .minor-modal-body {
+        gap: 8px;
+    }
+
+    .minor-form-card {
+        gap: 9px;
+        padding: 10px;
+    }
+
+    .minor-card-head {
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .minor-card-head strong {
+        font-size: .88rem;
+    }
+
+    .minor-card-head small {
+        font-size: .76rem;
+    }
+
+    .minor-remove-btn {
+        width: 100%;
+        min-height: 34px;
+        padding: 7px 9px;
+        font-size: .82rem;
+    }
+
+    .minor-form-card .field {
+        gap: 4px;
+    }
+
+    .minor-form-card .field span {
+        font-size: .76rem;
+    }
+
+    .minor-form-card .field input,
+    .minor-form-card .field select {
+        min-height: 38px;
+        padding: 8px 10px;
+        font-size: .9rem;
+    }
+
+    .minor-grid,
+    .minor-grid.two {
+        grid-template-columns: 1fr;
+    }
+
+    .minor-modal-footer {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .minor-modal-footer .btn-primary,
+    .minor-modal-footer .btn-secondary {
+        min-height: 40px;
+        padding: 8px 10px;
+        font-size: .9rem;
     }
 }

@@ -38,6 +38,11 @@ function asset_url(string $asset): string
     }
     ?>
 
+    <?php
+    include_once __DIR__ . '/tema_colores.php';
+    sg_imprimir_tema_css();
+    ?>
+
 </head>
 
 <body class="bg-stone-50 font-sans antialiased">

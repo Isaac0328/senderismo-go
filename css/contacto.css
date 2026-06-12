@@ -122,13 +122,16 @@
 
 .contact-primary-action {
     background: #ffffff;
-    color: var(--contact-green-dark);
+    color: var(--app-accent-dark, var(--contact-green-dark)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
 }
 
 .contact-secondary-action {
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+    background: rgba(7, 16, 9, 0.58);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
 }
 
 .contact-primary-action:hover,
@@ -140,6 +143,10 @@
 .contact-secondary-action svg {
     width: 18px;
     height: 18px;
+}
+
+.contact-secondary-action svg {
+    stroke: #ffffff;
 }
 
 .contact-main {

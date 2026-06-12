@@ -193,16 +193,20 @@ include_once "../componentes/barra_navegacion.php";
 
     <section id="porque-elegirnos" class="w-full py-20">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
+            <div class="porque-header text-center mb-14">
+                <span class="porque-overline">Razones de confianza</span>
                 <h2 class="text-3xl md:text-4xl font-bold">
                     <?= inicio_h($inicio['porque_titulo']) ?>
                 </h2>
+                <p>
+                    Dise&ntilde;amos cada detalle para que vivas una experiencia segura, aut&eacute;ntica y memorable.
+                </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="porque-grid grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
                 <?php foreach ($tarjetasInicio as $tarjeta): ?>
-                    <div class="card text-center hover-card transition-transform duration-300">
-                        <div class="mb-6 flex justify-center">
+                    <div class="card text-center">
+                        <div class="icon-circle mb-6 flex justify-center">
                             <i data-feather="<?= inicio_h($tarjeta['icono']) ?>" class="w-12 h-12"></i>
                         </div>
                         <h3 class="text-xl font-semibold mb-4">
@@ -211,6 +215,7 @@ include_once "../componentes/barra_navegacion.php";
                         <p class="leading-relaxed">
                             <?= nl2br(inicio_h($tarjeta['descripcion'])) ?>
                         </p>
+                        <span class="card-divider" aria-hidden="true"></span>
                     </div>
                 <?php endforeach; ?>
             </div>

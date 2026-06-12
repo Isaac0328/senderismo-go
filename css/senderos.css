@@ -64,8 +64,9 @@
 }
 
 .section-eyebrow {
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent, #e10600) 14%, white);
+    color: var(--app-accent-dark, #b90000);
+    border: 1px solid color-mix(in srgb, var(--app-accent, #e10600) 18%, transparent);
 }
 
 .senderos-title {
@@ -566,16 +567,16 @@
 }
 
 .calendar-day.has-event {
-    border-color: rgba(225, 6, 0, .25);
-    background: rgba(225, 6, 0, .05);
+    border-color: color-mix(in srgb, var(--app-accent, #e10600) 34%, white);
+    background: color-mix(in srgb, var(--app-accent, #e10600) 8%, white);
 }
 
 .calendar-event-name {
     display: inline-block;
     border-radius: 6px;
     padding: 6px 7px;
-    background: #111;
-    color: #fff;
+    background: var(--app-primary-dark, #111);
+    color: #fff !important;
     font-size: .68rem;
     font-weight: 800;
     line-height: 1.2;
@@ -679,9 +680,13 @@
     }
 
     .featured-content,
-    .calendar-copy,
-    .calendar-card {
+    .calendar-copy {
         padding: 16px;
+    }
+
+    .calendar-card {
+        padding: 10px;
+        overflow-x: visible;
     }
 
     .sendero-card-top {
@@ -691,6 +696,42 @@
 
     .calendar-weekdays,
     .calendar-grid {
-        min-width: 560px;
+        min-width: 0;
+        gap: 4px;
+    }
+
+    .calendar-weekdays {
+        margin-bottom: 5px;
+    }
+
+    .calendar-weekdays div {
+        font-size: .62rem;
+    }
+
+    .calendar-day {
+        min-height: 46px;
+        border-radius: 7px;
+        padding: 5px;
+        gap: 3px;
+    }
+
+    .calendar-day span {
+        font-size: .74rem;
+    }
+
+    .calendar-event-name {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        padding: 0;
+        overflow: hidden;
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+    }
+
+    .calendar-day.has-event {
+        background: rgba(225, 6, 0, .08);
+        box-shadow: inset 0 0 0 1px rgba(225, 6, 0, .16);
     }
 }
