@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     $_SESSION['error_message'] = "Inicia sesion para completar tus datos.";
     header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
@@ -46,6 +49,47 @@ function perfil_redirect(mysqli $conn, int $senderoId): void
     }
     header("Location: " . $url);
     exit;
+}
+
+function perfil_save_image(string $campo, string $actual, int $usuarioId): string
+{
+    if (empty($_FILES[$campo]['name']) || !is_uploaded_file($_FILES[$campo]['tmp_name'])) {
+        return $actual;
+    }
+
+    if ((int) ($_FILES[$campo]['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException("No se pudo cargar la imagen seleccionada.");
+    }
+
+    if ((int) ($_FILES[$campo]['size'] ?? 0) > 4 * 1024 * 1024) {
+        throw new RuntimeException("Cada imagen debe pesar maximo 4 MB.");
+    }
+
+    $mime = mime_content_type($_FILES[$campo]['tmp_name']);
+    $extensiones = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    if (!isset($extensiones[$mime])) {
+        throw new RuntimeException("Las imagenes deben ser JPG, PNG o WEBP.");
+    }
+
+    $directorio = __DIR__ . '/../imagenes/perfiles';
+    if (!is_dir($directorio)) {
+        mkdir($directorio, 0775, true);
+    }
+
+    $prefijo = $campo === 'imagen_cabecera' ? 'cabecera' : 'perfil';
+    $nombre = $prefijo . '_u' . $usuarioId . '_' . bin2hex(random_bytes(6)) . '.' . $extensiones[$mime];
+    $destino = $directorio . '/' . $nombre;
+
+    if (!move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)) {
+        throw new RuntimeException("No se pudo guardar la imagen seleccionada.");
+    }
+
+    return 'imagenes/perfiles/' . $nombre;
 }
 
 $telefono = perfil_only_digits((string) ($_POST['telefono'] ?? ''));
@@ -122,13 +166,38 @@ if (!empty($errores)) {
     perfil_redirect($conn, $senderoId);
 }
 
+$actualImagenPerfil = '';
+$actualImagenCabecera = '';
+$stmtActual = mysqli_prepare($conn, "SELECT imagen_perfil, imagen_cabecera FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
+if ($stmtActual) {
+    mysqli_stmt_bind_param($stmtActual, 'i', $usuarioId);
+    mysqli_stmt_execute($stmtActual);
+    $actual = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtActual)) ?: [];
+    mysqli_stmt_close($stmtActual);
+    $actualImagenPerfil = (string) ($actual['imagen_perfil'] ?? '');
+    $actualImagenCabecera = (string) ($actual['imagen_cabecera'] ?? '');
+}
+
+try {
+    $quitarImagenPerfil = isset($_POST['quitar_imagen_perfil']);
+    $quitarImagenCabecera = isset($_POST['quitar_imagen_cabecera']);
+    $imagenPerfilBase = $quitarImagenPerfil ? '' : $actualImagenPerfil;
+    $imagenCabeceraBase = $quitarImagenCabecera ? '' : $actualImagenCabecera;
+    $imagenPerfil = perfil_save_image('imagen_perfil', $imagenPerfilBase, $usuarioId);
+    $imagenCabecera = perfil_save_image('imagen_cabecera', $imagenCabeceraBase, $usuarioId);
+} catch (RuntimeException $e) {
+    $_SESSION['perfil_senderista_error'] = $e->getMessage();
+    perfil_redirect($conn, $senderoId);
+}
+
 $stmt = mysqli_prepare(
     $conn,
     "INSERT INTO detalles_usuarios (
         usuario_id, telefono, rango_edad, identificacion, es_alergico, alergias_detalle,
         grupo_sanguineo, enfermedad, seguro_medico, experiencia_senderismo, via_entero,
-        referido_nombre, emergencia_nombre, emergencia_parentesco, emergencia_telefono
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        referido_nombre, emergencia_nombre, emergencia_parentesco, emergencia_telefono,
+        imagen_perfil, imagen_cabecera
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
         telefono = VALUES(telefono),
         rango_edad = VALUES(rango_edad),
@@ -143,7 +212,9 @@ $stmt = mysqli_prepare(
         referido_nombre = VALUES(referido_nombre),
         emergencia_nombre = VALUES(emergencia_nombre),
         emergencia_parentesco = VALUES(emergencia_parentesco),
-        emergencia_telefono = VALUES(emergencia_telefono)"
+        emergencia_telefono = VALUES(emergencia_telefono),
+        imagen_perfil = VALUES(imagen_perfil),
+        imagen_cabecera = VALUES(imagen_cabecera)"
 );
 
 if (!$stmt) {
@@ -153,7 +224,7 @@ if (!$stmt) {
 
 mysqli_stmt_bind_param(
     $stmt,
-    "isssissssssssss",
+    "isssissssssssssss",
     $usuarioId,
     $telefono,
     $rangoEdad,
@@ -168,7 +239,9 @@ mysqli_stmt_bind_param(
     $referidoNombre,
     $emergenciaNombre,
     $emergenciaParentesco,
-    $emergenciaTelefono
+    $emergenciaTelefono,
+    $imagenPerfil,
+    $imagenCabecera
 );
 mysqli_stmt_execute($stmt);
 mysqli_stmt_close($stmt);

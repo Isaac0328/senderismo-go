@@ -43,13 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const minorsSummary = document.querySelector('[data-minors-summary]');
     const minorsFields = document.querySelector('[data-minors-fields]');
     const minorsCount = document.querySelector('[data-minors-count]');
+    const savedMinorsPanel = document.querySelector('[data-saved-minors-panel]');
+    const savedMinorsList = document.querySelector('[data-saved-minors-list]');
     const openMinorsBtn = document.querySelector('[data-open-minors-modal]');
     const addMinorBtn = document.querySelector('[data-add-minor]');
     const saveMinorsBtn = document.querySelector('[data-save-minors]');
     const closeMinorsBtns = document.querySelectorAll('[data-close-minors-modal]');
     let minors = [];
+    let savedMinors = [];
 
     const minorFields = [
+        'menor_usuario_id',
         'nombre',
         'apellido',
         'telefono',
@@ -67,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const normalizeMinor = (minor = {}) => ({
+        menor_usuario_id: minor.menor_usuario_id || minor.id || '',
         nombre: minor.nombre || '',
         apellido: minor.apellido || '',
         telefono: minor.telefono || '',
@@ -161,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div>
                     <strong>${escapeHtml(`${minor.nombre} ${minor.apellido}`.trim())}</strong>
                     <small>${escapeHtml(minor.grupo_sanguineo || 'Sangre no indicada')} | ${escapeHtml(minor.experiencia_senderismo || 'Experiencia no indicada')}</small>
+                    ${minor.menor_usuario_id ? '<em>Guardado en perfil</em>' : ''}
                 </div>
             </article>
         `).join('');
@@ -203,6 +209,47 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshFeather();
     };
 
+    const renderSavedMinors = () => {
+        if (!savedMinorsPanel || !savedMinorsList) return;
+        if (!savedMinors.length) {
+            savedMinorsPanel.hidden = true;
+            savedMinorsList.innerHTML = '';
+            return;
+        }
+
+        savedMinorsPanel.hidden = false;
+        savedMinorsList.innerHTML = savedMinors.map((minor) => {
+            const fullName = `${minor.nombre} ${minor.apellido}`.trim();
+            const savedId = String(minor.menor_usuario_id || minor.id || '');
+            const alreadyAdded = minorsEditor && [...minorsEditor.querySelectorAll('[data-minor-card]')].some((card) => {
+                const input = card.querySelector('[data-field="menor_usuario_id"]');
+                return String(input?.value || '') === savedId;
+            });
+            return `
+                <button type="button" class="saved-minor-chip ${alreadyAdded ? 'is-added' : ''}" data-use-saved-minor="${escapeHtml(savedId)}">
+                    <strong>${escapeHtml(fullName)}</strong>
+                    <span>${escapeHtml(minor.rango_edad || 'Edad no indicada')} | ${escapeHtml(minor.grupo_sanguineo || 'Sangre no indicada')}</span>
+                    <small>${alreadyAdded ? 'Agregado' : 'Agregar a este sendero'}</small>
+                </button>
+            `;
+        }).join('');
+
+        savedMinorsList.querySelectorAll('[data-use-saved-minor]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const id = button.dataset.useSavedMinor || '';
+                const selected = savedMinors.find((minor) => String(minor.menor_usuario_id || minor.id || '') === String(id));
+                if (!selected) return;
+                const exists = minorsEditor && [...minorsEditor.querySelectorAll('[data-minor-card]')].some((card) => {
+                    const input = card.querySelector('[data-field="menor_usuario_id"]');
+                    return String(input?.value || '') === String(id);
+                });
+                if (exists) return;
+                createMinorCard(selected);
+                renderSavedMinors();
+            });
+        });
+    };
+
     function updateCardTitles() {
         if (!minorsEditor) return;
         minorsEditor.querySelectorAll('[data-minor-title]').forEach((title, index) => {
@@ -213,8 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const openMinorsModal = () => {
         if (!minorsModal || !minorsEditor) return;
         minorsEditor.innerHTML = '';
-        const editableMinors = minors.length ? minors : [normalizeMinor()];
+        const editableMinors = minors.length ? minors : (savedMinors.length ? [] : [normalizeMinor()]);
         editableMinors.forEach((minor) => createMinorCard(minor));
+        renderSavedMinors();
         minorsModal.hidden = false;
         document.body.classList.add('modal-open');
     };
@@ -231,6 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
             minors = Array.isArray(parsed) ? parsed.map(normalizeMinor) : [];
         } catch (error) {
             minors = [];
+        }
+        try {
+            const parsedSaved = JSON.parse(minorsRoot.dataset.savedMinors || '[]');
+            savedMinors = Array.isArray(parsedSaved) ? parsedSaved.map(normalizeMinor) : [];
+        } catch (error) {
+            savedMinors = [];
         }
         renderHiddenAndSummary();
     }

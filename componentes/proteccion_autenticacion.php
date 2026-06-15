@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 /**
  * Timeout por inactividad (segundos)
  * - Admin: 10 min
@@ -44,9 +47,6 @@ if ($last > 0 && ($now - $last) > $INACTIVITY_LIMIT) {
         $params = session_get_cookie_params();
         setcookie(session_name(), '', time() - 42000, $params["path"], $params["domain"], $params["secure"], $params["httponly"]);
     }
-
-    // Borrar remember token si existe (opcional)
-    setcookie('remember_token', '', time() - 3600, '/', '', false, true);
 
     session_destroy();
 

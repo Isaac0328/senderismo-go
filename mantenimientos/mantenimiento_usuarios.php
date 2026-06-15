@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 // Seguridad: solo Admin
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
@@ -29,6 +32,31 @@ $jsFiles = [
 ];
 
 require_once __DIR__ . '/../bd/conexion.php';
+
+mysqli_query($conn, "
+    CREATE TABLE IF NOT EXISTS menores_usuarios (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT NOT NULL,
+        nombre VARCHAR(100) NOT NULL,
+        apellido VARCHAR(100) NOT NULL,
+        telefono VARCHAR(30) DEFAULT NULL,
+        rango_edad VARCHAR(20) NOT NULL,
+        es_alergico TINYINT(1) NOT NULL DEFAULT 0,
+        alergias_detalle VARCHAR(255) DEFAULT NULL,
+        grupo_sanguineo VARCHAR(10) NOT NULL,
+        enfermedad VARCHAR(255) NOT NULL,
+        seguro_medico VARCHAR(255) NOT NULL,
+        experiencia_senderismo VARCHAR(80) NOT NULL,
+        emergencia_nombre VARCHAR(150) NOT NULL,
+        emergencia_parentesco VARCHAR(80) NOT NULL,
+        emergencia_telefono VARCHAR(30) NOT NULL,
+        activo TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_menores_usuarios_usuario (usuario_id),
+        CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+");
 
 // Roles para el select
 $roles = [];
@@ -79,6 +107,17 @@ if ($res) {
     mysqli_free_result($res);
 }
 
+$menoresPorUsuario = [];
+$resMenores = mysqli_query($conn, "SELECT * FROM menores_usuarios ORDER BY usuario_id ASC, activo DESC, nombre ASC, apellido ASC, id ASC");
+if ($resMenores) {
+    while ($row = mysqli_fetch_assoc($resMenores)) {
+        $uid = (int) $row['usuario_id'];
+        $row['menor_usuario_id'] = (int) $row['id'];
+        $menoresPorUsuario[$uid][] = $row;
+    }
+    mysqli_free_result($resMenores);
+}
+
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
 ?>
@@ -124,6 +163,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     action="<?= BASE_URL ?>procesos/proceso_usuarios.php">
                     <input type="hidden" name="action" id="action" value="save">
                     <input type="hidden" name="id" id="userId" value="0">
+                    <input type="hidden" name="sync_menores" value="1">
 
                     <div class="form-row">
                         <div class="form-group">
@@ -258,6 +298,20 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <label for="emergencia_telefono">Tel. emergencia</label>
                         <input type="text" name="emergencia_telefono" id="emergencia_telefono" maxlength="20">
                     </div>
+
+                    <div class="form-section-title">Menores asociados al usuario</div>
+                    <div class="user-minors-box">
+                        <div class="user-minors-head">
+                            <div>
+                                <strong data-user-minors-count>0 menores asociados</strong>
+                                <small>Estos menores apareceran como seleccionables cuando el usuario se registre a un sendero.</small>
+                            </div>
+                            <button class="btn-secondary" type="button" data-add-user-minor>Agregar menor</button>
+                        </div>
+                        <div class="user-minors-editor" data-user-minors-editor></div>
+                        <div data-user-minors-fields></div>
+                    </div>
+
                     <div class="form-actions">
                         <button type="submit" class="btn-primary" id="submitBtn">Guardar</button>
                         <button type="button" class="btn-secondary" id="resetBtn">Limpiar</button>
@@ -304,6 +358,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     $alergiaTxt = ((int) ($u['es_alergico'] ?? 0) === 1)
                                         ? 'Alergico: ' . ($u['alergias_detalle'] ?: 'Si')
                                         : 'No alergico';
+                                    $menoresUsuario = $menoresPorUsuario[(int) $u['id']] ?? [];
+                                    $menoresActivos = array_values(array_filter($menoresUsuario, static fn($m) => (int) ($m['activo'] ?? 1) === 1));
+                                    $menoresJson = htmlspecialchars(json_encode(array_values($menoresUsuario), JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
                                     ?>
                                     <tr data-id="<?= (int) $u['id'] ?>" data-nombre="<?= htmlspecialchars($u['nombre']) ?>"
                                         data-apellido="<?= htmlspecialchars($u['apellido']) ?>"
@@ -324,7 +381,8 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         data-referido_nombre="<?= htmlspecialchars($u['referido_nombre'] ?? '') ?>"
                                         data-emergencia_nombre="<?= htmlspecialchars($u['emergencia_nombre'] ?? '') ?>"
                                         data-emergencia_parentesco="<?= htmlspecialchars($u['emergencia_parentesco'] ?? '') ?>"
-                                        data-emergencia_telefono="<?= htmlspecialchars($u['emergencia_telefono'] ?? '') ?>">
+                                        data-emergencia_telefono="<?= htmlspecialchars($u['emergencia_telefono'] ?? '') ?>"
+                                        data-menores='<?= $menoresJson ?>'>
                                         <td>
                                             <?= (int) $u['id'] ?>
                                         </td>
@@ -348,9 +406,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                     <span><strong>Sangre:</strong> <?= htmlspecialchars($u['grupo_sanguineo'] ?: 'N/A') ?></span>
                                                     <span><strong><?= htmlspecialchars($alergiaTxt) ?></strong></span>
                                                     <span><strong>Emergencia:</strong> <?= htmlspecialchars($u['emergencia_nombre'] ?: 'N/A') ?><?= !empty($u['emergencia_telefono']) ? ' / ' . htmlspecialchars($u['emergencia_telefono']) : '' ?></span>
+                                                    <span><strong>Menores:</strong> <?= count($menoresActivos) ?> activos</span>
                                                 </div>
                                             <?php else: ?>
                                                 <span class="details-empty">Sin detalles registrados</span>
+                                                <?php if (count($menoresActivos) > 0): ?>
+                                                    <div class="user-detail-summary minors-inline"><span><strong>Menores:</strong> <?= count($menoresActivos) ?> activos</span></div>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                         <td><span class="<?= $estadoClass ?>">
@@ -390,6 +452,96 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         </div>
     </div>
 </div>
+
+<template id="userMinorTemplate">
+    <article class="user-minor-card" data-user-minor-card>
+        <input type="hidden" data-minor-field="menor_usuario_id">
+        <div class="user-minor-card-head">
+            <strong data-user-minor-title>Menor</strong>
+            <button type="button" class="btn-mini danger" data-remove-user-minor>Quitar</button>
+        </div>
+        <div class="user-minor-grid">
+            <label>
+                <span>Nombre *</span>
+                <input type="text" data-minor-field="nombre" maxlength="100" placeholder="Nombre">
+            </label>
+            <label>
+                <span>Apellido *</span>
+                <input type="text" data-minor-field="apellido" maxlength="100" placeholder="Apellido">
+            </label>
+            <label>
+                <span>Telefono</span>
+                <input type="text" data-minor-field="telefono" maxlength="30" placeholder="Opcional">
+            </label>
+            <label>
+                <span>Edad *</span>
+                <select data-minor-field="rango_edad">
+                    <option value="">Seleccione...</option>
+                    <option value="8-12">8 - 12</option>
+                    <option value="13-17">13 - 17</option>
+                </select>
+            </label>
+            <label>
+                <span>Sangre *</span>
+                <select data-minor-field="grupo_sanguineo">
+                    <option value="">Seleccione...</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                </select>
+            </label>
+            <label>
+                <span>Alergico</span>
+                <select data-minor-field="es_alergico">
+                    <option value="0">No</option>
+                    <option value="1">Si</option>
+                </select>
+            </label>
+            <label>
+                <span>Detalle alergia</span>
+                <input type="text" data-minor-field="alergias_detalle" maxlength="255">
+            </label>
+            <label>
+                <span>Experiencia *</span>
+                <select data-minor-field="experiencia_senderismo">
+                    <option value="">Seleccione...</option>
+                    <option value="Primera vez">Primera vez</option>
+                    <option value="Principiante">Principiante</option>
+                    <option value="Intermedio">Intermedio</option>
+                    <option value="Avanzado">Avanzado</option>
+                </select>
+            </label>
+            <label class="span-2">
+                <span>Enfermedad *</span>
+                <input type="text" data-minor-field="enfermedad" maxlength="255" placeholder="Si no aplica, No">
+            </label>
+            <label class="span-2">
+                <span>Seguro medico *</span>
+                <input type="text" data-minor-field="seguro_medico" maxlength="255" placeholder="Si no aplica, No">
+            </label>
+            <label>
+                <span>Emergencia *</span>
+                <input type="text" data-minor-field="emergencia_nombre" maxlength="150">
+            </label>
+            <label>
+                <span>Parentesco *</span>
+                <input type="text" data-minor-field="emergencia_parentesco" maxlength="80">
+            </label>
+            <label>
+                <span>Tel. emergencia *</span>
+                <input type="text" data-minor-field="emergencia_telefono" maxlength="30">
+            </label>
+            <label>
+                <span>Estado</span>
+                <select data-minor-field="activo">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </label>
+        </div>
+    </article>
+</template>
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>

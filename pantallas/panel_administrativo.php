@@ -109,7 +109,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">11 activos</span>
+                    <span class="panel-count">12 activos</span>
                 </div>
 
                 <div class="panel-list">
@@ -199,6 +199,15 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                                 <span class="panel-copy">
                                     <span class="panel-item-title">Usuarios por sendero</span>
                                     <span class="panel-item-sub">Inactivar, reactivar o eliminar reservas</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_asistencia_senderos.php">
+                                <span class="panel-icon"><i data-feather="check-circle"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Asistencia por sendero</span>
+                                    <span class="panel-item-sub">Marcar quienes asistieron realmente</span>
                                 </span>
                                 <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
                             </a>

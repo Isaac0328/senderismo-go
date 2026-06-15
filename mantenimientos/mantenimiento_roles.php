@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 // Seguridad: solo Admin
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");

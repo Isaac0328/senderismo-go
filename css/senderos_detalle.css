@@ -69,7 +69,7 @@
     border-radius: 999px;
     padding: 7px 11px;
     background: rgba(255, 255, 255, .12);
-    color: #fff;
+    color: #fff !important;
     text-decoration: none;
     font-size: .82rem;
     font-weight: 900;
@@ -80,6 +80,10 @@
 .hero-meta svg {
     width: 16px;
     height: 16px;
+}
+
+.back-link svg {
+    stroke: #fff;
 }
 
 .status-badge,
@@ -513,10 +517,15 @@
     border-radius: 8px;
     padding: 9px 11px;
     background: #111;
-    color: #fff;
+    color: #fff !important;
     font-size: .84rem;
     font-weight: 900;
     text-decoration: none;
+}
+
+.map-link:hover {
+    background: var(--app-primary-dark, #000);
+    color: #fff !important;
 }
 
 .detail-lists-grid {
@@ -902,16 +911,23 @@
     min-height: 44px;
     border-radius: 8px;
     padding: 11px 15px;
-    background: #e10600;
-    color: #fff;
+    background: var(--app-accent, #e10600);
+    color: #fff !important;
     font-weight: 900;
     text-decoration: none;
     white-space: nowrap;
 }
 
+.register-sendero-btn:hover {
+    background: var(--app-accent-dark, #b90000);
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+
 .register-sendero-btn svg {
     width: 18px;
     height: 18px;
+    stroke: #fff;
 }
 
 .empty-block {

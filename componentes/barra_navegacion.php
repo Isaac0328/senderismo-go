@@ -3,10 +3,55 @@ require_once __DIR__ . '/../configuracion.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+require_once __DIR__ . '/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 $isLoggedIn = isset($_SESSION['usuario_id']);
 $userName = $_SESSION['usuario_nombre'] ?? '';
 $userRole = $_SESSION['usuario_rol'] ?? '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
+$userAvatar = '';
+
+if ($isLoggedIn && !empty($_SESSION['usuario_id'])) {
+    $connAvatar = $conn ?? null;
+
+    if (!$connAvatar instanceof mysqli) {
+        $conexionPath = __DIR__ . '/../bd/conexion.php';
+        if (is_file($conexionPath)) {
+            require $conexionPath;
+            $connAvatar = $conn ?? null;
+        }
+    }
+
+    if ($connAvatar instanceof mysqli) {
+        $uidAvatar = (int) $_SESSION['usuario_id'];
+        $stmtAvatar = mysqli_prepare($connAvatar, "SELECT imagen_perfil FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
+        if ($stmtAvatar) {
+            mysqli_stmt_bind_param($stmtAvatar, 'i', $uidAvatar);
+            mysqli_stmt_execute($stmtAvatar);
+            $avatarRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtAvatar)) ?: [];
+            mysqli_stmt_close($stmtAvatar);
+            $avatarPath = trim((string) ($avatarRow['imagen_perfil'] ?? ''));
+            if ($avatarPath !== '') {
+                $userAvatar = preg_match('/^https?:\/\//i', $avatarPath)
+                    ? $avatarPath
+                    : BASE_URL . ltrim($avatarPath, '/');
+            }
+        }
+    }
+}
+
+if (!function_exists('nav_avatar_html')) {
+    function nav_avatar_html(string $avatar, string $initial, string $class = ''): string
+    {
+        $classAttr = trim('nav-user-avatar ' . $class);
+        if ($avatar !== '') {
+            return '<span class="' . htmlspecialchars($classAttr, ENT_QUOTES, 'UTF-8') . '"><img src="' . htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') . '" alt=""></span>';
+        }
+        return '<span class="' . htmlspecialchars($classAttr, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($initial, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+}
 ?>
 
 <nav class="fixed top-0 left-0 w-full z-50">
@@ -53,9 +98,7 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
                     <!-- Usuario logueado (desktop) -->
                     <div class="hidden md:block relative">
                         <button class="user-dropdown-btn flex items-center gap-2 px-4 py-2 rounded-full">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center">
-                                <?= $userInitial ?>
-                            </div>
+                            <?= nav_avatar_html($userAvatar, $userInitial, 'desktop-avatar') ?>
                             <?php $firstName = trim(explode(' ', trim($userName))[0] ?? ''); ?>
                             <span class="font-medium"><?= htmlspecialchars($firstName ?: 'Usuario') ?></span>
                             <i data-feather="chevron-down" class="w-4 h-4"></i>
@@ -120,7 +163,7 @@ $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
         <div class="px-4 pt-2 pb-3 space-y-1">
             <?php if ($isLoggedIn): ?>
                 <div class="mobile-user-card">
-                    <div class="mobile-user-avatar"><?= htmlspecialchars($userInitial) ?></div>
+                    <?= nav_avatar_html($userAvatar, $userInitial, 'mobile-user-avatar') ?>
                     <div>
                         <strong><?= htmlspecialchars($userName ?: 'Usuario') ?></strong>
                         <span><?= htmlspecialchars($userRole ?: 'Sesion activa') ?></span>

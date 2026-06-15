@@ -10,13 +10,84 @@
 }
 
 .perfil-hero {
+    position: relative;
     background:
         linear-gradient(135deg, rgba(0, 0, 0, .76), rgba(0, 0, 0, .38)),
-        url("../imagenes/paisajes/hero.jpg") center/cover;
+        var(--perfil-cover, url("../imagenes/paisajes/hero.jpg")) center/cover;
     color: #fff;
     border-radius: 14px 14px 0 0;
     padding: 44px;
     box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+}
+
+.perfil-cover-menu {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+}
+
+.perfil-cover-edit {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .92);
+    color: #111;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .24);
+    cursor: pointer;
+    list-style: none;
+    transition: transform .2s ease, background .2s ease;
+}
+
+.perfil-cover-edit::-webkit-details-marker {
+    display: none;
+}
+
+.perfil-cover-edit:hover,
+.perfil-cover-menu[open] .perfil-cover-edit {
+    transform: translateY(-1px);
+    background: #fff;
+}
+
+.perfil-cover-edit svg {
+    width: 19px;
+    height: 19px;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.perfil-cover-actions {
+    position: absolute;
+    top: 54px;
+    right: 0;
+    width: min(280px, calc(100vw - 36px));
+    display: grid;
+    gap: 9px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .98);
+    color: #111;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .25);
+}
+
+.perfil-cover-help {
+    color: #555;
+    font-size: .76rem;
+    line-height: 1.35;
+}
+
+.perfil-file-ready {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #e8f8ee;
+    color: #116b32 !important;
+    font-weight: 900;
 }
 
 .perfil-kicker {
@@ -81,6 +152,136 @@
     border: 1px solid #b9efc6;
 }
 
+.perfil-media-panel {
+    margin-bottom: 18px;
+    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f9faf7, #f0f3ec);
+}
+
+.perfil-media-summary {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    cursor: pointer;
+    list-style: none;
+}
+
+.perfil-media-summary::-webkit-details-marker {
+    display: none;
+}
+
+.perfil-avatar-preview {
+    width: 92px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    border: 4px solid #fff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .18);
+    font-size: 1.7rem;
+    font-weight: 950;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.perfil-media-panel[open] .perfil-avatar-preview,
+.perfil-media-summary:hover .perfil-avatar-preview {
+    transform: scale(1.06);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, .24);
+}
+
+.perfil-avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.perfil-media-copy span {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-media-copy strong {
+    display: block;
+    color: #111;
+    font-size: 1.2rem;
+    font-weight: 950;
+}
+
+.perfil-media-copy p {
+    margin: 5px 0 0;
+    color: #555;
+    line-height: 1.45;
+}
+
+.perfil-photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+    padding: 14px 0 0 108px;
+    border-top: 1px solid rgba(0, 0, 0, .08);
+}
+
+.perfil-file-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.perfil-photo-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    border-radius: 999px;
+    padding: 0 14px;
+    font-size: .86rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.perfil-photo-action.primary {
+    background: #111;
+    color: #fff;
+}
+
+.perfil-photo-action.neutral {
+    border: 1px solid #d8d8d8;
+    background: #fff;
+    color: #111;
+}
+
+.perfil-photo-action.danger {
+    background: #ffe1dd;
+    color: #b90000;
+}
+
+.perfil-photo-action input {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+}
+
 .perfil-user-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -120,6 +321,99 @@
 
 .perfil-status-pending {
     color: #c1121f !important;
+}
+
+.perfil-history-panel {
+    margin: 0 0 22px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 14px;
+    background: #f8f8f8;
+    padding: 16px;
+}
+
+.perfil-history-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.perfil-history-head span {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 6px;
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: rgba(17, 153, 76, .12);
+    color: #0b6b35;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-history-head h2 {
+    margin: 0;
+    color: #111;
+    font-size: 1.05rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-history-head strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #111;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 950;
+}
+
+.perfil-history-empty {
+    margin: 0;
+    color: #666;
+    line-height: 1.45;
+}
+
+.perfil-history-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.perfil-history-list article {
+    border: 1px solid rgba(0, 0, 0, .07);
+    border-left: 4px solid #11994c;
+    border-radius: 10px;
+    background: #fff;
+    padding: 12px;
+}
+
+.perfil-history-list article span {
+    color: #0b6b35;
+    font-size: .75rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-history-list article strong {
+    display: block;
+    margin-top: 5px;
+    color: #111;
+    font-weight: 950;
+    line-height: 1.2;
+}
+
+.perfil-history-list article p,
+.perfil-history-list article small {
+    display: block;
+    margin: 5px 0 0;
+    color: #666;
+    line-height: 1.35;
 }
 
 .perfil-section-title {
@@ -167,6 +461,19 @@
     padding: 12px 13px;
     color: #111;
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.perfil-field input[type="file"] {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.perfil-help {
+    display: block;
+    margin-top: 6px;
+    color: #666;
+    font-size: .78rem;
+    line-height: 1.35;
 }
 
 .perfil-field input:focus,
@@ -227,6 +534,163 @@
     color: #111;
 }
 
+.perfil-crop-open {
+    overflow: hidden;
+}
+
+.perfil-crop-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    place-items: center;
+    padding: 16px;
+}
+
+.perfil-crop-modal.is-open {
+    display: grid;
+}
+
+.perfil-crop-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .66);
+    backdrop-filter: blur(4px);
+}
+
+.perfil-crop-panel {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .38);
+}
+
+.perfil-crop-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 18px 12px;
+}
+
+.perfil-crop-head span {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 6px;
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-crop-head h2 {
+    margin: 0;
+    color: #111;
+    font-size: 1.35rem;
+    font-weight: 950;
+}
+
+.perfil-crop-close {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: #e10600;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.perfil-crop-stage {
+    padding: 10px 18px;
+}
+
+.perfil-crop-frame {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #111;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+}
+
+.perfil-crop-frame:active {
+    cursor: grabbing;
+}
+
+.perfil-crop-frame.is-profile {
+    width: min(360px, 100%);
+    aspect-ratio: 1;
+    border-radius: 50%;
+}
+
+.perfil-crop-frame.is-cover {
+    aspect-ratio: 180 / 43;
+}
+
+.perfil-crop-frame img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    max-height: none;
+    user-select: none;
+    pointer-events: none;
+}
+
+.perfil-crop-controls {
+    display: grid;
+    gap: 8px;
+    padding: 10px 18px 0;
+}
+
+.perfil-crop-controls label {
+    color: #111;
+    font-weight: 950;
+}
+
+.perfil-crop-controls input {
+    width: 100%;
+    accent-color: #111;
+}
+
+.perfil-crop-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px;
+}
+
+.perfil-crop-btn {
+    min-height: 44px;
+    border-radius: 10px;
+    padding: 0 16px;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.perfil-crop-btn.primary {
+    border: 0;
+    background: #111;
+    color: #fff;
+}
+
+.perfil-crop-btn.secondary {
+    border: 1px solid #dedede;
+    background: #fff;
+    color: #111;
+}
+
 @media (max-width: 720px) {
     .perfil-page {
         padding: 104px 10px 28px;
@@ -236,12 +700,42 @@
         padding: 28px 20px;
     }
 
+    .perfil-cover-menu {
+        top: 12px;
+        right: 12px;
+    }
+
+    .perfil-cover-edit {
+        width: 40px;
+        height: 40px;
+    }
+
     .perfil-card {
         padding: 20px 14px;
     }
 
+    .perfil-media-panel {
+        padding: 14px;
+    }
+
+    .perfil-media-summary {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+    }
+
+    .perfil-photo-actions {
+        padding-left: 0;
+        justify-content: center;
+    }
+
+    .perfil-photo-action {
+        width: 100%;
+    }
+
     .perfil-user-summary,
-    .perfil-grid {
+    .perfil-grid,
+    .perfil-history-list {
         grid-template-columns: 1fr;
     }
 
@@ -250,6 +744,27 @@
     }
 
     .perfil-btn {
+        width: 100%;
+    }
+
+    .perfil-crop-modal {
+        padding: 8px;
+    }
+
+    .perfil-crop-panel {
+        border-radius: 14px;
+        max-height: calc(100vh - 16px);
+    }
+
+    .perfil-crop-frame.is-profile {
+        width: min(280px, 100%);
+    }
+
+    .perfil-crop-actions {
+        flex-direction: column-reverse;
+    }
+
+    .perfil-crop-btn {
         width: 100%;
     }
 }

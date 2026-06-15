@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     $idParaRetorno = isset($_GET['id']) ? (int) $_GET['id'] : 0;
     if ($idParaRetorno > 0) {
@@ -78,6 +81,31 @@ function registro_crear_tabla_menores(mysqli $conn): void
         mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD COLUMN inversion_id INT DEFAULT NULL AFTER registro_id");
         mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD INDEX idx_registro_menores_inversion (inversion_id)");
     }
+
+    mysqli_query($conn, "
+        CREATE TABLE IF NOT EXISTS menores_usuarios (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            nombre VARCHAR(100) NOT NULL,
+            apellido VARCHAR(100) NOT NULL,
+            telefono VARCHAR(30) DEFAULT NULL,
+            rango_edad VARCHAR(20) NOT NULL,
+            es_alergico TINYINT(1) NOT NULL DEFAULT 0,
+            alergias_detalle VARCHAR(255) DEFAULT NULL,
+            grupo_sanguineo VARCHAR(10) NOT NULL,
+            enfermedad VARCHAR(255) NOT NULL,
+            seguro_medico VARCHAR(255) NOT NULL,
+            experiencia_senderismo VARCHAR(80) NOT NULL,
+            emergencia_nombre VARCHAR(150) NOT NULL,
+            emergencia_parentesco VARCHAR(80) NOT NULL,
+            emergencia_telefono VARCHAR(30) NOT NULL,
+            activo TINYINT(1) NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_menores_usuarios_usuario (usuario_id),
+            CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    ");
 }
 
 function perfil_senderista_completo(array $detalle): bool
@@ -170,6 +198,17 @@ if ($registroId > 0) {
     mysqli_stmt_close($stmt);
 }
 
+$menoresFrecuentes = [];
+$stmt = mysqli_prepare($conn, "SELECT * FROM menores_usuarios WHERE usuario_id = ? AND activo = 1 ORDER BY nombre ASC, apellido ASC, id ASC");
+mysqli_stmt_bind_param($stmt, "i", $usuarioId);
+mysqli_stmt_execute($stmt);
+$resMenoresFrecuentes = mysqli_stmt_get_result($stmt);
+while ($row = mysqli_fetch_assoc($resMenoresFrecuentes)) {
+    $row['menor_usuario_id'] = (int) $row['id'];
+    $menoresFrecuentes[] = $row;
+}
+mysqli_stmt_close($stmt);
+
 if (is_array($oldData) && (int) ($oldData['sendero_id'] ?? 0) === $idSendero) {
     $formData = array_merge($formData, $oldData);
     if (isset($oldData['menores']) && is_array($oldData['menores'])) {
@@ -207,6 +246,7 @@ $gruposSanguineos = ['O+', 'O-', 'A+', 'A-', 'AB+', 'AB-', 'B+', 'B-'];
 $experiencias = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzado'];
 $vias = ['Instagram', 'Facebook', 'TikTok', 'WhatsApp', 'Google', 'Amigos', 'Otro'];
 $menoresJson = h(json_encode(array_values($menoresRegistrados), JSON_UNESCAPED_UNICODE));
+$menoresFrecuentesJson = h(json_encode(array_values($menoresFrecuentes), JSON_UNESCAPED_UNICODE));
 
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
@@ -295,7 +335,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 </div>
             </section>
 
-            <section class="registro-section minors-section" data-minors-root data-minors='<?= $menoresJson ?>'>
+            <section class="registro-section minors-section" data-minors-root data-minors='<?= $menoresJson ?>' data-saved-minors='<?= $menoresFrecuentesJson ?>'>
                 <div class="section-title-row">
                     <span>3</span>
                     <div>
@@ -381,7 +421,16 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 </button>
             </header>
 
-            <div class="minor-modal-body" data-minors-editor></div>
+            <div class="minor-modal-body">
+                <div class="saved-minors-panel" data-saved-minors-panel hidden>
+                    <div>
+                        <strong>Menores guardados en tu perfil</strong>
+                        <small>Selecciona uno o varios para agregarlos a este sendero.</small>
+                    </div>
+                    <div class="saved-minors-list" data-saved-minors-list></div>
+                </div>
+                <div class="minor-editor-list" data-minors-editor></div>
+            </div>
 
             <footer class="minor-modal-footer">
                 <button type="button" class="btn-secondary" data-add-minor>
@@ -409,6 +458,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             </div>
 
             <div class="minor-grid">
+                <input type="hidden" data-field="menor_usuario_id">
                 <label class="field">
                     <span>Nombre *</span>
                     <input type="text" data-field="nombre" maxlength="100" required placeholder="Nombre del menor">

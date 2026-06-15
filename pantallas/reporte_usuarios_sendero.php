@@ -77,6 +77,7 @@ foreach ($senderos as $senderoItem) {
 }
 
 $participantes = [];
+$menoresPorRegistro = [];
 if ($senderoSeleccionado) {
     $sql = "
         SELECT
@@ -121,9 +122,37 @@ if ($senderoSeleccionado) {
         $participantes[] = $row;
     }
     mysqli_stmt_close($stmt);
+
+    $registroIds = array_map(static function ($row) {
+        return (int) $row['registro_id'];
+    }, $participantes);
+    if (!empty($registroIds)) {
+        $idsSql = implode(',', array_unique(array_filter($registroIds)));
+        if ($idsSql !== '') {
+            $resMenores = mysqli_query($conn, "
+                SELECT
+                    rm.*,
+                    si.nombre AS inversion_nombre,
+                    si.monto AS inversion_monto
+                FROM registro_sendero_menores rm
+                LEFT JOIN sendero_inversiones si ON si.id = rm.inversion_id
+                WHERE rm.registro_id IN ($idsSql)
+                ORDER BY rm.registro_id ASC, rm.id ASC
+            ");
+
+            if ($resMenores) {
+                while ($menor = mysqli_fetch_assoc($resMenores)) {
+                    $registroId = (int) $menor['registro_id'];
+                    $menoresPorRegistro[$registroId][] = $menor;
+                }
+            }
+        }
+    }
 }
 
 $totalParticipantes = count($participantes);
+$totalMenores = array_sum(array_map('count', $menoresPorRegistro));
+$totalGeneral = $totalParticipantes + $totalMenores;
 $totalAlergicos = 0;
 $totalSeguros = 0;
 $grupos = [];
@@ -137,6 +166,20 @@ foreach ($participantes as $participante) {
     $grupo = trim((string) $participante['grupo_sanguineo']);
     if ($grupo !== '') {
         $grupos[$grupo] = ($grupos[$grupo] ?? 0) + 1;
+    }
+}
+foreach ($menoresPorRegistro as $menores) {
+    foreach ($menores as $menor) {
+        if ((int) $menor['es_alergico'] === 1) {
+            $totalAlergicos++;
+        }
+        if (trim((string) $menor['seguro_medico']) !== '') {
+            $totalSeguros++;
+        }
+        $grupo = trim((string) $menor['grupo_sanguineo']);
+        if ($grupo !== '') {
+            $grupos[$grupo] = ($grupos[$grupo] ?? 0) + 1;
+        }
     }
 }
 
@@ -206,7 +249,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <p>Fecha del sendero: <?= hrs(fecha_reporte_sendero($senderoSeleccionado['fecha_sendero'])) ?></p>
                 </div>
                 <div class="selected-sendero-actions">
-                    <strong><?= $totalParticipantes ?></strong>
+                    <strong><?= $totalGeneral ?></strong>
                     <div class="report-export-actions">
                         <a href="<?= hrs($exportExcelUrl) ?>">
                             <i data-feather="download"></i>
@@ -226,6 +269,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <p>Registrados</p>
                     <strong><?= $totalParticipantes ?></strong>
                     <small>Participantes activos en este sendero</small>
+                </article>
+                <article class="metric-card">
+                    <span><i data-feather="user-plus"></i></span>
+                    <p>Menores</p>
+                    <strong><?= $totalMenores ?></strong>
+                    <small>Acompanantes menores registrados</small>
                 </article>
                 <article class="metric-card">
                     <span><i data-feather="alert-circle"></i></span>
@@ -273,11 +322,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Inversion</th>
                                     <th>Experiencia</th>
                                     <th>Emergencia</th>
+                                    <th>Menores</th>
                                     <th>Fecha registro</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($participantes as $row): ?>
+                                    <?php $menores = $menoresPorRegistro[(int) $row['registro_id']] ?? []; ?>
                                     <tr>
                                         <td>
                                             <strong><?= hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?></strong>
@@ -310,6 +361,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <span><?= hrs($row['emergencia_parentesco']) ?></span>
                                             <span><?= hrs($row['emergencia_telefono']) ?></span>
                                         </td>
+                                        <td>
+                                            <?php if (empty($menores)): ?>
+                                                <span class="muted-cell">Sin menores</span>
+                                            <?php else: ?>
+                                                <div class="minor-report-list compact">
+                                                    <?php foreach ($menores as $menor): ?>
+                                                        <article>
+                                                            <strong><?= hrs(trim($menor['nombre'] . ' ' . $menor['apellido'])) ?></strong>
+                                                            <span><?= hrs($menor['rango_edad']) ?> / <?= hrs($menor['grupo_sanguineo']) ?></span>
+                                                            <span><?= hrs($menor['inversion_nombre'] ?: 'Sin inversion') ?> - <?= hrs(dinero_reporte_sendero($menor['inversion_monto'])) ?></span>
+                                                            <span><?= (int) $menor['es_alergico'] === 1 ? 'Alergico: ' . hrs($menor['alergias_detalle'] ?: 'No especificado') : 'No alergico' ?></span>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= hrs(fecha_reporte_sendero($row['fecha_registro'], true)) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -319,6 +386,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                     <div class="sendero-users-cards">
                         <?php foreach ($participantes as $row): ?>
+                            <?php $menores = $menoresPorRegistro[(int) $row['registro_id']] ?? []; ?>
                             <article class="sendero-user-card">
                                 <div class="sendero-user-card-head">
                                     <div>
@@ -359,6 +427,26 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <div>
                                         <dt>Emergencia</dt>
                                         <dd><?= hrs($row['emergencia_nombre']) ?><br><?= hrs($row['emergencia_parentesco']) ?> / <?= hrs($row['emergencia_telefono']) ?></dd>
+                                    </div>
+                                    <div>
+                                        <dt>Menores acompanantes</dt>
+                                        <dd>
+                                            <?php if (empty($menores)): ?>
+                                                Sin menores registrados
+                                            <?php else: ?>
+                                                <div class="minor-report-list">
+                                                    <?php foreach ($menores as $menor): ?>
+                                                        <article>
+                                                            <strong><?= hrs(trim($menor['nombre'] . ' ' . $menor['apellido'])) ?></strong>
+                                                            <span><?= hrs($menor['rango_edad']) ?> / <?= hrs($menor['grupo_sanguineo']) ?></span>
+                                                            <span><?= hrs($menor['inversion_nombre'] ?: 'Sin inversion') ?> - <?= hrs(dinero_reporte_sendero($menor['inversion_monto'])) ?></span>
+                                                            <span><?= (int) $menor['es_alergico'] === 1 ? 'Alergico: ' . hrs($menor['alergias_detalle'] ?: 'No especificado') : 'No alergico' ?></span>
+                                                            <span>Emergencia: <?= hrs($menor['emergencia_nombre']) ?> / <?= hrs($menor['emergencia_telefono']) ?></span>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </dd>
                                     </div>
                                 </dl>
                             </article>

@@ -180,6 +180,106 @@
     grid-column: span 2;
 }
 
+.user-minors-box {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 10px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 10px;
+    background: #f8faf6;
+    padding: 12px;
+}
+
+.user-minors-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.user-minors-head strong,
+.user-minors-head small {
+    display: block;
+}
+
+.user-minors-head strong {
+    color: #111;
+    font-weight: 950;
+}
+
+.user-minors-head small {
+    margin-top: 3px;
+    color: #666;
+    line-height: 1.35;
+}
+
+.user-minors-editor {
+    display: grid;
+    gap: 10px;
+}
+
+.user-minor-card {
+    display: grid;
+    gap: 10px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 9px;
+    background: #fff;
+    padding: 12px;
+}
+
+.user-minor-card.is-inactive {
+    opacity: .72;
+    background: #f5f5f5;
+}
+
+.user-minor-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+}
+
+.user-minor-card-head strong {
+    color: #111;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.user-minor-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.user-minor-grid label {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.user-minor-grid label.span-2 {
+    grid-column: span 2;
+}
+
+.user-minor-grid span {
+    color: #222;
+    font-size: .78rem;
+    font-weight: 850;
+}
+
+.user-minor-grid input,
+.user-minor-grid select {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 8px;
+    padding: 8px 9px;
+    background: #fff;
+    font-size: .86rem;
+}
+
 .btn-primary,
 .btn-secondary {
     border: 0;
@@ -444,6 +544,10 @@
     .form-actions {
         grid-column: span 1;
     }
+
+    .user-minor-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 640px) {
@@ -475,6 +579,18 @@
         align-items: stretch;
         flex-direction: column;
         width: 100%;
+    }
+
+    .user-minors-head,
+    .user-minor-card-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .user-minor-grid,
+    .user-minor-grid label.span-2 {
+        grid-template-columns: 1fr;
+        grid-column: span 1;
     }
 
     .btn-primary,

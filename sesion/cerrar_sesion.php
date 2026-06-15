@@ -1,12 +1,34 @@
 <?php
-session_start();
+require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
 
-/* ================= CERRAR SESIÓN ================= */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Eliminar variables de sesión
+/* ================= CERRAR SESION ================= */
+
+if (isset($_COOKIE['remember_token'])) {
+    $token = trim((string) $_COOKIE['remember_token']);
+
+    if (preg_match('/^[a-f0-9]{64}$/i', $token)) {
+        require_once __DIR__ . '/../bd/conexion.php';
+
+        $stmt = mysqli_prepare($conn, "DELETE FROM sesiones_usuario WHERE token = ?");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 's', $token);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+
+        mysqli_close($conn);
+    }
+
+    sg_limpiar_cookie_recordar();
+}
+
 $_SESSION = [];
 
-// Destruir la sesión
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(
@@ -22,19 +44,5 @@ if (ini_get("session.use_cookies")) {
 
 session_destroy();
 
-/* ================= LIMPIAR COOKIE REMEMBER ME ================= */
-if (isset($_COOKIE['remember_token'])) {
-    setcookie(
-        'remember_token',
-        '',
-        time() - 3600,
-        '/',
-        '',
-        true,
-        true
-    );
-}
-
-/* ================= REDIRECCIÓN ================= */
-header("Location: ../pantallas/inicio_sesion.php");
+header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
 exit;

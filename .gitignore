@@ -24,6 +24,9 @@ vendor/
 respaldos_bd/*.sql
 scripts_bd/respaldos_bd/*.sql
 
+# Imagenes subidas por usuarios
+imagenes/perfiles/*
+
 # Archivos generados por pruebas o herramientas
 coverage/
 dist/

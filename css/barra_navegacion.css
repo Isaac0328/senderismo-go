@@ -199,7 +199,7 @@ nav ul li a.nav-link.active-nav-link {
     min-height: 38px;
     border-radius: 8px;
     padding: 9px 10px;
-    color: #fff;
+    color: rgba(255, 255, 255, .90) !important;
     font-size: .86rem;
     font-weight: 900;
     text-decoration: none;
@@ -207,13 +207,19 @@ nav ul li a.nav-link.active-nav-link {
 
 .nav-dropdown-menu a:hover {
     background: rgba(255, 255, 255, .10);
-    color: #fff;
+    color: #fff !important;
 }
 
 .nav-dropdown-menu svg {
     width: 16px;
     height: 16px;
-    color: var(--color-rojo);
+    color: #8fd19e;
+    stroke: #8fd19e;
+}
+
+.nav-dropdown-menu a:hover svg {
+    color: #ffffff;
+    stroke: #ffffff;
 }
 
 /* ================= BOTÓN INICIAR SESIÓN ================= */
@@ -245,7 +251,8 @@ nav a[href*="inicio_sesion.php"]:not(.mobile-nav-link):hover {
     transform: translateY(-1px) !important;
 }
 
-.user-dropdown-btn .w-8.h-8 {
+.user-dropdown-btn .w-8.h-8,
+.nav-user-avatar {
     background: linear-gradient(135deg, var(--color-rojo), var(--color-rojo-hover));
     font-weight: 700;
 }
@@ -297,12 +304,36 @@ nav a[href*="inicio_sesion.php"]:not(.mobile-nav-link):hover {
 }
 
 /* ===== Avatar inicial ===== */
-.user-dropdown-btn>div {
+.user-dropdown-btn>div,
+.nav-user-avatar {
     background: #b91c1c;
     /* rojo elegante */
     color: #ffffff;
     font-weight: 700;
     font-size: 0.9rem;
+}
+
+.nav-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+
+.nav-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.desktop-avatar {
+    width: 32px;
+    height: 32px;
 }
 
 /* ===== Nombre ===== */

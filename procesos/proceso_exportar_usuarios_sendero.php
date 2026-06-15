@@ -104,6 +104,35 @@ while ($row = mysqli_fetch_assoc($res)) {
     $participantes[] = $row;
 }
 mysqli_stmt_close($stmt);
+
+$menoresPorRegistro = [];
+$menoresExport = [];
+$registroIds = array_map(static function ($row) {
+    return (int) $row['registro_id'];
+}, $participantes);
+if (!empty($registroIds)) {
+    $idsSql = implode(',', array_unique(array_filter($registroIds)));
+    if ($idsSql !== '') {
+        $resMenores = mysqli_query($conn, "
+            SELECT
+                rm.*,
+                si.nombre AS inversion_nombre,
+                si.monto AS inversion_monto
+            FROM registro_sendero_menores rm
+            LEFT JOIN sendero_inversiones si ON si.id = rm.inversion_id
+            WHERE rm.registro_id IN ($idsSql)
+            ORDER BY rm.registro_id ASC, rm.id ASC
+        ");
+
+        if ($resMenores) {
+            while ($menor = mysqli_fetch_assoc($resMenores)) {
+                $registroId = (int) $menor['registro_id'];
+                $menoresPorRegistro[$registroId][] = $menor;
+                $menoresExport[] = $menor;
+            }
+        }
+    }
+}
 mysqli_close($conn);
 
 $filenameBase = 'usuarios_sendero_' . $senderoId . '_' . date('Ymd_His');
@@ -234,6 +263,107 @@ if ($formato === 'excel') {
     $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
     $sheet->getPageSetup()->setFitToWidth(1);
     $sheet->getPageSetup()->setFitToHeight(0);
+
+    $minorColumns = [
+        'Registro adulto',
+        'Adulto responsable',
+        'Nombre menor',
+        'Telefono',
+        'Rango edad',
+        'Grupo sanguineo',
+        'Alergias',
+        'Enfermedad',
+        'Seguro medico',
+        'Experiencia',
+        'Inversion',
+        'Monto',
+        'Contacto emergencia',
+        'Parentesco',
+        'Telefono emergencia',
+    ];
+
+    $minorSheet = $spreadsheet->createSheet();
+    $minorSheet->setTitle('Menores');
+    $minorSheet->setCellValue('A1', 'Menores por Sendero');
+    $minorSheet->mergeCells('A1:O1');
+    $minorSheet->setCellValue('A2', 'Sendero');
+    $minorSheet->setCellValue('B2', $sendero['nombre']);
+    $minorSheet->mergeCells('B2:O2');
+    $minorSheet->setCellValue('A3', 'Total menores');
+    $minorSheet->setCellValue('B3', count($menoresExport));
+
+    $minorHeaderRow = 5;
+    $minorSheet->fromArray($minorColumns, null, 'A' . $minorHeaderRow);
+    $adultosPorRegistro = [];
+    foreach ($participantes as $row) {
+        $adultosPorRegistro[(int) $row['registro_id']] = trim($row['nombre'] . ' ' . $row['apellido']);
+    }
+
+    $minorRowNumber = $minorHeaderRow + 1;
+    foreach ($menoresExport as $menor) {
+        $minorSheet->fromArray([
+            (int) $menor['registro_id'],
+            $adultosPorRegistro[(int) $menor['registro_id']] ?? 'No identificado',
+            trim($menor['nombre'] . ' ' . $menor['apellido']),
+            $menor['telefono'],
+            $menor['rango_edad'],
+            $menor['grupo_sanguineo'],
+            (int) $menor['es_alergico'] === 1 ? ($menor['alergias_detalle'] ?: 'Si, no especificado') : 'No',
+            $menor['enfermedad'],
+            $menor['seguro_medico'],
+            $menor['experiencia_senderismo'],
+            $menor['inversion_nombre'] ?: 'Sin inversion',
+            $menor['inversion_monto'] !== null && $menor['inversion_monto'] !== '' ? (float) $menor['inversion_monto'] : null,
+            $menor['emergencia_nombre'],
+            $menor['emergencia_parentesco'],
+            $menor['emergencia_telefono'],
+        ], null, 'A' . $minorRowNumber);
+        $minorRowNumber++;
+    }
+
+    $minorLastRow = max($minorRowNumber - 1, $minorHeaderRow);
+    $minorLastColumn = 'O';
+    $minorSheet->getStyle('A1:O1')->applyFromArray([
+        'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'FFFFFF']],
+        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '111111']],
+        'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+    ]);
+    $minorSheet->getStyle('A2:O3')->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F4F4F4']],
+    ]);
+    $minorSheet->getStyle('A' . $minorHeaderRow . ':' . $minorLastColumn . $minorHeaderRow)->applyFromArray([
+        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '255F38']],
+        'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+    ]);
+    $minorSheet->getStyle('A1:' . $minorLastColumn . $minorLastRow)->applyFromArray([
+        'borders' => [
+            'allBorders' => [
+                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                'color' => ['rgb' => 'DDDDDD'],
+            ],
+        ],
+    ]);
+    $minorSheet->getStyle('A' . ($minorHeaderRow + 1) . ':' . $minorLastColumn . $minorLastRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+    $minorSheet->getStyle('A' . ($minorHeaderRow + 1) . ':' . $minorLastColumn . $minorLastRow)->getAlignment()->setWrapText(true);
+    $minorSheet->getStyle('L' . ($minorHeaderRow + 1) . ':L' . $minorLastRow)->getNumberFormat()->setFormatCode('"RD$" #,##0.00');
+
+    $minorWidths = [
+        'A' => 14, 'B' => 26, 'C' => 24, 'D' => 16, 'E' => 14,
+        'F' => 16, 'G' => 28, 'H' => 28, 'I' => 24, 'J' => 20,
+        'K' => 24, 'L' => 14, 'M' => 24, 'N' => 16, 'O' => 18,
+    ];
+    foreach ($minorWidths as $column => $width) {
+        $minorSheet->getColumnDimension($column)->setWidth($width);
+    }
+    $minorSheet->freezePane('A6');
+    $minorSheet->setAutoFilter('A' . $minorHeaderRow . ':' . $minorLastColumn . $minorLastRow);
+    $minorSheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+    $minorSheet->getPageSetup()->setFitToWidth(1);
+    $minorSheet->getPageSetup()->setFitToHeight(0);
+
+    $spreadsheet->setActiveSheetIndex(0);
 
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -425,6 +555,19 @@ if ($formato === 'pdf') {
                         border-right: 0;
                     }
 
+                    .minor-box {
+                        padding: 9px 12px 10px;
+                        border-top: 1px solid #ededed;
+                        background: #fafafa;
+                    }
+
+                    .minor-line {
+                        margin-top: 5px;
+                        padding: 6px 8px;
+                        border-left: 3px solid #b90000;
+                        background: #fff;
+                    }
+
                     .block-title {
                         display: block;
                         margin-bottom: 5px;
@@ -485,16 +628,16 @@ if ($formato === 'pdf') {
                 <table class="summary-table">
                     <tr>
                         <td>
-                            <span class="summary-label">Registrados</span>
+                            <span class="summary-label">Adultos</span>
                             <span class="summary-value"><?= count($participantes) ?></span>
                         </td>
                         <td>
-                            <span class="summary-label">Sendero ID</span>
-                            <span class="summary-value"><?= (int) $senderoId ?></span>
+                            <span class="summary-label">Menores</span>
+                            <span class="summary-value"><?= count($menoresExport) ?></span>
                         </td>
                         <td>
-                            <span class="summary-label">Tipo</span>
-                            <span class="summary-value">Salud</span>
+                            <span class="summary-label">Total</span>
+                            <span class="summary-value"><?= count($participantes) + count($menoresExport) ?></span>
                         </td>
                         <td>
                             <span class="summary-label">Formato</span>
@@ -509,6 +652,7 @@ if ($formato === 'pdf') {
                     <div class="empty">Este sendero todavia no tiene participantes registrados.</div>
                 <?php else: ?>
                     <?php foreach ($participantes as $row): ?>
+                        <?php $menores = $menoresPorRegistro[(int) $row['registro_id']] ?? []; ?>
                         <article class="participant">
                             <div class="participant-head">
                                 <div class="participant-name"><?= export_hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?></div>
@@ -541,6 +685,21 @@ if ($formato === 'pdf') {
                                     </td>
                                 </tr>
                             </table>
+                            <?php if (!empty($menores)): ?>
+                                <div class="minor-box">
+                                    <span class="block-title">Menores acompanantes</span>
+                                    <?php foreach ($menores as $menor): ?>
+                                        <div class="minor-line">
+                                            <strong><?= export_hrs(trim($menor['nombre'] . ' ' . $menor['apellido'])) ?></strong>
+                                            | <?= export_hrs($menor['rango_edad']) ?>
+                                            | <?= export_hrs($menor['grupo_sanguineo']) ?>
+                                            | <?= export_hrs($menor['inversion_nombre'] ?: 'Sin inversion') ?>
+                                            | Alergias: <?= (int) $menor['es_alergico'] === 1 ? export_hrs($menor['alergias_detalle'] ?: 'Si') : 'No' ?>
+                                            | Emergencia: <?= export_hrs($menor['emergencia_nombre']) ?> / <?= export_hrs($menor['emergencia_telefono']) ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </article>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -628,7 +787,8 @@ if ($formato === 'pdf') {
         $rect,
         $text,
         $sendero,
-        $participantes
+        $participantes,
+        $menoresExport
     ): void {
         $content = '';
         $pageNo++;
@@ -646,9 +806,9 @@ if ($formato === 'pdf') {
         $setFill(245, 245, 245);
         $rect($pageW - 178, $pageH - 82, 136, 38, 'f');
         $setFill(185, 0, 0);
-        $text($pageW - 164, $pageH - 60, 18, (string) count($participantes), 'F2');
+        $text($pageW - 164, $pageH - 60, 18, (string) (count($participantes) + count($menoresExport)), 'F2');
         $setFill(70, 70, 70);
-        $text($pageW - 112, $pageH - 59, 9, 'REGISTROS', 'F2');
+        $text($pageW - 112, $pageH - 59, 9, 'PERSONAS', 'F2');
 
         $y = $pageH - 132;
         $setFill(35, 35, 35);
@@ -667,11 +827,13 @@ if ($formato === 'pdf') {
         $setStroke,
         $rect,
         $text,
-        $wrapText
+        $wrapText,
+        $menoresPorRegistro
     ): void {
+        $menores = $menoresPorRegistro[(int) $row['registro_id']] ?? [];
         $x = $margin;
         $w = $pageW - ($margin * 2);
-        $h = 96;
+        $h = empty($menores) ? 96 : 122 + (count($menores) * 12);
         $cardY = $y - $h;
 
         $setFill(255, 255, 255);
@@ -711,6 +873,19 @@ if ($formato === 'pdf') {
         $text($col3, $base + 9, 8, ($row['inversion_nombre'] ?: 'Sin inversion') . ' | ' . export_dinero($row['inversion_monto']), 'F1');
         $text($col3, $base - 3, 8, ($row['emergencia_nombre'] ?: 'Sin contacto') . ' | ' . ($row['emergencia_telefono'] ?: 'Sin telefono'), 'F1');
 
+        if (!empty($menores)) {
+            $minorY = $cardY + 24 + (count($menores) * 12);
+            $setFill(185, 0, 0);
+            $text($x + 12, $minorY, 8, 'MENORES ACOMPANANTES', 'F2');
+            $minorY -= 13;
+            $setFill(45, 45, 45);
+            foreach ($menores as $menor) {
+                $line = trim($menor['nombre'] . ' ' . $menor['apellido']) . ' | ' . $menor['rango_edad'] . ' | ' . $menor['grupo_sanguineo'] . ' | ' . ($menor['inversion_nombre'] ?: 'Sin inversion');
+                $text($x + 12, $minorY, 8, $line, 'F1');
+                $minorY -= 12;
+            }
+        }
+
         $y = $cardY - 12;
     };
 
@@ -720,7 +895,9 @@ if ($formato === 'pdf') {
         $text($margin, $y, 12, 'Este sendero todavia no tiene participantes registrados.', 'F1');
     } else {
         foreach ($participantes as $row) {
-            if ($y < 130) {
+            $cardMenores = $menoresPorRegistro[(int) $row['registro_id']] ?? [];
+            $neededHeight = empty($cardMenores) ? 130 : 158 + (count($cardMenores) * 12);
+            if ($y < $neededHeight) {
                 $savePage();
                 $startPage();
             }
@@ -1036,20 +1213,20 @@ if ($formato === 'pdf') {
 
         <div class="summary">
             <div>
-                <span>Total registrados</span>
+                <span>Adultos</span>
                 <strong><?= count($participantes) ?></strong>
             </div>
             <div>
-                <span>Sendero ID</span>
-                <strong><?= (int) $senderoId ?></strong>
+                <span>Menores</span>
+                <strong><?= count($menoresExport) ?></strong>
             </div>
             <div>
-                <span>Estado</span>
-                <strong><?= export_hrs(ucfirst((string) $sendero['estado'])) ?></strong>
+                <span>Total personas</span>
+                <strong><?= count($participantes) + count($menoresExport) ?></strong>
             </div>
             <div>
                 <span>Datos incluidos</span>
-                <strong>Contacto y salud</strong>
+                <strong>Contacto, salud y menores</strong>
             </div>
         </div>
 
@@ -1093,6 +1270,58 @@ if ($formato === 'pdf') {
                                 <td><?= export_hrs($row['emergencia_parentesco']) ?></td>
                                 <td><?= export_hrs($row['emergencia_telefono']) ?></td>
                                 <td><?= export_hrs(export_fecha($row['fecha_registro'], true)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </section>
+
+        <section class="table-section">
+            <div class="table-title">
+                <h2>Menores acompanantes</h2>
+                <p><?= count($menoresExport) ?> registros</p>
+            </div>
+
+            <?php if (empty($menoresExport)): ?>
+                <div class="empty">Este sendero no tiene menores registrados.</div>
+            <?php else: ?>
+                <?php
+                    $adultosPorRegistro = [];
+                    foreach ($participantes as $adulto) {
+                        $adultosPorRegistro[(int) $adulto['registro_id']] = trim($adulto['nombre'] . ' ' . $adulto['apellido']);
+                    }
+                ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Registro adulto</th>
+                            <th>Adulto responsable</th>
+                            <th>Menor</th>
+                            <th>Edad</th>
+                            <th>Telefono</th>
+                            <th>Grupo</th>
+                            <th>Salud</th>
+                            <th>Inversion</th>
+                            <th>Emergencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($menoresExport as $menor): ?>
+                            <tr>
+                                <td><?= (int) $menor['registro_id'] ?></td>
+                                <td><?= export_hrs($adultosPorRegistro[(int) $menor['registro_id']] ?? 'No identificado') ?></td>
+                                <td><?= export_hrs(trim($menor['nombre'] . ' ' . $menor['apellido'])) ?></td>
+                                <td><?= export_hrs($menor['rango_edad']) ?></td>
+                                <td><?= export_hrs($menor['telefono']) ?></td>
+                                <td><?= export_hrs($menor['grupo_sanguineo']) ?></td>
+                                <td>
+                                    <?= (int) $menor['es_alergico'] === 1 ? 'Alergico: ' . export_hrs($menor['alergias_detalle'] ?: 'Si, no especificado') : 'No alergico' ?><br>
+                                    <?= export_hrs($menor['enfermedad']) ?><br>
+                                    Seguro: <?= export_hrs($menor['seguro_medico']) ?>
+                                </td>
+                                <td><?= export_hrs($menor['inversion_nombre'] ?: 'Sin inversion') ?><br><?= export_hrs(export_dinero($menor['inversion_monto'])) ?></td>
+                                <td><?= export_hrs($menor['emergencia_nombre']) ?><br><?= export_hrs($menor['emergencia_parentesco']) ?> / <?= export_hrs($menor['emergencia_telefono']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

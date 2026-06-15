@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     $_SESSION['error_message'] = "Inicia sesion para registrarte en este sendero.";
     header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
@@ -79,6 +82,31 @@ function crear_tabla_menores_registro(mysqli $conn): void
         mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD COLUMN inversion_id INT DEFAULT NULL AFTER registro_id");
         mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD INDEX idx_registro_menores_inversion (inversion_id)");
     }
+
+    mysqli_query($conn, "
+        CREATE TABLE IF NOT EXISTS menores_usuarios (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT NOT NULL,
+            nombre VARCHAR(100) NOT NULL,
+            apellido VARCHAR(100) NOT NULL,
+            telefono VARCHAR(30) DEFAULT NULL,
+            rango_edad VARCHAR(20) NOT NULL,
+            es_alergico TINYINT(1) NOT NULL DEFAULT 0,
+            alergias_detalle VARCHAR(255) DEFAULT NULL,
+            grupo_sanguineo VARCHAR(10) NOT NULL,
+            enfermedad VARCHAR(255) NOT NULL,
+            seguro_medico VARCHAR(255) NOT NULL,
+            experiencia_senderismo VARCHAR(80) NOT NULL,
+            emergencia_nombre VARCHAR(150) NOT NULL,
+            emergencia_parentesco VARCHAR(80) NOT NULL,
+            emergencia_telefono VARCHAR(30) NOT NULL,
+            activo TINYINT(1) NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_menores_usuarios_usuario (usuario_id),
+            CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    ");
 }
 
 function obtener_menores_post(): array
@@ -101,6 +129,7 @@ function obtener_menores_post(): array
         }
 
         $menores[] = [
+            'menor_usuario_id' => (int) ($menor['menor_usuario_id'] ?? 0),
             'nombre' => $nombre,
             'apellido' => $apellido,
             'telefono' => clean_text((string) ($menor['telefono'] ?? ''), 30),
@@ -155,6 +184,92 @@ function validar_menores(array $menores, array $inversionesValidas): array
     }
 
     return array_values(array_unique($errores));
+}
+
+function guardar_menor_frecuente(mysqli $conn, int $usuarioId, array $menor): int
+{
+    $menorUsuarioId = (int) ($menor['menor_usuario_id'] ?? 0);
+    $nombre = $menor['nombre'];
+    $apellido = $menor['apellido'];
+    $telefono = $menor['telefono'];
+    $rangoEdad = $menor['rango_edad'];
+    $esAlergico = (int) $menor['es_alergico'];
+    $alergiasDetalle = $menor['alergias_detalle'];
+    $grupoSanguineo = $menor['grupo_sanguineo'];
+    $enfermedad = $menor['enfermedad'];
+    $seguroMedico = $menor['seguro_medico'];
+    $experiencia = $menor['experiencia_senderismo'];
+    $emergenciaNombre = $menor['emergencia_nombre'];
+    $emergenciaParentesco = $menor['emergencia_parentesco'];
+    $emergenciaTelefono = $menor['emergencia_telefono'];
+
+    if ($menorUsuarioId > 0) {
+        $stmt = mysqli_prepare(
+            $conn,
+            "UPDATE menores_usuarios
+             SET nombre = ?, apellido = ?, telefono = ?, rango_edad = ?, es_alergico = ?, alergias_detalle = ?,
+                 grupo_sanguineo = ?, enfermedad = ?, seguro_medico = ?, experiencia_senderismo = ?,
+                 emergencia_nombre = ?, emergencia_parentesco = ?, emergencia_telefono = ?, activo = 1
+             WHERE id = ? AND usuario_id = ?"
+        );
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ssssissssssssii",
+            $nombre,
+            $apellido,
+            $telefono,
+            $rangoEdad,
+            $esAlergico,
+            $alergiasDetalle,
+            $grupoSanguineo,
+            $enfermedad,
+            $seguroMedico,
+            $experiencia,
+            $emergenciaNombre,
+            $emergenciaParentesco,
+            $emergenciaTelefono,
+            $menorUsuarioId,
+            $usuarioId
+        );
+        mysqli_stmt_execute($stmt);
+        $actualizado = mysqli_stmt_affected_rows($stmt) >= 0;
+        mysqli_stmt_close($stmt);
+        if ($actualizado) {
+            return $menorUsuarioId;
+        }
+    }
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO menores_usuarios (
+            usuario_id, nombre, apellido, telefono, rango_edad, es_alergico, alergias_detalle,
+            grupo_sanguineo, enfermedad, seguro_medico, experiencia_senderismo,
+            emergencia_nombre, emergencia_parentesco, emergencia_telefono, activo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)"
+    );
+    mysqli_stmt_bind_param(
+        $stmt,
+        "issssissssssss",
+        $usuarioId,
+        $nombre,
+        $apellido,
+        $telefono,
+        $rangoEdad,
+        $esAlergico,
+        $alergiasDetalle,
+        $grupoSanguineo,
+        $enfermedad,
+        $seguroMedico,
+        $experiencia,
+        $emergenciaNombre,
+        $emergenciaParentesco,
+        $emergenciaTelefono
+    );
+    mysqli_stmt_execute($stmt);
+    $nuevoId = (int) mysqli_insert_id($conn);
+    mysqli_stmt_close($stmt);
+
+    return $nuevoId;
 }
 
 function perfil_senderista_completo_registro(array $detalle): bool
@@ -310,6 +425,7 @@ try {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         foreach ($menores as $menor) {
+            $menorUsuarioId = guardar_menor_frecuente($conn, $usuarioId, $menor);
             $menorInversionId = (int) $menor['inversion_id'];
             $menorNombre = $menor['nombre'];
             $menorApellido = $menor['apellido'];
