@@ -131,6 +131,39 @@
     color: #b90000;
 }
 
+.mus-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mus-card-tools > svg {
+    width: 20px;
+    height: 20px;
+    color: #b90000;
+}
+
+.mus-open-modal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #0b2f1c;
+    color: #fff;
+    font: inherit;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.mus-open-modal svg {
+    width: 16px;
+    height: 16px;
+}
+
 .mus-filter-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
@@ -364,6 +397,151 @@
     display: none;
 }
 
+.mus-modal {
+    width: min(760px, calc(100vw - 24px));
+    border: 0;
+    border-radius: 10px;
+    padding: 0;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .34);
+}
+
+.mus-modal::backdrop {
+    background: rgba(0, 0, 0, .55);
+}
+
+.mus-modal-box {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 18px;
+}
+
+.mus-modal-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.mus-modal-head span {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: rgba(0, 128, 70, .12);
+    color: #08733f;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.mus-modal-head h2 {
+    margin: 7px 0 0;
+    color: #111;
+    font-size: 1.2rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.mus-modal-close {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: #f0f0f0;
+    color: #111;
+    cursor: pointer;
+}
+
+.mus-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mus-mode-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.mus-mode-switch label,
+.mus-checkline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: #f7f7f7;
+    padding: 10px 12px;
+    color: #111;
+    font-weight: 900;
+}
+
+.mus-form-grid,
+.mus-new-fields {
+    display: grid;
+    gap: 11px;
+}
+
+.mus-new-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mus-field {
+    display: grid;
+    gap: 6px;
+}
+
+.mus-field span {
+    color: #333;
+    font-size: .78rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.mus-field input,
+.mus-field select {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid rgba(0, 0, 0, .13);
+    border-radius: 8px;
+    background: #fff;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.mus-checkline {
+    width: fit-content;
+}
+
+.mus-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.mus-modal-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    background: #0b2f1c;
+    color: #fff;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.mus-modal-actions button.secondary {
+    background: #f0f0f0;
+    color: #111;
+}
+
 @media (max-width: 760px) {
     .mus-page {
         padding: 84px 8px 24px;
@@ -408,6 +586,15 @@
 
     .mus-card-head {
         padding: 14px 10px 8px;
+    }
+
+    .mus-card-tools {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .mus-open-modal {
+        width: 100%;
     }
 
     .mus-card-head h2 {
@@ -481,6 +668,27 @@
 
     .mus-user-card .mus-actions form,
     .mus-user-card .mus-actions button {
+        width: 100%;
+    }
+
+    .mus-modal-box {
+        padding: 14px;
+    }
+
+    .mus-mode-switch,
+    .mus-new-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .mus-checkline {
+        width: 100%;
+    }
+
+    .mus-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .mus-modal-actions button {
         width: 100%;
     }
 }

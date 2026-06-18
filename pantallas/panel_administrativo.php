@@ -109,11 +109,11 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         <h2 class="panel-title">Mantenimientos</h2>
                         <p class="panel-desc">Modulos principales</p>
                     </div>
-                    <span class="panel-count">12 activos</span>
+                    <span class="panel-count">17 activos</span>
                 </div>
 
                 <div class="panel-list">
-                    <details class="panel-group" open>
+                    <details class="panel-group">
                         <summary class="panel-group-title">
                             <span>Interfaz y contenido publico</span>
                             <small>Paginas visibles para visitantes</small>
@@ -159,7 +159,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         </div>
                     </details>
 
-                    <details class="panel-group" open>
+                    <details class="panel-group">
                         <summary class="panel-group-title">
                             <span>Operacion y configuracion</span>
                             <small>Usuarios, senderos, catalogos y pagos</small>
@@ -240,6 +240,61 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                             </a>
                         </div>
                     </details>
+
+                    <details class="panel-group">
+                        <summary class="panel-group-title">
+                            <span>Contabilidad y finanzas</span>
+                            <small>Gastos, ingresos y rentabilidad por sendero</small>
+                            <i data-feather="chevron-down"></i>
+                        </summary>
+
+                        <div class="panel-group-items">
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_categoria_gasto.php">
+                                <span class="panel-icon"><i data-feather="folder"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Categorias de gasto</span>
+                                    <span class="panel-item-sub">Clasificacion financiera para costos operativos</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_gastos.php">
+                                <span class="panel-icon"><i data-feather="tag"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Mantenimiento gastos</span>
+                                    <span class="panel-item-sub">Catalogo de costos: alimentos, equipos y servicios</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_gastos_sendero.php">
+                                <span class="panel-icon"><i data-feather="shopping-bag"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Gastos por sendero</span>
+                                    <span class="panel-item-sub">Cantidad usada y costo total por ruta</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_metodo_pago.php">
+                                <span class="panel-icon"><i data-feather="credit-card"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Metodos de pago</span>
+                                    <span class="panel-item-sub">Catalogo de formas de cobro para ingresos</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>mantenimientos/mantenimiento_ingresos_sendero.php">
+                                <span class="panel-icon"><i data-feather="credit-card"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Ingresos por sendero</span>
+                                    <span class="panel-item-sub">Pagos de inscritos y asistencia financiera</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+                        </div>
+                    </details>
                 </div>
             </section>
 
@@ -253,7 +308,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                 </div>
 
                 <div class="panel-list">
-                    <details class="panel-group" open>
+                    <details class="panel-group">
                         <summary class="panel-group-title">
                             <span>Usuarios y actividad</span>
                             <small>Estado, accesos y movimiento del sistema</small>
@@ -281,7 +336,7 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         </div>
                     </details>
 
-                    <details class="panel-group" open>
+                    <details class="panel-group">
                         <summary class="panel-group-title">
                             <span>Senderos y registros</span>
                             <small>Rutas, galeria, reservas y participantes</small>
@@ -309,7 +364,35 @@ $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '');
                         </div>
                     </details>
 
-                    <details class="panel-group" open>
+                    <details class="panel-group">
+                        <summary class="panel-group-title">
+                            <span>Finanzas</span>
+                            <small>Rentabilidad, ingresos y gastos</small>
+                            <i data-feather="chevron-down"></i>
+                        </summary>
+
+                        <div class="panel-group-items">
+                            <a class="panel-item" href="<?= BASE_URL ?>pantallas/reporte_rentabilidad_sendero.php">
+                                <span class="panel-icon"><i data-feather="bar-chart-2"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Rentabilidad por sendero</span>
+                                    <span class="panel-item-sub">Detalle de gastos, ingresos, utilidad y margen</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+
+                            <a class="panel-item" href="<?= BASE_URL ?>pantallas/reporte_rentabilidad_fechas.php">
+                                <span class="panel-icon"><i data-feather="calendar"></i></span>
+                                <span class="panel-copy">
+                                    <span class="panel-item-title">Rentabilidad por fechas</span>
+                                    <span class="panel-item-sub">Resumen de senderos dentro de un rango</span>
+                                </span>
+                                <span class="panel-arrow"><i data-feather="chevron-right"></i></span>
+                            </a>
+                        </div>
+                    </details>
+
+                    <details class="panel-group">
                         <summary class="panel-group-title">
                             <span>Comunicacion</span>
                             <small>Solicitudes recibidas desde la web</small>

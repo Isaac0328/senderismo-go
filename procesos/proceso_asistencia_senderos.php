@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -30,6 +31,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_asistencia_senderos.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_asistencia_senderos.php", 'asistencia_error');
 
 $senderoId = (int) ($_POST['sendero_id'] ?? 0);
 $registroIds = $_POST['registro_ids'] ?? [];

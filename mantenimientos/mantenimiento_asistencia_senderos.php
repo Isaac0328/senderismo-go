@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 $pageTitle = "Asistencia por Sendero | Senderismo Go!";
 $cssFiles = [
@@ -38,29 +39,6 @@ function asis_money($monto): string
     return $monto === null || $monto === '' ? 'Sin monto' : 'RD$ ' . number_format((float) $monto, 2);
 }
 
-function asis_asegurar_columnas(mysqli $conn): void
-{
-    $columnas = [];
-    $res = mysqli_query($conn, "SHOW COLUMNS FROM registros_senderos");
-    while ($res && $row = mysqli_fetch_assoc($res)) {
-        $columnas[$row['Field']] = true;
-    }
-    if (!isset($columnas['asistio'])) {
-        mysqli_query($conn, "ALTER TABLE registros_senderos ADD COLUMN asistio TINYINT(1) NOT NULL DEFAULT 0 AFTER estado");
-    }
-    if (!isset($columnas['fecha_asistencia'])) {
-        mysqli_query($conn, "ALTER TABLE registros_senderos ADD COLUMN fecha_asistencia DATETIME NULL AFTER asistio");
-    }
-    if (!isset($columnas['asistencia_marcada_por'])) {
-        mysqli_query($conn, "ALTER TABLE registros_senderos ADD COLUMN asistencia_marcada_por INT NULL AFTER fecha_asistencia");
-    }
-    if (!isset($columnas['asistencia_notas'])) {
-        mysqli_query($conn, "ALTER TABLE registros_senderos ADD COLUMN asistencia_notas VARCHAR(255) NULL AFTER asistencia_marcada_por");
-    }
-}
-
-asis_asegurar_columnas($conn);
-
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
 
 $senderos = [];
@@ -90,6 +68,8 @@ foreach ($senderos as $sendero) {
 }
 
 $registros = [];
+$inversionesSendero = [];
+$usuariosDisponibles = [];
 $totalMenores = 0;
 if ($senderoSeleccionado) {
     $stmt = mysqli_prepare(
@@ -127,6 +107,45 @@ if ($senderoSeleccionado) {
     while ($row = mysqli_fetch_assoc($res)) {
         $totalMenores += (int) ($row['total_menores'] ?? 0);
         $registros[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT id, nombre, monto
+        FROM sendero_inversiones
+        WHERE sendero_id = ? AND activo = 1
+        ORDER BY orden ASC, monto ASC, nombre ASC"
+    );
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    while ($row = mysqli_fetch_assoc($res)) {
+        $inversionesSendero[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT
+            u.id,
+            u.nombre,
+            u.apellido,
+            u.user,
+            u.email,
+            du.telefono
+        FROM usuarios u
+        LEFT JOIN detalles_usuarios du ON du.usuario_id = u.id
+        LEFT JOIN registros_senderos rs ON rs.usuario_id = u.id AND rs.sendero_id = ? AND rs.estado = 'registrado'
+        WHERE u.estado = 1 AND rs.id IS NULL
+        ORDER BY u.nombre ASC, u.apellido ASC
+        LIMIT 300"
+    );
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    while ($row = mysqli_fetch_assoc($res)) {
+        $usuariosDisponibles[] = $row;
     }
     mysqli_stmt_close($stmt);
 }
@@ -229,7 +248,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <span>Listado</span>
                         <h2>Participantes inscritos</h2>
                     </div>
-                    <i data-feather="clipboard"></i>
+                    <div class="asis-card-tools">
+                        <button type="button" class="asis-open-modal" data-open-participante>
+                            <i data-feather="user-plus"></i>
+                            Agregar asistente
+                        </button>
+                        <i data-feather="clipboard"></i>
+                    </div>
                 </div>
 
                 <?php if (empty($registros)): ?>
@@ -240,6 +265,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 <?php else: ?>
                     <form method="POST" action="<?= BASE_URL ?>procesos/proceso_asistencia_senderos.php" class="asis-attendance-form">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
                         <div class="asis-tools">
                             <button type="button" data-check-all>Marcar todos</button>
@@ -325,12 +351,140 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </form>
                 <?php endif; ?>
             </section>
+
+            <dialog class="asis-modal" data-participante-modal>
+                <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" class="asis-modal-box">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="accion" value="agregar_participante">
+                    <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
+                    <input type="hidden" name="volver_a" value="asistencia">
+                    <input type="hidden" name="marcar_asistio" value="1">
+
+                    <div class="asis-modal-head">
+                        <div>
+                            <span>Asistencia manual</span>
+                            <h2>Agregar asistente no inscrito</h2>
+                        </div>
+                        <button type="button" class="asis-modal-close" data-close-participante aria-label="Cerrar">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="asis-mode-switch">
+                        <label>
+                            <input type="radio" name="tipo_participante" value="existente" checked>
+                            Usuario existente
+                        </label>
+                        <label>
+                            <input type="radio" name="tipo_participante" value="nuevo">
+                            Nuevo usuario
+                        </label>
+                    </div>
+
+                    <div class="asis-form-grid">
+                        <label class="asis-field asis-existing-field">
+                            <span>Elegir usuario</span>
+                            <select name="usuario_id">
+                                <option value="">Selecciona un usuario</option>
+                                <?php foreach ($usuariosDisponibles as $usuario): ?>
+                                    <option value="<?= (int) $usuario['id'] ?>">
+                                        <?= asis_h(trim($usuario['nombre'] . ' ' . $usuario['apellido'])) ?>
+                                        - @<?= asis_h($usuario['user']) ?>
+                                        <?= $usuario['telefono'] ? ' - ' . asis_h($usuario['telefono']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <div class="asis-new-fields">
+                            <label class="asis-field">
+                                <span>Nombre</span>
+                                <input type="text" name="nuevo_nombre" maxlength="100" placeholder="Nombre">
+                            </label>
+                            <label class="asis-field">
+                                <span>Apellido</span>
+                                <input type="text" name="nuevo_apellido" maxlength="100" placeholder="Apellido">
+                            </label>
+                            <label class="asis-field">
+                                <span>Usuario</span>
+                                <input type="text" name="nuevo_user" maxlength="50" placeholder="Opcional">
+                            </label>
+                            <label class="asis-field">
+                                <span>Email</span>
+                                <input type="email" name="nuevo_email" maxlength="100" placeholder="Opcional">
+                            </label>
+                            <label class="asis-field">
+                                <span>Telefono</span>
+                                <input type="text" name="nuevo_telefono" maxlength="20" placeholder="8090000000">
+                            </label>
+                        </div>
+
+                        <label class="asis-field">
+                            <span>Inversion</span>
+                            <select name="inversion_id" required>
+                                <option value="">Selecciona una inversion</option>
+                                <?php foreach ($inversionesSendero as $inversion): ?>
+                                    <option value="<?= (int) $inversion['id'] ?>">
+                                        <?= asis_h($inversion['nombre']) ?> - RD$ <?= number_format((float) $inversion['monto'], 2) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <p class="asis-modal-note">Se registrara como inscrito activo y asistente de este sendero.</p>
+                    </div>
+
+                    <div class="asis-modal-actions">
+                        <button type="button" class="secondary" data-close-participante>Cancelar</button>
+                        <button type="submit">Guardar asistente</button>
+                    </div>
+                </form>
+            </dialog>
         <?php endif; ?>
     </section>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.querySelector('[data-participante-modal]');
+    const openButton = document.querySelector('[data-open-participante]');
+    const closeButtons = document.querySelectorAll('[data-close-participante]');
+    const radios = document.querySelectorAll('input[name="tipo_participante"]');
+    const existingField = document.querySelector('.asis-existing-field');
+    const newFields = document.querySelector('.asis-new-fields');
+
+    function syncMode() {
+        const selected = document.querySelector('input[name="tipo_participante"]:checked');
+        const isNew = selected && selected.value === 'nuevo';
+        if (existingField) {
+            existingField.style.display = isNew ? 'none' : 'grid';
+        }
+        if (newFields) {
+            newFields.style.display = isNew ? 'grid' : 'none';
+        }
+    }
+
+    if (openButton && modal) {
+        openButton.addEventListener('click', function () {
+            if (typeof modal.showModal === 'function') {
+                modal.showModal();
+            } else {
+                modal.setAttribute('open', 'open');
+            }
+        });
+    }
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            modal.close();
+        });
+    });
+
+    radios.forEach(function (radio) {
+        radio.addEventListener('change', syncMode);
+    });
+    syncMode();
+
     const root = document.querySelector('.asis-attendance-form');
     if (!root) {
         return;

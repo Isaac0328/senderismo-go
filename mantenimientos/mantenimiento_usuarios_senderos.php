@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 $pageTitle = "Mantenimiento Usuarios Senderos | Senderismo Go!";
 $cssFiles = [
@@ -71,6 +72,8 @@ foreach ($senderos as $sendero) {
 }
 
 $registros = [];
+$inversionesSendero = [];
+$usuariosDisponibles = [];
 if ($senderoSeleccionado) {
     $stmt = mysqli_prepare(
         $conn,
@@ -103,6 +106,45 @@ if ($senderoSeleccionado) {
     $res = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($res)) {
         $registros[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT id, nombre, monto
+        FROM sendero_inversiones
+        WHERE sendero_id = ? AND activo = 1
+        ORDER BY orden ASC, monto ASC, nombre ASC"
+    );
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    while ($row = mysqli_fetch_assoc($res)) {
+        $inversionesSendero[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT
+            u.id,
+            u.nombre,
+            u.apellido,
+            u.user,
+            u.email,
+            du.telefono
+        FROM usuarios u
+        LEFT JOIN detalles_usuarios du ON du.usuario_id = u.id
+        LEFT JOIN registros_senderos rs ON rs.usuario_id = u.id AND rs.sendero_id = ? AND rs.estado = 'registrado'
+        WHERE u.estado = 1 AND rs.id IS NULL
+        ORDER BY u.nombre ASC, u.apellido ASC
+        LIMIT 300"
+    );
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    while ($row = mysqli_fetch_assoc($res)) {
+        $usuariosDisponibles[] = $row;
     }
     mysqli_stmt_close($stmt);
 }
@@ -196,7 +238,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <span>Acciones</span>
                         <h2>Registros del sendero</h2>
                     </div>
-                    <i data-feather="user-check"></i>
+                    <div class="mus-card-tools">
+                        <button type="button" class="mus-open-modal" data-open-participante>
+                            <i data-feather="user-plus"></i>
+                            Agregar participante
+                        </button>
+                        <i data-feather="user-check"></i>
+                    </div>
                 </div>
 
                 <?php if (empty($registros)): ?>
@@ -246,6 +294,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <td>
                                             <div class="mus-actions">
                                                 <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" onsubmit="return confirm('Seguro que deseas <?= $estaActivo ? 'inactivar' : 'reactivar' ?> este registro?');">
+                                                    <?= csrf_field() ?>
                                                     <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                                     <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
                                                     <input type="hidden" name="accion" value="<?= $estaActivo ? 'cancelar' : 'reactivar' ?>">
@@ -256,6 +305,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                                                 <?php if (!$estaActivo): ?>
                                                     <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" onsubmit="return confirm('Eliminar permanentemente este registro cancelado?');">
+                                                        <?= csrf_field() ?>
                                                         <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                                         <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
                                                         <input type="hidden" name="accion" value="eliminar">
@@ -288,6 +338,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <small>Registro: <?= mus_h(mus_fecha($registro['fecha_registro'], true)) ?></small>
                                 <div class="mus-actions">
                                     <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                         <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
                                         <input type="hidden" name="accion" value="<?= $estaActivo ? 'cancelar' : 'reactivar' ?>">
@@ -297,6 +348,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     </form>
                                     <?php if (!$estaActivo): ?>
                                         <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                             <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
                                             <input type="hidden" name="accion" value="eliminar">
@@ -309,9 +361,142 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 <?php endif; ?>
             </section>
+
+            <dialog class="mus-modal" data-participante-modal>
+                <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" class="mus-modal-box">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="accion" value="agregar_participante">
+                    <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
+
+                    <div class="mus-modal-head">
+                        <div>
+                            <span>Asistencia manual</span>
+                            <h2>Agregar participante al sendero</h2>
+                        </div>
+                        <button type="button" class="mus-modal-close" data-close-participante aria-label="Cerrar">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="mus-mode-switch">
+                        <label>
+                            <input type="radio" name="tipo_participante" value="existente" checked>
+                            Usuario existente
+                        </label>
+                        <label>
+                            <input type="radio" name="tipo_participante" value="nuevo">
+                            Nuevo usuario
+                        </label>
+                    </div>
+
+                    <div class="mus-form-grid">
+                        <label class="mus-field mus-existing-field">
+                            <span>Elegir usuario</span>
+                            <select name="usuario_id">
+                                <option value="">Selecciona un usuario</option>
+                                <?php foreach ($usuariosDisponibles as $usuario): ?>
+                                    <option value="<?= (int) $usuario['id'] ?>">
+                                        <?= mus_h(trim($usuario['nombre'] . ' ' . $usuario['apellido'])) ?>
+                                        - @<?= mus_h($usuario['user']) ?>
+                                        <?= $usuario['telefono'] ? ' - ' . mus_h($usuario['telefono']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <div class="mus-new-fields">
+                            <label class="mus-field">
+                                <span>Nombre</span>
+                                <input type="text" name="nuevo_nombre" maxlength="100" placeholder="Nombre">
+                            </label>
+                            <label class="mus-field">
+                                <span>Apellido</span>
+                                <input type="text" name="nuevo_apellido" maxlength="100" placeholder="Apellido">
+                            </label>
+                            <label class="mus-field">
+                                <span>Usuario</span>
+                                <input type="text" name="nuevo_user" maxlength="50" placeholder="Opcional, se puede generar">
+                            </label>
+                            <label class="mus-field">
+                                <span>Email</span>
+                                <input type="email" name="nuevo_email" maxlength="100" placeholder="Opcional">
+                            </label>
+                            <label class="mus-field">
+                                <span>Telefono</span>
+                                <input type="text" name="nuevo_telefono" maxlength="20" placeholder="8090000000">
+                            </label>
+                        </div>
+
+                        <label class="mus-field">
+                            <span>Inversion</span>
+                            <select name="inversion_id" required>
+                                <option value="">Selecciona una inversion</option>
+                                <?php foreach ($inversionesSendero as $inversion): ?>
+                                    <option value="<?= (int) $inversion['id'] ?>">
+                                        <?= mus_h($inversion['nombre']) ?> - RD$ <?= number_format((float) $inversion['monto'], 2) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label class="mus-checkline">
+                            <input type="checkbox" name="marcar_asistio" value="1" checked>
+                            Marcar como asistio a este sendero
+                        </label>
+                    </div>
+
+                    <div class="mus-modal-actions">
+                        <button type="button" class="secondary" data-close-participante>Cancelar</button>
+                        <button type="submit">Guardar participante</button>
+                    </div>
+                </form>
+            </dialog>
         <?php endif; ?>
     </section>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.querySelector('[data-participante-modal]');
+    var openButton = document.querySelector('[data-open-participante]');
+    var closeButtons = document.querySelectorAll('[data-close-participante]');
+    var radios = document.querySelectorAll('input[name="tipo_participante"]');
+    var existingField = document.querySelector('.mus-existing-field');
+    var newFields = document.querySelector('.mus-new-fields');
+
+    function syncMode() {
+        var selected = document.querySelector('input[name="tipo_participante"]:checked');
+        var isNew = selected && selected.value === 'nuevo';
+        if (existingField) {
+            existingField.style.display = isNew ? 'none' : 'grid';
+        }
+        if (newFields) {
+            newFields.style.display = isNew ? 'grid' : 'none';
+        }
+    }
+
+    if (openButton && modal) {
+        openButton.addEventListener('click', function () {
+            if (typeof modal.showModal === 'function') {
+                modal.showModal();
+            } else {
+                modal.setAttribute('open', 'open');
+            }
+        });
+    }
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            modal.close();
+        });
+    });
+
+    radios.forEach(function (radio) {
+        radio.addEventListener('change', syncMode);
+    });
+    syncMode();
+});
+</script>
 
 <?php
 mysqli_close($conn);
