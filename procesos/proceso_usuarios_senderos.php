@@ -61,12 +61,33 @@ function usuarios_senderos_redirect(mysqli $conn, int $senderoId): void
 
 function usuarios_senderos_participante_rol(mysqli $conn): int
 {
-    $stmt = mysqli_prepare($conn, "SELECT id FROM roles WHERE LOWER(nombre) = 'usuario' LIMIT 1");
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT id
+        FROM roles
+        WHERE LOWER(nombre) IN ('usuario', 'invitado')
+        ORDER BY CASE LOWER(nombre) WHEN 'usuario' THEN 1 WHEN 'invitado' THEN 2 ELSE 3 END
+        LIMIT 1"
+    );
     mysqli_stmt_execute($stmt);
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     mysqli_stmt_close($stmt);
 
-    return (int) ($row['id'] ?? 3);
+    if (!empty($row['id'])) {
+        return (int) $row['id'];
+    }
+
+    $res = mysqli_query($conn, "SELECT id FROM roles ORDER BY id ASC LIMIT 1");
+    $row = $res ? mysqli_fetch_assoc($res) : null;
+    if ($res) {
+        mysqli_free_result($res);
+    }
+
+    if (!empty($row['id'])) {
+        return (int) $row['id'];
+    }
+
+    throw new RuntimeException('No hay roles disponibles para crear el participante.');
 }
 
 function usuarios_senderos_unique_value(mysqli $conn, string $table, string $field, string $base, int $maxLength): string
@@ -166,6 +187,18 @@ function usuarios_senderos_validar_inversion(mysqli $conn, int $senderoId, int $
     return !empty($row['id']);
 }
 
+function usuarios_senderos_fecha_asistencia(mysqli $conn, int $senderoId): string
+{
+    $stmt = mysqli_prepare($conn, "SELECT fecha_sendero FROM senderos WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $senderoRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    $fechaSendero = (string) ($senderoRow['fecha_sendero'] ?? '');
+    return $fechaSendero !== '' ? $fechaSendero . ' 00:00:00' : date('Y-m-d H:i:s');
+}
+
 function usuarios_senderos_crear_usuario_basico(mysqli $conn): int
 {
     $nombre = usuarios_senderos_text((string) ($_POST['nuevo_nombre'] ?? ''), 100);
@@ -257,6 +290,8 @@ if ($accion === 'agregar_participante') {
         usuarios_senderos_redirect($conn, $senderoId);
     }
 
+    $fechaAsistencia = usuarios_senderos_fecha_asistencia($conn, $senderoId);
+
     mysqli_begin_transaction($conn);
 
     try {
@@ -308,21 +343,23 @@ if ($accion === 'agregar_participante') {
                     rgpd_aceptado = 1,
                     consentimiento_texto = ?,
                     rgpd_texto = ?,
+                    registro_origen = 'admin_manual',
                     asistio = ?,
-                    fecha_asistencia = CASE WHEN ? = 1 THEN NOW() ELSE NULL END,
+                    fecha_asistencia = CASE WHEN ? = 1 THEN ? ELSE NULL END,
                     asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END,
                     asistencia_notas = CASE WHEN ? = 1 THEN ? ELSE NULL END
                 WHERE id = ? AND sendero_id = ?"
             );
             mysqli_stmt_bind_param(
                 $stmt,
-                'iissiiiiisii',
+                'iissiisiiisii',
                 $detalleId,
                 $inversionId,
                 $consentimientoTexto,
                 $rgpdTexto,
                 $marcarAsistio,
                 $marcarAsistio,
+                $fechaAsistencia,
                 $marcarAsistio,
                 $adminId,
                 $marcarAsistio,
@@ -336,20 +373,21 @@ if ($accion === 'agregar_participante') {
             $stmt = mysqli_prepare(
                 $conn,
                 "INSERT INTO registros_senderos (
-                    sendero_id, usuario_id, detalle_usuario_id, inversion_id, estado, asistio,
+                    sendero_id, usuario_id, detalle_usuario_id, inversion_id, estado, registro_origen, asistio,
                     fecha_asistencia, asistencia_marcada_por, asistencia_notas,
                     consentimiento_aceptado, rgpd_aceptado, consentimiento_texto, rgpd_texto
-                ) VALUES (?, ?, ?, ?, 'registrado', ?, CASE WHEN ? = 1 THEN NOW() ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
+                ) VALUES (?, ?, ?, ?, 'registrado', 'admin_manual', ?, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
             );
             mysqli_stmt_bind_param(
                 $stmt,
-                'iiiiiiiissss',
+                'iiiiiisiiisss',
                 $senderoId,
                 $usuarioId,
                 $detalleId,
                 $inversionId,
                 $marcarAsistio,
                 $marcarAsistio,
+                $fechaAsistencia,
                 $marcarAsistio,
                 $adminId,
                 $marcarAsistio,
@@ -388,6 +426,62 @@ if (!$registro) {
 }
 
 try {
+    if ($accion === 'editar_manual') {
+        $stmt = mysqli_prepare($conn, "SELECT id, registro_origen FROM registros_senderos WHERE id = ? AND sendero_id = ? LIMIT 1");
+        mysqli_stmt_bind_param($stmt, 'ii', $registroId, $senderoId);
+        mysqli_stmt_execute($stmt);
+        $manual = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        mysqli_stmt_close($stmt);
+
+        if (($manual['registro_origen'] ?? '') !== 'admin_manual') {
+            $_SESSION['usuarios_senderos_error'] = "Solo puedes editar asistentes agregados manualmente.";
+            usuarios_senderos_redirect($conn, $senderoId);
+        }
+
+        $inversionId = (int) ($_POST['inversion_id'] ?? 0);
+        $marcarAsistio = !empty($_POST['marcar_asistio']) ? 1 : 0;
+        $nota = usuarios_senderos_text((string) ($_POST['asistencia_notas'] ?? ''), 255);
+        $adminId = (int) ($_SESSION['usuario_id'] ?? 0);
+        $fechaAsistencia = usuarios_senderos_fecha_asistencia($conn, $senderoId);
+
+        if (!usuarios_senderos_validar_inversion($conn, $senderoId, $inversionId)) {
+            $_SESSION['usuarios_senderos_error'] = "Selecciona una inversion valida para este sendero.";
+            usuarios_senderos_redirect($conn, $senderoId);
+        }
+
+        $stmt = mysqli_prepare(
+            $conn,
+            "UPDATE registros_senderos
+             SET inversion_id = ?,
+                 asistio = ?,
+                 fecha_asistencia = CASE WHEN ? = 1 THEN ? ELSE NULL END,
+                 asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END,
+                 asistencia_notas = ?
+             WHERE id = ? AND sendero_id = ? AND registro_origen = 'admin_manual'"
+        );
+        mysqli_stmt_bind_param($stmt, 'iiisiisii', $inversionId, $marcarAsistio, $marcarAsistio, $fechaAsistencia, $marcarAsistio, $adminId, $nota, $registroId, $senderoId);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        $_SESSION['usuarios_senderos_success'] = "Asistente manual actualizado.";
+        usuarios_senderos_redirect($conn, $senderoId);
+    }
+
+    if ($accion === 'eliminar_manual') {
+        $stmt = mysqli_prepare($conn, "DELETE FROM registros_senderos WHERE id = ? AND sendero_id = ? AND registro_origen = 'admin_manual'");
+        mysqli_stmt_bind_param($stmt, 'ii', $registroId, $senderoId);
+        mysqli_stmt_execute($stmt);
+        $eliminados = mysqli_stmt_affected_rows($stmt);
+        mysqli_stmt_close($stmt);
+
+        if ($eliminados <= 0) {
+            $_SESSION['usuarios_senderos_error'] = "Solo puedes eliminar asistentes agregados manualmente.";
+            usuarios_senderos_redirect($conn, $senderoId);
+        }
+
+        $_SESSION['usuarios_senderos_success'] = "Asistente manual eliminado.";
+        usuarios_senderos_redirect($conn, $senderoId);
+    }
+
     if ($accion === 'cancelar') {
         if ($registro['estado'] === 'cancelado') {
             $_SESSION['usuarios_senderos_error'] = "Este registro ya esta inactivo.";

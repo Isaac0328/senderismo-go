@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,6 +15,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "pantallas/reporte_contacto.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "pantallas/reporte_contacto.php", 'reporte_contacto_error');
 
 $id = (int) ($_POST['id'] ?? 0);
 $estado = trim((string) ($_POST['estado'] ?? ''));

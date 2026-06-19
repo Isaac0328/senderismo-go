@@ -9,6 +9,7 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 $pageTitle = "Asistencia por Sendero | Senderismo Go!";
 $cssFiles = [
@@ -40,21 +41,28 @@ function asis_money($monto): string
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
+$resSenderos = sgf_execute_query($conn, "
     SELECT
         s.id,
         s.nombre,
         s.fecha_sendero,
         s.estado,
+        s.distancia_km,
+        nd.nombre AS dificultad_nombre,
         COUNT(rs.id) AS registrados,
         SUM(CASE WHEN rs.asistio = 1 AND rs.estado = 'registrado' THEN 1 ELSE 0 END) AS asistieron
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado
+    {$senderoWhere}
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-");
+", $senderoTypes, $senderoValues);
 while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
     $senderos[] = $row;
 }
@@ -80,6 +88,8 @@ if ($senderoSeleccionado) {
             rs.asistio,
             rs.fecha_asistencia,
             rs.asistencia_notas,
+            rs.registro_origen,
+            rs.inversion_id,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
             u.id AS usuario_id,
@@ -182,32 +192,24 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <?php unset($_SESSION['asistencia_error']); ?>
         <?php endif; ?>
 
-        <section class="asis-card asis-filter">
-            <div class="asis-card-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="map"></i>
-            </div>
-            <form method="GET" class="asis-filter-form">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $sendero): ?>
-                        <?php $registrados = (int) ($sendero['registrados'] ?? 0); ?>
-                        <?php $asistieron = (int) ($sendero['asistieron'] ?? 0); ?>
-                        <option value="<?= (int) $sendero['id'] ?>" <?= (int) $sendero['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= asis_h($sendero['nombre']) ?> - <?= asis_h(asis_fecha($sendero['fecha_sendero'])) ?> (<?= $asistieron ?>/<?= $registrados ?> asistieron)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit">
-                    <i data-feather="search"></i>
-                    Consultar
-                </button>
-                <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_asistencia_senderos.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php',
+            'card_class' => 'asis-card asis-filter',
+            'head_class' => 'asis-card-head',
+            'form_class' => 'asis-filter-form',
+            'icon' => 'map',
+            'option_label' => static function (array $sendero): string {
+                $registrados = (int) ($sendero['registrados'] ?? 0);
+                $asistieron = (int) ($sendero['asistieron'] ?? 0);
+                $km = $sendero['distancia_km'] !== null ? ' - ' . number_format((float) $sendero['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($sendero['dificultad_nombre']) ? ' - ' . $sendero['dificultad_nombre'] : '';
+                return $sendero['nombre'] . ' - ' . asis_fecha($sendero['fecha_sendero']) . $dificultad . $km . " ({$asistieron}/{$registrados} asistieron)";
+            },
+        ]); ?>
 
         <?php if (!$senderoSeleccionado): ?>
             <section class="asis-empty">
@@ -284,11 +286,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <th>Menores</th>
                                         <th>Registro</th>
                                         <th>Nota</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($registros as $registro): ?>
                                         <?php $rid = (int) $registro['registro_id']; ?>
+                                        <?php $esManual = ($registro['registro_origen'] ?? '') === 'admin_manual'; ?>
                                         <tr class="<?= (int) $registro['asistio'] === 1 ? 'is-present' : '' ?>">
                                             <td>
                                                 <input type="hidden" name="registro_ids[]" value="<?= $rid ?>">
@@ -317,6 +321,29 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <td>
                                                 <input class="asis-note" type="text" name="notas[<?= $rid ?>]" maxlength="255" placeholder="Nota opcional" value="<?= asis_h($registro['asistencia_notas'] ?? '') ?>">
                                             </td>
+                                            <td>
+                                                <?php if ($esManual): ?>
+                                                    <div class="asis-row-actions">
+                                                        <button
+                                                            type="button"
+                                                            class="asis-mini-action"
+                                                            data-edit-manual
+                                                            data-registro-id="<?= $rid ?>"
+                                                            data-nombre="<?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>"
+                                                            data-inversion-id="<?= (int) ($registro['inversion_id'] ?? 0) ?>"
+                                                            data-asistio="<?= (int) ($registro['asistio'] ?? 0) ?>"
+                                                            data-nota="<?= asis_h($registro['asistencia_notas'] ?? '') ?>"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button type="submit" form="asis-delete-manual-<?= $rid ?>" class="asis-mini-action danger">
+                                                            Eliminar
+                                                        </button>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="asis-origin-pill">Registro publico</span>
+                                                <?php endif; ?>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -326,6 +353,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <div class="asis-mobile-list">
                             <?php foreach ($registros as $registro): ?>
                                 <?php $rid = (int) $registro['registro_id']; ?>
+                                <?php $esManual = ($registro['registro_origen'] ?? '') === 'admin_manual'; ?>
                                 <article class="asis-user-card <?= (int) $registro['asistio'] === 1 ? 'is-present' : '' ?>">
                                     <div class="asis-user-head">
                                         <div>
@@ -341,6 +369,27 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <p><?= asis_h($registro['inversion_nombre'] ?: 'Sin inversion') ?> - <?= asis_h(asis_money($registro['inversion_monto'])) ?></p>
                                     <small>Menores: <?= (int) $registro['total_menores'] ?> | Registro: <?= asis_h(asis_fecha($registro['fecha_registro'], true)) ?></small>
                                     <input class="asis-note" type="text" data-mobile-note="<?= $rid ?>" maxlength="255" placeholder="Nota opcional" value="<?= asis_h($registro['asistencia_notas'] ?? '') ?>">
+                                    <?php if ($esManual): ?>
+                                        <div class="asis-row-actions mobile">
+                                            <button
+                                                type="button"
+                                                class="asis-mini-action"
+                                                data-edit-manual
+                                                data-registro-id="<?= $rid ?>"
+                                                data-nombre="<?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>"
+                                                data-inversion-id="<?= (int) ($registro['inversion_id'] ?? 0) ?>"
+                                                data-asistio="<?= (int) ($registro['asistio'] ?? 0) ?>"
+                                                data-nota="<?= asis_h($registro['asistencia_notas'] ?? '') ?>"
+                                            >
+                                                Editar
+                                            </button>
+                                            <button type="submit" form="asis-delete-manual-<?= $rid ?>" class="asis-mini-action danger">
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="asis-origin-pill mobile">Registro publico</span>
+                                    <?php endif; ?>
                                 </article>
                             <?php endforeach; ?>
                         </div>
@@ -349,6 +398,24 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <button type="submit">Guardar asistencia</button>
                         </div>
                     </form>
+
+                    <?php foreach ($registros as $registro): ?>
+                        <?php if (($registro['registro_origen'] ?? '') !== 'admin_manual') { continue; } ?>
+                        <?php $rid = (int) $registro['registro_id']; ?>
+                        <form
+                            id="asis-delete-manual-<?= $rid ?>"
+                            method="POST"
+                            action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php"
+                            onsubmit="return confirm('Eliminar este asistente manual del sendero?');"
+                            class="asis-hidden-form"
+                        >
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="accion" value="eliminar_manual">
+                            <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
+                            <input type="hidden" name="registro_id" value="<?= $rid ?>">
+                            <input type="hidden" name="volver_a" value="asistencia">
+                        </form>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </section>
 
@@ -440,6 +507,56 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </form>
             </dialog>
+
+            <dialog class="asis-modal" data-manual-edit-modal>
+                <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" class="asis-modal-box">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="accion" value="editar_manual">
+                    <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
+                    <input type="hidden" name="registro_id" value="" data-edit-registro-id>
+                    <input type="hidden" name="volver_a" value="asistencia">
+
+                    <div class="asis-modal-head">
+                        <div>
+                            <span>Asistente manual</span>
+                            <h2>Editar asistencia</h2>
+                            <p class="asis-modal-subtitle" data-edit-nombre></p>
+                        </div>
+                        <button type="button" class="asis-modal-close" data-close-manual-edit aria-label="Cerrar">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="asis-form-grid">
+                        <label class="asis-field">
+                            <span>Inversion</span>
+                            <select name="inversion_id" required data-edit-inversion>
+                                <option value="">Selecciona una inversion</option>
+                                <?php foreach ($inversionesSendero as $inversion): ?>
+                                    <option value="<?= (int) $inversion['id'] ?>">
+                                        <?= asis_h($inversion['nombre']) ?> - RD$ <?= number_format((float) $inversion['monto'], 2) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label class="asis-checkline">
+                            <input type="checkbox" name="marcar_asistio" value="1" data-edit-asistio>
+                            Marcar como asistio a este sendero
+                        </label>
+
+                        <label class="asis-field">
+                            <span>Nota</span>
+                            <input type="text" name="asistencia_notas" maxlength="255" placeholder="Nota opcional" data-edit-nota>
+                        </label>
+                    </div>
+
+                    <div class="asis-modal-actions">
+                        <button type="button" class="secondary" data-close-manual-edit>Cancelar</button>
+                        <button type="submit">Guardar cambios</button>
+                    </div>
+                </form>
+            </dialog>
         <?php endif; ?>
     </section>
 </main>
@@ -484,6 +601,41 @@ document.addEventListener('DOMContentLoaded', function () {
         radio.addEventListener('change', syncMode);
     });
     syncMode();
+
+    const editModal = document.querySelector('[data-manual-edit-modal]');
+    const editRegistroId = document.querySelector('[data-edit-registro-id]');
+    const editNombre = document.querySelector('[data-edit-nombre]');
+    const editInversion = document.querySelector('[data-edit-inversion]');
+    const editAsistio = document.querySelector('[data-edit-asistio]');
+    const editNota = document.querySelector('[data-edit-nota]');
+
+    document.querySelectorAll('[data-close-manual-edit]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            editModal?.close();
+        });
+    });
+
+    document.querySelectorAll('[data-edit-manual]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!editModal || !editRegistroId || !editInversion || !editAsistio || !editNota) {
+                return;
+            }
+
+            editRegistroId.value = button.dataset.registroId || '';
+            editInversion.value = button.dataset.inversionId || '';
+            editAsistio.checked = button.dataset.asistio === '1';
+            editNota.value = button.dataset.nota || '';
+            if (editNombre) {
+                editNombre.textContent = button.dataset.nombre || 'Asistente manual';
+            }
+
+            if (typeof editModal.showModal === 'function') {
+                editModal.showModal();
+            } else {
+                editModal.setAttribute('open', 'open');
+            }
+        });
+    });
 
     const root = document.querySelector('.asis-attendance-form');
     if (!root) {

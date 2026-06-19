@@ -9,6 +9,7 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 $pageTitle = "Mantenimiento Usuarios Senderos | Senderismo Go!";
 $cssFiles = [
@@ -40,22 +41,32 @@ function mus_fecha(?string $fecha, bool $conHora = false): string
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
+$resSenderos = sgf_execute_query($conn, "
     SELECT
         s.id,
         s.nombre,
         s.fecha_sendero,
         s.estado,
+        s.distancia_km,
+        nd.nombre AS dificultad_nombre,
         SUM(CASE WHEN rs.estado = 'registrado' THEN 1 ELSE 0 END) AS activos,
         SUM(CASE WHEN rs.estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,
         COUNT(rs.id) AS total
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado
+    {$senderoWhere}
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-");
+",
+    $senderoTypes,
+    $senderoValues
+);
 
 if ($resSenderos) {
     while ($row = mysqli_fetch_assoc($resSenderos)) {
@@ -187,30 +198,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <?php unset($_SESSION['usuarios_senderos_error']); ?>
         <?php endif; ?>
 
-        <section class="mus-card mus-filter">
-            <div class="mus-card-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="map"></i>
-            </div>
-            <form method="GET" class="mus-filter-form">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $sendero): ?>
-                        <option value="<?= (int) $sendero['id'] ?>" <?= (int) $sendero['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= mus_h($sendero['nombre']) ?> - <?= mus_h(mus_fecha($sendero['fecha_sendero'])) ?> (<?= (int) $sendero['activos'] ?> activos)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit">
-                    <i data-feather="search"></i>
-                    Consultar
-                </button>
-                <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios_senderos.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'mantenimientos/mantenimiento_usuarios_senderos.php',
+            'card_class' => 'mus-card mus-filter',
+            'head_class' => 'mus-card-head',
+            'form_class' => 'mus-filter-form',
+            'icon' => 'map',
+            'option_label' => static function (array $sendero): string {
+                $km = $sendero['distancia_km'] !== null ? ' - ' . number_format((float) $sendero['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($sendero['dificultad_nombre']) ? ' - ' . $sendero['dificultad_nombre'] : '';
+                return $sendero['nombre'] . ' - ' . mus_fecha($sendero['fecha_sendero']) . $dificultad . $km . ' (' . (int) $sendero['activos'] . ' activos)';
+            },
+        ]); ?>
 
         <?php if (!$senderoSeleccionado): ?>
             <section class="mus-empty">

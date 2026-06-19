@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalCounter = document.getElementById('galleryCounter');
     const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-src]'));
     const galleryImages = galleryButtons.map((button) => button.dataset.gallerySrc || '');
+    const galleryMoreButton = document.querySelector('[data-gallery-more]');
     let currentIndex = 0;
 
     function showImage(index) {
@@ -45,6 +46,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const requestedIndex = Number.parseInt(button.dataset.galleryIndex || `${index}`, 10);
             openModal(Number.isNaN(requestedIndex) ? index : requestedIndex);
         });
+    });
+
+    galleryMoreButton?.addEventListener('click', () => {
+        const galleryGrid = galleryMoreButton.closest('.gallery-grid');
+        if (!galleryGrid) return;
+
+        const isExpanded = galleryGrid.classList.toggle('is-expanded');
+        galleryMoreButton.textContent = isExpanded
+            ? (galleryMoreButton.dataset.lessText || 'Ver menos imagenes')
+            : (galleryMoreButton.dataset.moreText || 'Ver mas imagenes');
     });
 
     function closeModal() {

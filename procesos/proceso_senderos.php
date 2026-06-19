@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -15,6 +16,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_senderos.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_senderos.php", 'senderos_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 
@@ -345,12 +347,13 @@ try {
     }
 
     mysqli_query($conn, "DELETE FROM sendero_anotaciones WHERE sendero_id = " . (int) $senderoId);
-    foreach (array_unique($anotaciones) as $anotacionId) {
+    foreach (array_values(array_unique($anotaciones)) as $ordenAnotacion => $anotacionId) {
         if ($anotacionId <= 0) {
             continue;
         }
-        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_anotaciones (sendero_id, anotacion_id) VALUES (?, ?)");
-        mysqli_stmt_bind_param($stmt, "ii", $senderoId, $anotacionId);
+        $ordenItem = $ordenAnotacion + 1;
+        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_anotaciones (sendero_id, anotacion_id, orden) VALUES (?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, "iii", $senderoId, $anotacionId, $ordenItem);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
     }
@@ -393,13 +396,14 @@ try {
 
         $savedInvestmentIds[] = $investmentId;
         mysqli_query($conn, "DELETE FROM sendero_inversion_incluye WHERE inversion_id = " . (int) $investmentId);
-        foreach ($inversion['incluye'] as $incluyeId) {
+        foreach ($inversion['incluye'] as $ordenIncluye => $incluyeId) {
             if ($incluyeId <= 0) {
                 continue;
             }
             $allIncluye[] = $incluyeId;
-            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_inversion_incluye (inversion_id, incluye_id) VALUES (?, ?)");
-            mysqli_stmt_bind_param($stmt, "ii", $investmentId, $incluyeId);
+            $ordenItem = $ordenIncluye + 1;
+            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_inversion_incluye (inversion_id, incluye_id, orden) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "iii", $investmentId, $incluyeId, $ordenItem);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
         }

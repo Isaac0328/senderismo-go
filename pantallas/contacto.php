@@ -47,21 +47,6 @@ $bloquesResumen = [];
 $bloquesCanales = [];
 if ($connContacto) {
     mysqli_set_charset($connContacto, "utf8mb4");
-    mysqli_query($connContacto, "
-        CREATE TABLE IF NOT EXISTS contacto_bloques (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            grupo VARCHAR(30) NOT NULL,
-            icono VARCHAR(60) NOT NULL DEFAULT 'circle',
-            titulo VARCHAR(120) NOT NULL,
-            texto VARCHAR(255) NOT NULL,
-            url VARCHAR(255) DEFAULT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_contacto_bloques_grupo (grupo, activo, orden)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
     $resContacto = mysqli_query($connContacto, "SELECT * FROM configuracion_contacto WHERE id = 1 LIMIT 1");
     if ($resContacto && ($rowContacto = mysqli_fetch_assoc($resContacto))) {
         foreach ($contacto as $campo => $valorPredeterminado) {

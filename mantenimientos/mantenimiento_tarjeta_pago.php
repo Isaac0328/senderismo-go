@@ -19,22 +19,6 @@ $jsFiles = [
     "js/barra_navegacion.js"
 ];
 
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS tarjeta_pago (
-        id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-        banco VARCHAR(120) NOT NULL,
-        cuenta VARCHAR(80) NOT NULL,
-        tipo_cuenta VARCHAR(80) NOT NULL,
-        cedula VARCHAR(40) NOT NULL,
-        correo VARCHAR(160) NOT NULL,
-        nombre VARCHAR(160) NOT NULL,
-        telefono_comprobante VARCHAR(40) NOT NULL,
-        nota_importante TEXT NOT NULL,
-        activo TINYINT(1) NOT NULL DEFAULT 1,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-");
-
 $pago = [
     'banco' => 'Banco Popular',
     'cuenta' => '846542835',

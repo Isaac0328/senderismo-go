@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -26,75 +26,6 @@ function h($value): string
 
 $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 mysqli_set_charset($conn, 'utf8mb4');
-
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS configuracion_nosotros (
-        id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-        hero_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/paisajes/hero.jpg',
-        hero_kicker VARCHAR(80) NOT NULL DEFAULT 'Nosotros',
-        hero_titulo VARCHAR(180) NOT NULL,
-        hero_subtitulo TEXT NOT NULL,
-        boton_principal_texto VARCHAR(80) NOT NULL DEFAULT 'Ver senderos',
-        boton_principal_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/senderos.php',
-        boton_secundario_texto VARCHAR(80) NOT NULL DEFAULT 'Coordinar una ruta',
-        boton_secundario_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/contacto.php',
-        historia_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/paisajes/img4.jpg',
-        historia_badge_titulo VARCHAR(80) NOT NULL DEFAULT 'Desde 2015',
-        historia_badge_texto VARCHAR(120) NOT NULL DEFAULT 'Creando comunidad outdoor',
-        historia_kicker VARCHAR(80) NOT NULL DEFAULT 'Nuestra historia',
-        historia_titulo VARCHAR(180) NOT NULL,
-        historia_texto_1 TEXT NOT NULL,
-        historia_texto_2 TEXT NOT NULL,
-        valores_kicker VARCHAR(80) NOT NULL DEFAULT 'Nuestro compromiso',
-        valores_titulo VARCHAR(180) NOT NULL,
-        valores_texto TEXT NOT NULL,
-        proceso_kicker VARCHAR(80) NOT NULL DEFAULT 'Como trabajamos',
-        proceso_titulo VARCHAR(180) NOT NULL,
-        proceso_texto TEXT NOT NULL,
-        equipo_kicker VARCHAR(80) NOT NULL DEFAULT 'Equipo',
-        equipo_titulo VARCHAR(180) NOT NULL,
-        equipo_texto TEXT NOT NULL,
-        cta_kicker VARCHAR(80) NOT NULL DEFAULT 'Proxima aventura',
-        cta_titulo VARCHAR(180) NOT NULL,
-        cta_texto TEXT NOT NULL,
-        cta_boton_principal_texto VARCHAR(80) NOT NULL DEFAULT 'Ver proximos',
-        cta_boton_principal_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/senderos.php',
-        cta_boton_secundario_texto VARCHAR(80) NOT NULL DEFAULT 'Contactar',
-        cta_boton_secundario_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/contacto.php',
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-");
-mysqli_query($conn, "CREATE TABLE IF NOT EXISTS nosotros_indicadores (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, valor VARCHAR(40) NOT NULL, etiqueta VARCHAR(120) NOT NULL, orden INT NOT NULL DEFAULT 0, activo TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-mysqli_query($conn, "CREATE TABLE IF NOT EXISTS nosotros_valores (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, icono VARCHAR(60) NOT NULL DEFAULT 'leaf', titulo VARCHAR(120) NOT NULL, texto TEXT NOT NULL, orden INT NOT NULL DEFAULT 0, activo TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-mysqli_query($conn, "CREATE TABLE IF NOT EXISTS nosotros_pasos (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, numero VARCHAR(10) NOT NULL, titulo VARCHAR(140) NOT NULL, texto TEXT NOT NULL, orden INT NOT NULL DEFAULT 0, activo TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-mysqli_query($conn, "CREATE TABLE IF NOT EXISTS nosotros_equipo (id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(120) NOT NULL, rol VARCHAR(160) NOT NULL, imagen VARCHAR(255) NOT NULL, orden INT NOT NULL DEFAULT 0, activo TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
-$resCfg = mysqli_query($conn, "SELECT COUNT(*) AS total FROM configuracion_nosotros");
-$totalCfg = ($resCfg && ($rowCfg = mysqli_fetch_assoc($resCfg))) ? (int) $rowCfg['total'] : 0;
-if ($totalCfg === 0) {
-    mysqli_query($conn, "
-        INSERT INTO configuracion_nosotros (
-            id, hero_titulo, hero_subtitulo, historia_titulo, historia_texto_1, historia_texto_2,
-            valores_titulo, valores_texto, proceso_titulo, proceso_texto, equipo_titulo, equipo_texto,
-            cta_titulo, cta_texto
-        ) VALUES (
-            1,
-            'Guiamos experiencias que conectan personas con la naturaleza.',
-            'Senderismo Go nace para que cada persona pueda descubrir rutas, paisajes y comunidades con una experiencia organizada, cercana y responsable.',
-            'De una caminata entre amigos a una comunidad de aventura.',
-            'Lo que comenzo como recorridos entre personas amantes de la montana se convirtio en una forma de compartir naturaleza, bienestar y companerismo.',
-            'Trabajamos con planificacion, guias preparados, comunicacion clara y respeto por cada espacio natural.',
-            'Lo que cuidamos en cada salida',
-            'La aventura debe sentirse emocionante, pero tambien organizada, clara y humana.',
-            'Una ruta bien vivida empieza antes de caminar.',
-            'Cada experiencia se prepara con informacion practica: dificultad, distancia, tiempos, puntos de encuentro, terreno y recomendaciones.',
-            'Personas detras de cada experiencia',
-            'Un equipo enfocado en seguridad, logistica, orientacion y buen trato.',
-            'Quieres caminar con nosotros?',
-            'Explora los proximos senderos o escribenos para coordinar una experiencia privada.'
-        )
-    ");
-}
 
 $config = [];
 $res = mysqli_query($conn, "SELECT * FROM configuracion_nosotros WHERE id = 1 LIMIT 1");
@@ -313,3 +244,4 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>
+

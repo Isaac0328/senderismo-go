@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         card.querySelectorAll('[id]').forEach((element) => replaceTokenAttribute(element, 'id'));
+        card.querySelectorAll('[for]').forEach((element) => replaceTokenAttribute(element, 'for'));
         card.querySelectorAll('[data-modal-target]').forEach((element) => replaceTokenAttribute(element, 'data-modal-target'));
         card.querySelectorAll('[data-count-target]').forEach((element) => replaceTokenAttribute(element, 'data-count-target'));
 
@@ -218,11 +219,126 @@ document.addEventListener('DOMContentLoaded', () => {
 
             prepareInvestmentCard(card, index);
             investmentWrap.appendChild(card);
+            enableSortableModalLists(card);
             const firstInput = card.querySelector('input[type="text"]');
             firstInput?.focus();
             updateModalCountFromCard(card);
         });
     }
+
+    function getDragAfterElement(list, y) {
+        const items = [...list.querySelectorAll('.modal-check-item:not(.is-dragging)')];
+
+        return items.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            }
+
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function enableSortableModalList(list) {
+        if (!list || list.dataset.sortReady === '1') return;
+        list.dataset.sortReady = '1';
+
+        let draggedItem = null;
+        let pressTimer = null;
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
+        let activePointerId = null;
+
+        function clearPressTimer() {
+            if (pressTimer) {
+                window.clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        }
+
+        function finishDrag(event) {
+            clearPressTimer();
+
+            if (draggedItem) {
+                draggedItem.classList.remove('is-dragging');
+                if (activePointerId !== null && draggedItem.hasPointerCapture?.(activePointerId)) {
+                    draggedItem.releasePointerCapture(activePointerId);
+                }
+            }
+
+            draggedItem = null;
+            isDragging = false;
+            activePointerId = null;
+        }
+
+        function startDrag() {
+            if (!draggedItem || isDragging) return;
+
+            isDragging = true;
+            draggedItem.classList.add('is-dragging');
+
+            if (activePointerId !== null) {
+                try {
+                    draggedItem.setPointerCapture?.(activePointerId);
+                } catch (error) {
+                    // Some browsers only allow capture on the original target; reordering still works without it.
+                }
+            }
+        }
+
+        list.addEventListener('pointerdown', (event) => {
+            const handle = event.target.closest('.modal-drag-handle');
+            const item = handle?.closest('.modal-check-item');
+            if (!handle || !item || !list.contains(item)) return;
+
+            event.preventDefault();
+            draggedItem = item;
+            activePointerId = event.pointerId;
+            startX = event.clientX;
+            startY = event.clientY;
+
+            pressTimer = window.setTimeout(startDrag, 180);
+        });
+
+        list.addEventListener('pointermove', (event) => {
+            if (!draggedItem) return;
+
+            const moved = Math.hypot(event.clientX - startX, event.clientY - startY);
+            if (!isDragging && moved > 4) {
+                startDrag();
+            }
+
+            if (!isDragging) return;
+
+            event.preventDefault();
+            const afterElement = getDragAfterElement(list, event.clientY);
+
+            if (afterElement == null) {
+                list.appendChild(draggedItem);
+            } else {
+                list.insertBefore(draggedItem, afterElement);
+            }
+        });
+
+        list.addEventListener('pointerup', finishDrag);
+        list.addEventListener('pointercancel', finishDrag);
+        list.addEventListener('lostpointercapture', finishDrag);
+        list.addEventListener('dragstart', (event) => event.preventDefault());
+        list.addEventListener('click', (event) => {
+            if (event.target.closest('.modal-drag-handle')) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    function enableSortableModalLists(scope = document) {
+        scope.querySelectorAll('[data-sortable-modal-list]').forEach(enableSortableModalList);
+    }
+
+    enableSortableModalLists();
 
     function updateModalCount(modal) {
         const list = modal.querySelector('[data-count-target]');
@@ -249,6 +365,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
             updateModalCount(modal);
         }
+    });
+
+    document.addEventListener('click', (event) => {
+        const moveButton = event.target.closest('[data-modal-move]');
+        if (!moveButton) return;
+
+        event.preventDefault();
+        const item = moveButton.closest('.modal-check-item');
+        const list = item?.closest('[data-sortable-modal-list]');
+        if (!item || !list) return;
+
+        if (moveButton.dataset.modalMove === 'up' && item.previousElementSibling) {
+            list.insertBefore(item, item.previousElementSibling);
+        }
+
+        if (moveButton.dataset.modalMove === 'down' && item.nextElementSibling) {
+            list.insertBefore(item.nextElementSibling, item);
+        }
+
+        item.classList.add('is-reordered');
+        window.setTimeout(() => item.classList.remove('is-reordered'), 220);
     });
 
     document.addEventListener('click', (event) => {

@@ -117,10 +117,14 @@ $sqlProximos = "
               AND spe.activo = 1
         ) AS total_puntos,
         (
-            SELECT MIN(spe.hora_salida)
+            SELECT spe.hora_salida
             FROM sendero_puntos_encuentro spe
             WHERE spe.sendero_id = s.id
               AND spe.activo = 1
+              AND spe.hora_salida IS NOT NULL
+              AND spe.hora_salida <> ''
+            ORDER BY spe.orden DESC, spe.id DESC
+            LIMIT 1
         ) AS hora_salida
     FROM senderos s
     INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id

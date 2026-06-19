@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -21,69 +21,7 @@ $jsFiles = [
 
 function contacto_crear_tablas(mysqli $conn): void
 {
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS configuracion_contacto (
-            id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-            hero_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/paisajes/hero.jpg',
-            titulo VARCHAR(160) NOT NULL,
-            subtitulo VARCHAR(255) NOT NULL,
-            hero_boton_texto VARCHAR(80) NOT NULL DEFAULT 'Escribir mensaje',
-            hero_whatsapp_texto VARCHAR(80) NOT NULL DEFAULT 'WhatsApp',
-            horario VARCHAR(160) NOT NULL,
-            ubicacion VARCHAR(160) NOT NULL,
-            telefono VARCHAR(40) NOT NULL,
-            whatsapp VARCHAR(40) NOT NULL,
-            email VARCHAR(160) NOT NULL,
-            instagram VARCHAR(80) NOT NULL,
-            instagram_url VARCHAR(255) NOT NULL,
-            seccion_kicker VARCHAR(80) NOT NULL DEFAULT 'Atencion personalizada',
-            seccion_titulo VARCHAR(160) NOT NULL DEFAULT 'Estamos listos para orientarte.',
-            texto_formulario TEXT NOT NULL,
-            nota_contacto TEXT NULL,
-            form_kicker VARCHAR(80) NOT NULL DEFAULT 'Mensaje rapido',
-            form_titulo VARCHAR(120) NOT NULL DEFAULT 'Escribenos',
-            form_subtitulo VARCHAR(255) NOT NULL DEFAULT 'Completa estos datos y nos pondremos en contacto contigo.',
-            form_privacidad VARCHAR(255) NOT NULL DEFAULT 'Usaremos tu informacion solo para responder esta solicitud.',
-            boton_formulario VARCHAR(80) NOT NULL DEFAULT 'Enviar mensaje',
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-
-    $columnas = [
-        "hero_boton_texto VARCHAR(80) NOT NULL DEFAULT 'Escribir mensaje'",
-        "hero_whatsapp_texto VARCHAR(80) NOT NULL DEFAULT 'WhatsApp'",
-        "seccion_kicker VARCHAR(80) NOT NULL DEFAULT 'Atencion personalizada'",
-        "seccion_titulo VARCHAR(160) NOT NULL DEFAULT 'Estamos listos para orientarte.'",
-        "nota_contacto TEXT NULL",
-        "form_kicker VARCHAR(80) NOT NULL DEFAULT 'Mensaje rapido'",
-        "form_titulo VARCHAR(120) NOT NULL DEFAULT 'Escribenos'",
-        "form_subtitulo VARCHAR(255) NOT NULL DEFAULT 'Completa estos datos y nos pondremos en contacto contigo.'",
-        "form_privacidad VARCHAR(255) NOT NULL DEFAULT 'Usaremos tu informacion solo para responder esta solicitud.'",
-        "boton_formulario VARCHAR(80) NOT NULL DEFAULT 'Enviar mensaje'",
-    ];
-    foreach ($columnas as $definicion) {
-        $nombre = strtok($definicion, ' ');
-        $existe = mysqli_query($conn, "SHOW COLUMNS FROM configuracion_contacto LIKE '" . mysqli_real_escape_string($conn, $nombre) . "'");
-        if ($existe && mysqli_num_rows($existe) === 0) {
-            mysqli_query($conn, "ALTER TABLE configuracion_contacto ADD COLUMN {$definicion}");
-        }
-    }
-
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS contacto_bloques (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            grupo VARCHAR(30) NOT NULL,
-            icono VARCHAR(60) NOT NULL DEFAULT 'circle',
-            titulo VARCHAR(120) NOT NULL,
-            texto VARCHAR(255) NOT NULL,
-            url VARCHAR(255) DEFAULT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_contacto_bloques_grupo (grupo, activo, orden)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
+    // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 function contacto_sembrar_bloques(mysqli $conn): void
@@ -483,3 +421,4 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>
+

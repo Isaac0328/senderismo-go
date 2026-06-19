@@ -71,13 +71,8 @@ $detalle = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
 mysqli_stmt_close($stmt);
 
 $historialAsistencia = [];
-$tieneColumnaAsistencia = false;
-$resColAsistencia = mysqli_query($conn, "SHOW COLUMNS FROM registros_senderos LIKE 'asistio'");
-if ($resColAsistencia && mysqli_num_rows($resColAsistencia) > 0) {
-    $tieneColumnaAsistencia = true;
-}
 
-if ($esMiPerfil && $tieneColumnaAsistencia) {
+if ($esMiPerfil) {
     $stmt = mysqli_prepare(
         $conn,
         "SELECT
@@ -289,123 +284,139 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <?php else: ?>
                         <div class="perfil-history-list">
                             <?php foreach ($historialAsistencia as $ruta): ?>
-                                <article>
+                                <a class="perfil-history-card" href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $ruta['id'] ?>">
                                     <span><?= perfil_h(perfil_fecha_historial($ruta['fecha_asistencia'] ?: $ruta['fecha_sendero'])) ?></span>
                                     <strong><?= perfil_h($ruta['nombre']) ?></strong>
                                     <p><?= perfil_h(trim(($ruta['lugar'] ?? '') . ', ' . ($ruta['provincia'] ?? ''), ', ')) ?></p>
                                     <?php if (!empty($ruta['asistencia_notas'])): ?>
                                         <small><?= perfil_h($ruta['asistencia_notas']) ?></small>
                                     <?php endif; ?>
-                                </article>
+                                    <em>Ver sendero</em>
+                                </a>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </section>
             <?php endif; ?>
 
-            <div class="perfil-section-title">
-                <span>Informacion personal y de salud</span>
-                <small>Los campos con * son obligatorios.</small>
-            </div>
+            <details class="perfil-collapsible-panel">
+                <summary class="perfil-collapsible-summary">
+                    <span>
+                        <strong>Informacion personal y de salud</strong>
+                        <small>Los campos con * son obligatorios.</small>
+                    </span>
+                    <i data-feather="chevron-down"></i>
+                </summary>
 
-            <div class="perfil-grid">
-                <div class="perfil-field">
-                    <label for="telefono">Telefono *</label>
-                    <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['telefono'] ?? '') ?>">
-                </div>
-                <div class="perfil-field">
-                    <label for="rango_edad">Edad *</label>
-                    <select name="rango_edad" id="rango_edad" required>
-                        <option value="">Seleccione...</option>
-                        <?php foreach ($rangosEdad as $rango): ?>
-                            <option value="<?= perfil_h($rango) ?>" <?= perfil_selected($detalle, 'rango_edad', $rango) ?>><?= perfil_h($rango) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="perfil-field">
-                    <label for="identificacion">Identificacion *</label>
-                    <input type="text" name="identificacion" id="identificacion" required maxlength="50" value="<?= perfil_h($detalle['identificacion'] ?? '') ?>">
-                </div>
-                <div class="perfil-field">
-                    <label for="grupo_sanguineo">Grupo sanguineo *</label>
-                    <select name="grupo_sanguineo" id="grupo_sanguineo" required>
-                        <option value="">Seleccione...</option>
-                        <?php foreach ($gruposSanguineos as $grupo): ?>
-                            <option value="<?= perfil_h($grupo) ?>" <?= perfil_selected($detalle, 'grupo_sanguineo', $grupo) ?>><?= perfil_h($grupo) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
+                <div class="perfil-collapsible-body">
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label for="telefono">Telefono *</label>
+                            <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['telefono'] ?? '') ?>">
+                        </div>
+                        <div class="perfil-field">
+                            <label for="rango_edad">Edad *</label>
+                            <select name="rango_edad" id="rango_edad" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($rangosEdad as $rango): ?>
+                                    <option value="<?= perfil_h($rango) ?>" <?= perfil_selected($detalle, 'rango_edad', $rango) ?>><?= perfil_h($rango) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="perfil-field">
+                            <label for="identificacion">Identificacion *</label>
+                            <input type="text" name="identificacion" id="identificacion" required maxlength="50" value="<?= perfil_h($detalle['identificacion'] ?? '') ?>">
+                        </div>
+                        <div class="perfil-field">
+                            <label for="grupo_sanguineo">Grupo sanguineo *</label>
+                            <select name="grupo_sanguineo" id="grupo_sanguineo" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($gruposSanguineos as $grupo): ?>
+                                    <option value="<?= perfil_h($grupo) ?>" <?= perfil_selected($detalle, 'grupo_sanguineo', $grupo) ?>><?= perfil_h($grupo) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
 
-            <div class="perfil-grid">
-                <div class="perfil-field">
-                    <label>Es alergico? *</label>
-                    <div class="perfil-radio-row">
-                        <label><input type="radio" name="es_alergico" value="1" <?= perfil_checked($detalle, 'es_alergico', '1') ?> required> Si</label>
-                        <label><input type="radio" name="es_alergico" value="0" <?= $detalle ? perfil_checked($detalle, 'es_alergico', '0') : 'checked' ?> required> No</label>
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label>Es alergico? *</label>
+                            <div class="perfil-radio-row">
+                                <label><input type="radio" name="es_alergico" value="1" <?= perfil_checked($detalle, 'es_alergico', '1') ?> required> Si</label>
+                                <label><input type="radio" name="es_alergico" value="0" <?= $detalle ? perfil_checked($detalle, 'es_alergico', '0') : 'checked' ?> required> No</label>
+                            </div>
+                        </div>
+                        <div class="perfil-field">
+                            <label for="alergias_detalle">Detalle de alergia</label>
+                            <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" placeholder="Solo si aplica" value="<?= perfil_h($detalle['alergias_detalle'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="perfil-field">
+                        <label for="enfermedad">Padece alguna enfermedad? *</label>
+                        <input type="text" name="enfermedad" id="enfermedad" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['enfermedad'] ?? '') ?>">
+                    </div>
+
+                    <div class="perfil-field">
+                        <label for="seguro_medico">Tiene seguro medico? *</label>
+                        <input type="text" name="seguro_medico" id="seguro_medico" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['seguro_medico'] ?? '') ?>">
+                    </div>
+
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label for="experiencia_senderismo">Experiencia haciendo senderismo *</label>
+                            <select name="experiencia_senderismo" id="experiencia_senderismo" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($experiencias as $experiencia): ?>
+                                    <option value="<?= perfil_h($experiencia) ?>" <?= perfil_selected($detalle, 'experiencia_senderismo', $experiencia) ?>><?= perfil_h($experiencia) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="perfil-field">
+                            <label for="via_entero">Por cual via te enteraste? *</label>
+                            <select name="via_entero" id="via_entero" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($vias as $via): ?>
+                                    <option value="<?= perfil_h($via) ?>" <?= perfil_selected($detalle, 'via_entero', $via) ?>><?= perfil_h($via) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="perfil-field">
+                        <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
+                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" value="<?= perfil_h($detalle['referido_nombre'] ?? '') ?>">
                     </div>
                 </div>
-                <div class="perfil-field">
-                    <label for="alergias_detalle">Detalle de alergia</label>
-                    <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" placeholder="Solo si aplica" value="<?= perfil_h($detalle['alergias_detalle'] ?? '') ?>">
+            </details>
+
+            <details class="perfil-collapsible-panel">
+                <summary class="perfil-collapsible-summary">
+                    <span>
+                        <strong>Contacto de emergencia</strong>
+                        <small>Persona a contactar ante cualquier eventualidad.</small>
+                    </span>
+                    <i data-feather="chevron-down"></i>
+                </summary>
+
+                <div class="perfil-collapsible-body">
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label for="emergencia_nombre">Nombre *</label>
+                            <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" value="<?= perfil_h($detalle['emergencia_nombre'] ?? '') ?>">
+                        </div>
+                        <div class="perfil-field">
+                            <label for="emergencia_parentesco">Parentesco *</label>
+                            <input type="text" name="emergencia_parentesco" id="emergencia_parentesco" required maxlength="80" value="<?= perfil_h($detalle['emergencia_parentesco'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="perfil-field">
+                        <label for="emergencia_telefono">Telefono de emergencia *</label>
+                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['emergencia_telefono'] ?? '') ?>">
+                    </div>
                 </div>
-            </div>
-
-            <div class="perfil-field">
-                <label for="enfermedad">Padece alguna enfermedad? *</label>
-                <input type="text" name="enfermedad" id="enfermedad" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['enfermedad'] ?? '') ?>">
-            </div>
-
-            <div class="perfil-field">
-                <label for="seguro_medico">Tiene seguro medico? *</label>
-                <input type="text" name="seguro_medico" id="seguro_medico" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['seguro_medico'] ?? '') ?>">
-            </div>
-
-            <div class="perfil-grid">
-                <div class="perfil-field">
-                    <label for="experiencia_senderismo">Experiencia haciendo senderismo *</label>
-                    <select name="experiencia_senderismo" id="experiencia_senderismo" required>
-                        <option value="">Seleccione...</option>
-                        <?php foreach ($experiencias as $experiencia): ?>
-                            <option value="<?= perfil_h($experiencia) ?>" <?= perfil_selected($detalle, 'experiencia_senderismo', $experiencia) ?>><?= perfil_h($experiencia) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="perfil-field">
-                    <label for="via_entero">Por cual via te enteraste? *</label>
-                    <select name="via_entero" id="via_entero" required>
-                        <option value="">Seleccione...</option>
-                        <?php foreach ($vias as $via): ?>
-                            <option value="<?= perfil_h($via) ?>" <?= perfil_selected($detalle, 'via_entero', $via) ?>><?= perfil_h($via) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-
-            <div class="perfil-field">
-                <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
-                <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" value="<?= perfil_h($detalle['referido_nombre'] ?? '') ?>">
-            </div>
-
-            <div class="perfil-section-title">
-                <span>Contacto de emergencia</span>
-            </div>
-
-            <div class="perfil-grid">
-                <div class="perfil-field">
-                    <label for="emergencia_nombre">Nombre *</label>
-                    <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" value="<?= perfil_h($detalle['emergencia_nombre'] ?? '') ?>">
-                </div>
-                <div class="perfil-field">
-                    <label for="emergencia_parentesco">Parentesco *</label>
-                    <input type="text" name="emergencia_parentesco" id="emergencia_parentesco" required maxlength="80" value="<?= perfil_h($detalle['emergencia_parentesco'] ?? '') ?>">
-                </div>
-            </div>
-
-            <div class="perfil-field">
-                <label for="emergencia_telefono">Telefono de emergencia *</label>
-                <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['emergencia_telefono'] ?? '') ?>">
-            </div>
+            </details>
 
             <div class="perfil-actions">
                 <a class="perfil-btn secondary" href="<?= $senderoId > 0 ? BASE_URL . 'pantallas/senderos_detalle.php?id=' . (int) $senderoId : BASE_URL . 'pantallas/inicio.php' ?>">Cancelar</a>

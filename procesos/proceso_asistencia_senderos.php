@@ -53,6 +53,15 @@ if (empty($registroIds)) {
     asistencia_redirect($conn, $senderoId);
 }
 
+$stmt = mysqli_prepare($conn, "SELECT fecha_sendero FROM senderos WHERE id = ? LIMIT 1");
+mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+mysqli_stmt_execute($stmt);
+$senderoRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+
+$fechaSendero = (string) ($senderoRow['fecha_sendero'] ?? '');
+$fechaAsistencia = $fechaSendero !== '' ? $fechaSendero . ' 00:00:00' : date('Y-m-d H:i:s');
+
 $idsSql = implode(',', $registroIds);
 $res = mysqli_query(
     $conn,
@@ -78,7 +87,7 @@ try {
         $conn,
         "UPDATE registros_senderos
          SET asistio = ?,
-             fecha_asistencia = CASE WHEN ? = 1 THEN COALESCE(fecha_asistencia, NOW()) ELSE NULL END,
+             fecha_asistencia = CASE WHEN ? = 1 THEN ? ELSE NULL END,
              asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END,
              asistencia_notas = ?
          WHERE id = ? AND sendero_id = ? AND estado = 'registrado'"
@@ -87,7 +96,7 @@ try {
     foreach ($validos as $registroId) {
         $asistio = isset($asistieronMap[$registroId]) ? 1 : 0;
         $nota = asistencia_clean_note((string) ($notas[$registroId] ?? ''));
-        mysqli_stmt_bind_param($stmt, 'iiiisii', $asistio, $asistio, $asistio, $adminId, $nota, $registroId, $senderoId);
+        mysqli_stmt_bind_param($stmt, 'iisiisii', $asistio, $asistio, $fechaAsistencia, $asistio, $adminId, $nota, $registroId, $senderoId);
         mysqli_stmt_execute($stmt);
     }
 

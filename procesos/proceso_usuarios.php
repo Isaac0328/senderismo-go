@@ -1,5 +1,6 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -19,10 +20,12 @@ if (($_SESSION['usuario_rol_id'] ?? 0) != 1) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $_SESSION['usuarios_error'] = "Método no permitido.";
+    $_SESSION['usuarios_error'] = "MÃ©todo no permitido.";
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_usuarios.php");
     exit;
 }
+
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_usuarios.php", 'usuarios_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 
@@ -117,30 +120,7 @@ function guardar_detalle_usuario(mysqli $conn, int $usuarioId): void
 
 function crear_tabla_menores_usuario_admin(mysqli $conn): void
 {
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS menores_usuarios (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            usuario_id INT NOT NULL,
-            nombre VARCHAR(100) NOT NULL,
-            apellido VARCHAR(100) NOT NULL,
-            telefono VARCHAR(30) DEFAULT NULL,
-            rango_edad VARCHAR(20) NOT NULL,
-            es_alergico TINYINT(1) NOT NULL DEFAULT 0,
-            alergias_detalle VARCHAR(255) DEFAULT NULL,
-            grupo_sanguineo VARCHAR(10) NOT NULL,
-            enfermedad VARCHAR(255) NOT NULL,
-            seguro_medico VARCHAR(255) NOT NULL,
-            experiencia_senderismo VARCHAR(80) NOT NULL,
-            emergencia_nombre VARCHAR(150) NOT NULL,
-            emergencia_parentesco VARCHAR(80) NOT NULL,
-            emergencia_telefono VARCHAR(30) NOT NULL,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_menores_usuarios_usuario (usuario_id),
-            CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
+        // La estructura de menores_usuarios se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 function obtener_menores_usuario_admin(): array
@@ -301,9 +281,9 @@ try {
         $passwordPlain = (string) ($_POST['password'] ?? '');
         $passwordPlain = trim($passwordPlain);
 
-        // Si es creación (id=0) password obligatoria
+        // Si es creaciÃ³n (id=0) password obligatoria
         if ($id === 0 && $passwordPlain === '') {
-            $_SESSION['usuarios_error'] = "La contraseña es obligatoria para crear el usuario.";
+            $_SESSION['usuarios_error'] = "La contraseÃ±a es obligatoria para crear el usuario.";
             redirect_users($conn);
         }
 
@@ -312,7 +292,7 @@ try {
         if ($passwordPlain !== '') {
             $passwordHash = password_hash($passwordPlain, PASSWORD_DEFAULT);
             if ($passwordHash === false) {
-                $_SESSION['usuarios_error'] = "No se pudo generar el hash de la contraseña.";
+                $_SESSION['usuarios_error'] = "No se pudo generar el hash de la contraseÃ±a.";
                 redirect_users($conn);
             }
         }
@@ -382,7 +362,7 @@ try {
 
         $estado = (int) ($_POST['estado'] ?? -1);
 
-        // Evitar que el admin se inhabilite a sí mismo (opcional pero recomendado)
+        // Evitar que el admin se inhabilite a sÃ­ mismo (opcional pero recomendado)
         if ($id === (int) ($_SESSION['usuario_id'] ?? 0) && $estado === 0) {
             $_SESSION['usuarios_error'] = "No puedes inactivarte a ti mismo.";
             redirect_users($conn);
@@ -463,11 +443,12 @@ try {
         redirect_users($conn);
     }
 
-    // Acción desconocida
-    $_SESSION['usuarios_error'] = "Acción no válida.";
+    // AcciÃ³n desconocida
+    $_SESSION['usuarios_error'] = "AcciÃ³n no vÃ¡lida.";
     redirect_users($conn);
 
 } catch (Throwable $e) {
     $_SESSION['usuarios_error'] = "Error: " . $e->getMessage();
     redirect_users($conn);
 }
+

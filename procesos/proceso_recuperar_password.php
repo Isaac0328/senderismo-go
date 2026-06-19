@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/smtp_mailer.php';
 
@@ -35,6 +36,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['recovery_error'] = "Metodo no permitido.";
     redirect_recovery($conn);
 }
+csrf_validate_post(BASE_URL . "pantallas/recuperar_password.php", 'recovery_error');
 
 $email = trim((string) ($_POST['email'] ?? ''));
 $_SESSION['recovery_email'] = $email;

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -20,6 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['reset_error'] = "Metodo no permitido.";
     redirect_reset();
 }
+csrf_validate_post(BASE_URL . "pantallas/restablecer_password.php", 'reset_error');
 
 $token = trim((string) ($_POST['token'] ?? ''));
 $password = (string) ($_POST['password'] ?? '');

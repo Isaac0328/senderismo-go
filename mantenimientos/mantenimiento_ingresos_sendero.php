@@ -10,6 +10,7 @@ require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 contabilidad_bootstrap($conn);
 
@@ -40,6 +41,9 @@ function fis_money($value): string
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
 $metodosPago = [];
 $resMetodos = mysqli_query($conn, "SELECT id, nombre FROM contabilidad_metodo_pago WHERE activo = 1 ORDER BY nombre ASC");
@@ -48,21 +52,25 @@ while ($resMetodos && $row = mysqli_fetch_assoc($resMetodos)) {
 }
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
+$resSenderos = sgf_execute_query($conn, "
     SELECT
         s.id,
         s.nombre,
         s.fecha_sendero,
         s.estado,
+        s.distancia_km,
+        nd.nombre AS dificultad_nombre,
         COUNT(rs.id) AS inscritos,
         SUM(CASE WHEN crp.pagado = 1 THEN 1 ELSE 0 END) AS pagados,
         COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END), 0) AS ingresos
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
     LEFT JOIN contabilidad_registro_pagos crp ON crp.registro_id = rs.id
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado
+    {$senderoWhere}
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-");
+", $senderoTypes, $senderoValues);
 while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
     $senderos[] = $row;
 }
@@ -166,30 +174,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <?php unset($_SESSION['ingresos_sendero_error']); ?>
         <?php endif; ?>
 
-        <section class="fin-card">
-            <div class="fin-card-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="users"></i>
-            </div>
-            <form method="GET" class="fin-filter-form">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $sendero): ?>
-                        <option value="<?= (int) $sendero['id'] ?>" <?= (int) $sendero['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= fis_h($sendero['nombre']) ?> - <?= fis_h(fis_fecha($sendero['fecha_sendero'])) ?> (<?= (int) $sendero['pagados'] ?>/<?= (int) $sendero['inscritos'] ?> pagados)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit">
-                    <i data-feather="search"></i>
-                    Consultar
-                </button>
-                <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_ingresos_sendero.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php',
+            'card_class' => 'fin-card',
+            'head_class' => 'fin-card-head',
+            'form_class' => 'fin-filter-form',
+            'icon' => 'users',
+            'option_label' => static function (array $sendero): string {
+                $km = $sendero['distancia_km'] !== null ? ' - ' . number_format((float) $sendero['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($sendero['dificultad_nombre']) ? ' - ' . $sendero['dificultad_nombre'] : '';
+                return $sendero['nombre'] . ' - ' . fis_fecha($sendero['fecha_sendero']) . $dificultad . $km . ' (' . (int) $sendero['pagados'] . '/' . (int) $sendero['inscritos'] . ' pagados)';
+            },
+        ]); ?>
 
         <?php if (!$senderoSeleccionado): ?>
             <section class="fin-empty">

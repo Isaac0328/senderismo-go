@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -15,6 +16,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "pantallas/contacto.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "pantallas/contacto.php#contacto-form", 'contact_error');
 
 $nombre = trim((string) ($_POST['nombre'] ?? ''));
 $apellido = trim((string) ($_POST['apellido'] ?? ''));
@@ -75,30 +77,6 @@ if (!$conn) {
 }
 
 mysqli_set_charset($conn, "utf8mb4");
-
-$sqlTabla = "
-    CREATE TABLE IF NOT EXISTS mensajes_contacto (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(100) NOT NULL,
-        apellido VARCHAR(100) NULL,
-        email VARCHAR(150) NOT NULL,
-        telefono VARCHAR(30) NULL,
-        asunto VARCHAR(80) NOT NULL,
-        mensaje TEXT NOT NULL,
-        estado ENUM('nuevo','leido','respondido','archivado') NOT NULL DEFAULT 'nuevo',
-        ip VARCHAR(45) NULL,
-        user_agent VARCHAR(255) NULL,
-        fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        fecha_actualizacion TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_mensajes_contacto_estado (estado),
-        INDEX idx_mensajes_contacto_fecha (fecha_creacion)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-";
-
-if (!mysqli_query($conn, $sqlTabla)) {
-    $_SESSION['contact_error'] = "No se pudo preparar el buzon de contacto. Intenta mas tarde.";
-    volver_contacto();
-}
 
 $stmt = mysqli_prepare(
     $conn,

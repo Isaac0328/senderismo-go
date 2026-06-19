@@ -223,7 +223,7 @@ $stmtAnotaciones = mysqli_prepare(
      INNER JOIN anotaciones_importantes ai ON ai.id = sa.anotacion_id
      WHERE sa.sendero_id = ?
        AND ai.activo = 1
-     ORDER BY ai.nombre ASC"
+     ORDER BY sa.orden ASC, sa.id ASC"
 );
 if ($stmtAnotaciones) {
     mysqli_stmt_bind_param($stmtAnotaciones, "i", $idSendero);
@@ -245,7 +245,7 @@ $stmtInversiones = mysqli_prepare(
      LEFT JOIN elementos_incluidos i ON i.id = sii.incluye_id AND i.activo = 1
      WHERE si.sendero_id = ?
        AND si.activo = 1
-     ORDER BY si.orden ASC, si.id ASC, i.nombre ASC"
+     ORDER BY si.orden ASC, si.id ASC, sii.orden ASC, i.nombre ASC"
 );
 if ($stmtInversiones) {
     mysqli_stmt_bind_param($stmtInversiones, "i", $idSendero);
@@ -287,7 +287,13 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
 $esVisitado = ($sendero['estado'] ?? '') === 'visitado';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
-$horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
+$horaSalidaPrincipal = null;
+for ($i = count($puntosEncuentro) - 1; $i >= 0; $i--) {
+    if (!empty($puntosEncuentro[$i]['hora_salida'])) {
+        $horaSalidaPrincipal = $puntosEncuentro[$i]['hora_salida'];
+        break;
+    }
+}
 $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
 $nivelNumero = min(100, max(0, (int) ($sendero['nivel_numero'] ?? 50)));
 $dificultadClase = dificultad_color_detalle($nivelNumero);
@@ -361,15 +367,6 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                 </div>
             <?php endif; ?>
             <div class="summary-card">
-                <span class="difficulty-face <?= $dificultadClase ?>" aria-hidden="true">
-                    <span class="face-eyes"></span>
-                    <span class="face-mouth"></span>
-                </span>
-                <span>Dificultad</span>
-                <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?></strong>
-                <small><?= $nivelNumero ?>/100</small>
-            </div>
-            <div class="summary-card">
                 <i data-feather="activity"></i>
                 <span>Recorrido</span>
                 <strong><?= tiempo_detalle($sendero['tiempo_sendero_min'] !== null ? (int) $sendero['tiempo_sendero_min'] : null) ?></strong>
@@ -400,8 +397,20 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                     <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
                     <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
                 </div>
+                <div class="difficulty-meter <?= $dificultadClase ?>" style="--difficulty-level: <?= $nivelNumero ?>%;">
+                    <div class="difficulty-meter-head">
+                        <span>Nivel de dificultad</span>
+                        <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</strong>
+                    </div>
+                    <div class="difficulty-bar" aria-label="Nivel de dificultad <?= $nivelNumero ?> de 100">
+                        <span class="difficulty-marker"></span>
+                    </div>
+                    <div class="difficulty-scale">
+                        <span>Bajo</span>
+                        <span>Alto</span>
+                    </div>
+                </div>
                 <div class="terrain-tags">
-                    <span class="difficulty-tag <?= $dificultadClase ?>"><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</span>
                     <?php foreach ($tiposTerreno as $terreno): ?>
                         <span><?= htmlspecialchars($terreno) ?></span>
                     <?php endforeach; ?>
@@ -422,11 +431,16 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                     <?php foreach ($galeria as $index => $imagen): ?>
                         <?php $src = detalle_img_src($imagen['ruta_imagen']); ?>
                         <?php if ($src !== ''): ?>
-                            <button type="button" class="gallery-item" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
+                            <button type="button" class="gallery-item <?= $index >= 4 ? 'is-gallery-mobile-extra' : '' ?> <?= $index >= 6 ? 'is-gallery-extra' : '' ?>" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
                                 <img src="<?= $src ?>" alt="<?= htmlspecialchars($imagen['titulo'] ?: $sendero['nombre']) ?>">
                             </button>
                         <?php endif; ?>
                     <?php endforeach; ?>
+                    <?php if (count($galeria) > 4): ?>
+                        <button type="button" class="gallery-more-btn" data-gallery-more data-more-text="Ver mas imagenes" data-less-text="Ver menos imagenes">
+                            Ver mas imagenes
+                        </button>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="gallery-empty">
                         <i data-feather="image"></i>
@@ -541,7 +555,7 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                     <?php endif; ?>
                     <div class="payment-line fuel-note">
                         <i data-feather="info"></i>
-                        <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un companero. <strong>Deben compartir el gasto de combustible.</strong></span>
+                        <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un compañero. <strong>Deben compartir el gasto de combustible. </strong><strong>Su punto de encuentro es el punto 2.</strong></span>
                     </div>
                 </article>
 
@@ -557,7 +571,7 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                                 <div><dt>Cedula:</dt><dd><?= htmlspecialchars($tarjetaPago['cedula']) ?></dd></div>
                                 <div><dt>Correo:</dt><dd><?= htmlspecialchars($tarjetaPago['correo']) ?></dd></div>
                                 <div><dt>Nombre:</dt><dd><?= htmlspecialchars($tarjetaPago['nombre']) ?></dd></div>
-                                <div><dt>Comprobante:</dt><dd><?= htmlspecialchars($tarjetaPago['telefono_comprobante']) ?></dd></div>
+                                <div><dt>Enviar a:</dt><dd><?= htmlspecialchars($tarjetaPago['telefono_comprobante']) ?></dd></div>
                             </dl>
                             <div class="payment-note">
                                 <strong><i data-feather="alert-triangle"></i> Nota importante</strong>

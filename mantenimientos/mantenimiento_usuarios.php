@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -32,31 +32,6 @@ $jsFiles = [
 ];
 
 require_once __DIR__ . '/../bd/conexion.php';
-
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS menores_usuarios (
-        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        usuario_id INT NOT NULL,
-        nombre VARCHAR(100) NOT NULL,
-        apellido VARCHAR(100) NOT NULL,
-        telefono VARCHAR(30) DEFAULT NULL,
-        rango_edad VARCHAR(20) NOT NULL,
-        es_alergico TINYINT(1) NOT NULL DEFAULT 0,
-        alergias_detalle VARCHAR(255) DEFAULT NULL,
-        grupo_sanguineo VARCHAR(10) NOT NULL,
-        enfermedad VARCHAR(255) NOT NULL,
-        seguro_medico VARCHAR(255) NOT NULL,
-        experiencia_senderismo VARCHAR(80) NOT NULL,
-        emergencia_nombre VARCHAR(150) NOT NULL,
-        emergencia_parentesco VARCHAR(80) NOT NULL,
-        emergencia_telefono VARCHAR(30) NOT NULL,
-        activo TINYINT(1) NOT NULL DEFAULT 1,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_menores_usuarios_usuario (usuario_id),
-        CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-");
 
 // Roles para el select
 $roles = [];
@@ -174,7 +149,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <div class="form-group">
                             <label for="apellido">Apellido *</label>
                             <input type="text" name="apellido" id="apellido" required maxlength="100"
-                                placeholder="Ej: Pérez">
+                                placeholder="Ej: PÃ©rez">
                         </div>
                     </div>
 
@@ -204,10 +179,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
 
                         <div class="form-group">
-                            <label for="password">Contraseña <span class="hint">(obligatoria al crear, opcional al
+                            <label for="password">ContraseÃ±a <span class="hint">(obligatoria al crear, opcional al
                                     editar)</span></label>
                             <input type="password" name="password" id="password" minlength="6" maxlength="120"
-                                placeholder="••••••••">
+                                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
                         </div>
                     </div>
 
@@ -435,7 +410,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                                             <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios.php"
                                                 class="inline-form"
-                                                onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
+                                                onsubmit="return confirm('Â¿Seguro que deseas eliminar este usuario?');">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
                                                 <button type="submit" class="btn-mini danger">Eliminar</button>
@@ -545,3 +520,4 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>
+

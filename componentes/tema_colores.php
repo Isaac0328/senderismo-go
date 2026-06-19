@@ -69,36 +69,24 @@ if (!function_exists('sg_tema_activo')) {
         $paletas = sg_paletas_colores();
         $tema = array_merge(['tema' => 'senderismo'], $paletas['senderismo']);
 
-        $connTema = @mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        $connTema = $GLOBALS['conn'] ?? null;
+        $debeCerrarConexion = false;
+
+        if (!$connTema instanceof mysqli) {
+            $connTema = @mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+            $debeCerrarConexion = $connTema instanceof mysqli;
+        }
+
         if (!$connTema) {
             return $tema;
         }
         mysqli_set_charset($connTema, 'utf8mb4');
-        mysqli_query($connTema, "
-            CREATE TABLE IF NOT EXISTS configuracion_tema (
-                id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-                tema VARCHAR(40) NOT NULL DEFAULT 'senderismo',
-                primary_color VARCHAR(7) NOT NULL DEFAULT '#255f38',
-                primary_dark_color VARCHAR(7) NOT NULL DEFAULT '#102617',
-                accent_color VARCHAR(7) NOT NULL DEFAULT '#e10600',
-                accent_dark_color VARCHAR(7) NOT NULL DEFAULT '#b90000',
-                background_color VARCHAR(7) NOT NULL DEFAULT '#f3f6ef',
-                surface_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',
-                text_color VARCHAR(7) NOT NULL DEFAULT '#111111',
-                muted_color VARCHAR(7) NOT NULL DEFAULT '#5f6d64',
-                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-        ");
 
-        $resCount = mysqli_query($connTema, "SELECT COUNT(*) AS total FROM configuracion_tema");
-        $total = ($resCount && ($row = mysqli_fetch_assoc($resCount))) ? (int) $row['total'] : 0;
-        if ($total === 0) {
-            mysqli_query($connTema, "INSERT INTO configuracion_tema (id) VALUES (1)");
-        }
-
-        $res = mysqli_query($connTema, "SELECT * FROM configuracion_tema WHERE id = 1 LIMIT 1");
+        $res = @mysqli_query($connTema, "SELECT * FROM configuracion_tema WHERE id = 1 LIMIT 1");
         $row = $res ? (mysqli_fetch_assoc($res) ?: []) : [];
-        mysqli_close($connTema);
+        if ($debeCerrarConexion) {
+            mysqli_close($connTema);
+        }
 
         $temaKey = (string) ($row['tema'] ?? 'senderismo');
         if (isset($paletas[$temaKey])) {

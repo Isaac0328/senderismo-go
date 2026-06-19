@@ -9,6 +9,7 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 contabilidad_bootstrap($conn);
 
@@ -44,17 +45,23 @@ function rrs_pct(float $value): string
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
+$resSenderos = sgf_execute_query($conn, "
     SELECT
         s.id,
         s.nombre,
         s.fecha_sendero,
         s.estado,
+        s.distancia_km,
+        nd.nombre AS dificultad_nombre,
         COALESCE(i.ingresos, 0) AS ingresos,
         COALESCE(g.gastos, 0) AS gastos
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN (
         SELECT sendero_id, SUM(monto_pagado) AS ingresos
         FROM contabilidad_registro_pagos
@@ -66,8 +73,9 @@ $resSenderos = mysqli_query($conn, "
         FROM contabilidad_sendero_gastos
         GROUP BY sendero_id
     ) g ON g.sendero_id = s.id
+    {$senderoWhere}
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-");
+", $senderoTypes, $senderoValues);
 while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
     $senderos[] = $row;
 }
@@ -186,28 +194,23 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </a>
         </header>
 
-        <section class="fin-card fin-filter-card">
-            <div class="fin-card-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="search"></i>
-            </div>
-            <form method="GET" class="fin-filter-form">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $item): ?>
-                        <?php $utilidad = (float) $item['ingresos'] - (float) $item['gastos']; ?>
-                        <option value="<?= (int) $item['id'] ?>" <?= (int) $item['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= rrs_h($item['nombre']) ?> - <?= rrs_h(rrs_fecha($item['fecha_sendero'])) ?> (<?= rrs_h(rrs_money($utilidad)) ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit"><i data-feather="search"></i> Consultar</button>
-                <a href="<?= BASE_URL ?>pantallas/reporte_rentabilidad_sendero.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'pantallas/reporte_rentabilidad_sendero.php',
+            'card_class' => 'fin-card fin-filter-card',
+            'head_class' => 'fin-card-head',
+            'form_class' => 'fin-filter-form',
+            'icon' => 'search',
+            'option_label' => static function (array $item): string {
+                $utilidad = (float) $item['ingresos'] - (float) $item['gastos'];
+                $km = $item['distancia_km'] !== null ? ' - ' . number_format((float) $item['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($item['dificultad_nombre']) ? ' - ' . $item['dificultad_nombre'] : '';
+                return $item['nombre'] . ' - ' . rrs_fecha($item['fecha_sendero']) . $dificultad . $km . ' (' . rrs_money($utilidad) . ')';
+            },
+        ]); ?>
 
         <?php if (!$sendero): ?>
             <section class="fin-empty">
@@ -335,4 +338,3 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 mysqli_close($conn);
 include_once __DIR__ . '/../componentes/pie_pagina.php';
 ?>
-

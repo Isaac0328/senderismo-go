@@ -59,6 +59,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 <h1 class="roles-title">Mantenimiento de Roles</h1>
                 <p class="roles-subtitle">Crea, edita o elimina roles del sistema.</p>
             </div>
+            <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="roles-panel-link">Volver al panel</a>
         </div>
 
         <?php if (!empty($_SESSION['roles_success'])): ?>

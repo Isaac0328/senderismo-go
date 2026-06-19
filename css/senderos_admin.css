@@ -627,6 +627,10 @@
     box-shadow: 0 24px 60px rgba(0, 0, 0, .32);
 }
 
+.annotations-modal .detail-modal-panel {
+    width: min(920px, calc(100vw - 28px));
+}
+
 .detail-modal-head {
     display: flex;
     justify-content: space-between;
@@ -662,42 +666,169 @@
 }
 
 .detail-modal-list {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
     padding: 12px;
     overflow: auto;
 }
 
 .modal-check-item {
-    display: grid;
-    grid-template-columns: 20px minmax(0, 1fr);
-    gap: 10px;
-    align-items: start;
-    padding: 10px;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 10px;
     border-radius: 8px;
     background: #f7f7f7;
     border: 1px solid rgba(0, 0, 0, .06);
+    cursor: default;
+    user-select: none;
+    touch-action: manipulation;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 
-.modal-check-item input {
-    margin-top: 3px;
+.modal-check-controls {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.modal-check-item strong,
-.modal-check-item small {
+.modal-check-item.is-dragging {
+    border-color: rgba(17, 153, 76, .38);
+    box-shadow: 0 14px 26px rgba(0, 0, 0, .16);
+    transform: scale(1.01);
+    opacity: .92;
+}
+
+.modal-check-item.is-reordered {
+    border-color: rgba(17, 153, 76, .45);
+    box-shadow: 0 8px 18px rgba(17, 153, 76, .12);
+}
+
+.modal-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 24px;
+    color: #888;
+    font-size: .9rem;
+    font-weight: 950;
+    letter-spacing: -2px;
+    line-height: 1;
+    cursor: grab;
+    touch-action: none;
+}
+
+.modal-drag-handle:active {
+    cursor: grabbing;
+}
+
+.investment-include-modal .detail-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.investment-include-modal .modal-check-item {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+    padding: 10px 12px;
+    margin: 0 !important;
+}
+
+.detail-modal .modal-check-main {
+    flex: 1 1 auto;
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: 0 !important;
+    cursor: pointer;
+}
+
+.detail-modal .modal-check-main input {
+    flex: 0 0 auto;
+    width: 14px !important;
+    min-width: 14px !important;
+    height: 14px !important;
+    min-height: 14px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 2px !important;
+    accent-color: #127a43;
+    background: initial !important;
+    cursor: pointer;
+}
+
+.modal-check-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+
+.modal-check-copy strong,
+.modal-check-copy small {
     display: block;
+    min-width: 0;
+    opacity: 1;
+    visibility: visible;
 }
 
-.modal-check-item strong {
+.modal-check-copy strong {
     color: #111;
     font-size: .9rem;
+    line-height: 1.25;
 }
 
-.modal-check-item small {
+.modal-check-copy small {
     margin-top: 3px;
     color: #666;
     font-size: .78rem;
     line-height: 1.35;
+}
+
+.investment-include-modal .modal-check-copy {
+    display: block !important;
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
+.investment-include-modal .modal-check-copy strong,
+.investment-include-modal .modal-check-copy small {
+    display: block !important;
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
+.modal-order-actions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.modal-order-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 7px;
+    background: #fff;
+    color: #111;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 950;
+    line-height: 1;
+}
+
+.modal-order-btn:hover {
+    background: #111;
+    color: #fff;
 }
 
 .detail-modal-actions {
@@ -961,8 +1092,101 @@
         max-height: calc(100vh - 24px);
     }
 
+    .annotations-modal {
+        padding: 6px;
+    }
+
+    .annotations-modal .detail-modal-panel {
+        width: calc(100vw - 12px);
+        max-height: calc(100vh - 12px);
+    }
+
+    .detail-modal-list {
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .annotations-modal .detail-modal-list {
+        padding: 10px;
+    }
+
     .detail-modal-head {
         padding: 13px;
+    }
+
+    .modal-check-item {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 92px;
+        column-gap: 10px;
+        row-gap: 8px;
+        align-items: center;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 12px;
+    }
+
+    .annotations-modal .modal-check-item {
+        grid-template-columns: minmax(0, 1fr) 82px;
+        column-gap: 8px;
+        padding: 10px;
+    }
+
+    .modal-check-controls {
+        display: none;
+    }
+
+    .modal-drag-handle {
+        display: none;
+    }
+
+    .detail-modal .modal-check-main {
+        display: grid !important;
+        grid-template-columns: auto 1fr;
+        align-items: start;
+        gap: 10px;
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .detail-modal .modal-check-main input {
+        margin-top: 1px !important;
+        width: 13px !important;
+        min-width: 13px !important;
+        height: 13px !important;
+        min-height: 13px !important;
+    }
+
+    .modal-check-copy strong {
+        font-size: .78rem;
+        line-height: 1.2;
+    }
+
+    .modal-check-copy small {
+        font-size: .7rem;
+        line-height: 1.24;
+    }
+
+    .modal-order-actions {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: center;
+        justify-content: flex-end;
+        flex-direction: row;
+        gap: 6px;
+        padding-top: 0;
+    }
+
+    .modal-order-btn {
+        width: 40px;
+        height: 30px;
+        background: #fff;
+    }
+
+    .annotations-modal .modal-order-btn {
+        width: 36px;
     }
 
     .senderos-table-wrap {

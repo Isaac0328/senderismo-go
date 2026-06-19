@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,6 +15,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_tarjeta_pago.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_tarjeta_pago.php", 'pago_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 

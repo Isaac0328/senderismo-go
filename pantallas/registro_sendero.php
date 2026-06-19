@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -50,62 +50,7 @@ function dinero_registro($monto): string
 
 function registro_crear_tabla_menores(mysqli $conn): void
 {
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS registro_sendero_menores (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            registro_id INT NOT NULL,
-            inversion_id INT DEFAULT NULL,
-            nombre VARCHAR(100) NOT NULL,
-            apellido VARCHAR(100) NOT NULL,
-            telefono VARCHAR(30) DEFAULT NULL,
-            rango_edad VARCHAR(20) NOT NULL,
-            es_alergico TINYINT(1) NOT NULL DEFAULT 0,
-            alergias_detalle VARCHAR(255) DEFAULT NULL,
-            grupo_sanguineo VARCHAR(10) NOT NULL,
-            enfermedad VARCHAR(255) NOT NULL,
-            seguro_medico VARCHAR(255) NOT NULL,
-            experiencia_senderismo VARCHAR(80) NOT NULL,
-            emergencia_nombre VARCHAR(150) NOT NULL,
-            emergencia_parentesco VARCHAR(80) NOT NULL,
-            emergencia_telefono VARCHAR(30) NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_registro_menores_registro (registro_id),
-            INDEX idx_registro_menores_inversion (inversion_id),
-            CONSTRAINT fk_registro_menores_registro FOREIGN KEY (registro_id) REFERENCES registros_senderos(id) ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-
-    $existeInversion = mysqli_query($conn, "SHOW COLUMNS FROM registro_sendero_menores LIKE 'inversion_id'");
-    if ($existeInversion && mysqli_num_rows($existeInversion) === 0) {
-        mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD COLUMN inversion_id INT DEFAULT NULL AFTER registro_id");
-        mysqli_query($conn, "ALTER TABLE registro_sendero_menores ADD INDEX idx_registro_menores_inversion (inversion_id)");
-    }
-
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS menores_usuarios (
-            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            usuario_id INT NOT NULL,
-            nombre VARCHAR(100) NOT NULL,
-            apellido VARCHAR(100) NOT NULL,
-            telefono VARCHAR(30) DEFAULT NULL,
-            rango_edad VARCHAR(20) NOT NULL,
-            es_alergico TINYINT(1) NOT NULL DEFAULT 0,
-            alergias_detalle VARCHAR(255) DEFAULT NULL,
-            grupo_sanguineo VARCHAR(10) NOT NULL,
-            enfermedad VARCHAR(255) NOT NULL,
-            seguro_medico VARCHAR(255) NOT NULL,
-            experiencia_senderismo VARCHAR(80) NOT NULL,
-            emergencia_nombre VARCHAR(150) NOT NULL,
-            emergencia_parentesco VARCHAR(80) NOT NULL,
-            emergencia_telefono VARCHAR(30) NOT NULL,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_menores_usuarios_usuario (usuario_id),
-            CONSTRAINT fk_menores_usuarios_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
+    // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 function perfil_senderista_completo(array $detalle): bool
@@ -287,7 +232,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <span>1</span>
                     <div>
                         <h2>Datos del senderista</h2>
-                        <p>Estos datos estan guardados en tu cuenta. Si necesitas cambiarlos, contacta al administrador o actualizalos desde tu perfil cuando este disponible.</p>
+                        <p>Estos datos estan guardados en tu cuenta. Si necesitas cambiarlos, contacta al administrador o actualizalos desde tu perfil.</p>
                     </div>
                 </div>
 
@@ -562,3 +507,4 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 mysqli_close($conn);
 include_once __DIR__ . "/../componentes/pie_pagina.php";
 ?>
+

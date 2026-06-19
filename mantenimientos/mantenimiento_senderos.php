@@ -149,6 +149,7 @@ $editId = (int) ($_GET['edit'] ?? 0);
 $edit = null;
 $editTerrenos = [];
 $editAnotaciones = [];
+$editAnotacionesOrden = [];
 $editInversiones = [];
 $editPuntos = [];
 $editGaleria = [];
@@ -171,18 +172,19 @@ if ($editId > 0) {
         }
         mysqli_stmt_close($stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT anotacion_id FROM sendero_anotaciones WHERE sendero_id = ?");
+        $stmt = mysqli_prepare($conn, "SELECT anotacion_id, orden FROM sendero_anotaciones WHERE sendero_id = ? ORDER BY orden ASC, id ASC");
         mysqli_stmt_bind_param($stmt, "i", $editId);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         while ($row = mysqli_fetch_assoc($res)) {
             $editAnotaciones[] = (int) $row['anotacion_id'];
+            $editAnotacionesOrden[(int) $row['anotacion_id']] = (int) $row['orden'];
         }
         mysqli_stmt_close($stmt);
 
         $stmt = mysqli_prepare(
             $conn,
-            "SELECT si.*, GROUP_CONCAT(sii.incluye_id ORDER BY sii.incluye_id ASC) AS incluye_ids
+            "SELECT si.*, GROUP_CONCAT(sii.incluye_id ORDER BY sii.orden ASC, sii.incluye_id ASC) AS incluye_ids
              FROM sendero_inversiones si
              LEFT JOIN sendero_inversion_incluye sii ON sii.inversion_id = si.id
              WHERE si.sendero_id = ?
@@ -234,6 +236,35 @@ if (empty($editInversiones)) {
         'incluye_ids_array' => [],
     ];
 }
+
+function ordenar_items_modal(array $items, array $seleccionados): array
+{
+    if (empty($seleccionados)) {
+        return $items;
+    }
+
+    $posiciones = array_flip(array_values(array_map('intval', $seleccionados)));
+    usort($items, static function (array $a, array $b) use ($posiciones): int {
+        $idA = (int) ($a['id'] ?? 0);
+        $idB = (int) ($b['id'] ?? 0);
+        $aSeleccionado = array_key_exists($idA, $posiciones);
+        $bSeleccionado = array_key_exists($idB, $posiciones);
+
+        if ($aSeleccionado && $bSeleccionado) {
+            return $posiciones[$idA] <=> $posiciones[$idB];
+        }
+
+        if ($aSeleccionado !== $bSeleccionado) {
+            return $aSeleccionado ? -1 : 1;
+        }
+
+        return strcasecmp((string) ($a['nombre'] ?? ''), (string) ($b['nombre'] ?? ''));
+    });
+
+    return $items;
+}
+
+$anotacionesOrdenadas = ordenar_items_modal($anotaciones, $editAnotaciones);
 
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
@@ -521,17 +552,27 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 </div>
                                                 <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
                                             </div>
-                                            <div class="detail-modal-list" data-count-target="inversionIncluyeCount<?= $index ?>">
-                                                <?php foreach ($incluyeItems as $item): ?>
-                                                    <label class="modal-check-item">
-                                                        <input type="checkbox" name="inversiones[<?= $index ?>][incluye][]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $inversion['incluye_ids_array'] ?? [], true) ? 'checked' : '' ?>>
-                                                        <span>
-                                                            <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                                            <?php if (!empty($item['descripcion'])): ?>
-                                                                <small><?= htmlspecialchars($item['descripcion']) ?></small>
-                                                            <?php endif; ?>
+                                            <div class="detail-modal-list" data-count-target="inversionIncluyeCount<?= $index ?>" data-sortable-modal-list>
+                                                <?php foreach (ordenar_items_modal($incluyeItems, $inversion['incluye_ids_array'] ?? []) as $item): ?>
+                                                    <?php $inputId = 'incluye_' . $index . '_' . (int) $item['id']; ?>
+                                                    <div class="modal-check-item">
+                                                        <span class="modal-check-controls">
+                                                            <span class="modal-drag-handle" aria-hidden="true">::</span>
                                                         </span>
-                                                    </label>
+                                                        <label class="modal-check-main" for="<?= $inputId ?>">
+                                                            <input id="<?= $inputId ?>" type="checkbox" name="inversiones[<?= $index ?>][incluye][]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $inversion['incluye_ids_array'] ?? [], true) ? 'checked' : '' ?>>
+                                                            <span class="modal-check-copy">
+                                                                <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                                                <?php if (!empty($item['descripcion'])): ?>
+                                                                    <small><?= htmlspecialchars($item['descripcion']) ?></small>
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        </label>
+                                                        <span class="modal-order-actions" aria-label="Cambiar orden">
+                                                            <button type="button" class="modal-order-btn" data-modal-move="up" aria-label="Subir">&uarr;</button>
+                                                            <button type="button" class="modal-order-btn" data-modal-move="down" aria-label="Bajar">&darr;</button>
+                                                        </span>
+                                                    </div>
                                                 <?php endforeach; ?>
                                             </div>
                                             <div class="detail-modal-actions">
@@ -622,7 +663,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </div>
 
-                <div class="detail-modal" id="modalAnotaciones" aria-hidden="true">
+                <div class="detail-modal investment-include-modal annotations-modal" id="modalAnotaciones" aria-hidden="true">
                     <div class="detail-modal-backdrop" data-modal-close></div>
                     <div class="detail-modal-panel">
                         <div class="detail-modal-head">
@@ -632,17 +673,27 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             </div>
                             <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
                         </div>
-                        <div class="detail-modal-list" data-count-target="anotacionesCount">
-                            <?php foreach ($anotaciones as $item): ?>
-                                <label class="modal-check-item">
-                                    <input type="checkbox" name="anotaciones[]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $editAnotaciones, true) ? 'checked' : '' ?>>
-                                    <span>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <small><?= htmlspecialchars($item['descripcion']) ?></small>
-                                        <?php endif; ?>
+                        <div class="detail-modal-list" data-count-target="anotacionesCount" data-sortable-modal-list>
+                            <?php foreach ($anotacionesOrdenadas as $item): ?>
+                                <?php $inputId = 'anotacion_' . (int) $item['id']; ?>
+                                <div class="modal-check-item">
+                                    <span class="modal-check-controls">
+                                        <span class="modal-drag-handle" aria-hidden="true">::</span>
                                     </span>
-                                </label>
+                                    <label class="modal-check-main" for="<?= $inputId ?>">
+                                        <input id="<?= $inputId ?>" type="checkbox" name="anotaciones[]" value="<?= (int) $item['id'] ?>" <?= in_array((int) $item['id'], $editAnotaciones, true) ? 'checked' : '' ?>>
+                                        <span class="modal-check-copy">
+                                            <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                            <?php if (!empty($item['descripcion'])): ?>
+                                                <small><?= htmlspecialchars($item['descripcion']) ?></small>
+                                            <?php endif; ?>
+                                        </span>
+                                    </label>
+                                    <span class="modal-order-actions" aria-label="Cambiar orden">
+                                        <button type="button" class="modal-order-btn" data-modal-move="up" aria-label="Subir">&uarr;</button>
+                                        <button type="button" class="modal-order-btn" data-modal-move="down" aria-label="Bajar">&darr;</button>
+                                    </span>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                         <div class="detail-modal-actions">
@@ -695,17 +746,27 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     </div>
                                     <button type="button" class="detail-modal-close" data-modal-close>&times;</button>
                                 </div>
-                                <div class="detail-modal-list" data-count-target="inversionIncluyeCount__INDEX__">
+                                <div class="detail-modal-list" data-count-target="inversionIncluyeCount__INDEX__" data-sortable-modal-list>
                                     <?php foreach ($incluyeItems as $item): ?>
-                                        <label class="modal-check-item">
-                                            <input type="checkbox" data-name-template="inversiones[__INDEX__][incluye][]" value="<?= (int) $item['id'] ?>">
-                                            <span>
-                                                <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                                <?php if (!empty($item['descripcion'])): ?>
-                                                    <small><?= htmlspecialchars($item['descripcion']) ?></small>
-                                                <?php endif; ?>
+                                        <?php $inputId = 'incluye___INDEX___' . (int) $item['id']; ?>
+                                        <div class="modal-check-item">
+                                            <span class="modal-check-controls">
+                                                <span class="modal-drag-handle" aria-hidden="true">::</span>
                                             </span>
-                                        </label>
+                                            <label class="modal-check-main" for="<?= $inputId ?>">
+                                                <input id="<?= $inputId ?>" type="checkbox" data-name-template="inversiones[__INDEX__][incluye][]" value="<?= (int) $item['id'] ?>">
+                                                <span class="modal-check-copy">
+                                                    <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                                    <?php if (!empty($item['descripcion'])): ?>
+                                                        <small><?= htmlspecialchars($item['descripcion']) ?></small>
+                                                    <?php endif; ?>
+                                                </span>
+                                            </label>
+                                            <span class="modal-order-actions" aria-label="Cambiar orden">
+                                                <button type="button" class="modal-order-btn" data-modal-move="up" aria-label="Subir">&uarr;</button>
+                                                <button type="button" class="modal-order-btn" data-modal-move="down" aria-label="Bajar">&darr;</button>
+                                            </span>
+                                        </div>
                                     <?php endforeach; ?>
                                 </div>
                                 <div class="detail-modal-actions">

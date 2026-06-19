@@ -10,6 +10,22 @@ if (isset($jsFiles)) {
 ?>
 
 <script>
+    (function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if (!meta || !meta.content) return;
+
+        document.querySelectorAll('form').forEach(function (form) {
+            var method = (form.getAttribute('method') || 'GET').toUpperCase();
+            if (method !== 'POST' || form.querySelector('input[name="csrf_token"]')) return;
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = meta.content;
+            form.appendChild(input);
+        });
+    })();
+
     feather.replace();
 </script>
 

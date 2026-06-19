@@ -1,5 +1,6 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -25,6 +26,7 @@ function color_post(string $key, string $fallback): string
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirigir_tema('error', 'Solicitud invalida.');
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_tema.php", 'tema_admin_error');
 
 $paletas = sg_paletas_colores();
 $tema = trim((string) ($_POST['tema'] ?? 'senderismo'));
@@ -50,21 +52,6 @@ if ($tema !== 'personalizado') {
     ];
 }
 
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS configuracion_tema (
-        id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-        tema VARCHAR(40) NOT NULL DEFAULT 'senderismo',
-        primary_color VARCHAR(7) NOT NULL DEFAULT '#255f38',
-        primary_dark_color VARCHAR(7) NOT NULL DEFAULT '#102617',
-        accent_color VARCHAR(7) NOT NULL DEFAULT '#e10600',
-        accent_dark_color VARCHAR(7) NOT NULL DEFAULT '#b90000',
-        background_color VARCHAR(7) NOT NULL DEFAULT '#f3f6ef',
-        surface_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',
-        text_color VARCHAR(7) NOT NULL DEFAULT '#111111',
-        muted_color VARCHAR(7) NOT NULL DEFAULT '#5f6d64',
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-");
 
 $sql = "
     INSERT INTO configuracion_tema (
@@ -109,3 +96,4 @@ if (!mysqli_stmt_execute($stmt)) {
 mysqli_stmt_close($stmt);
 mysqli_close($conn);
 redirigir_tema('success', 'Paleta visual actualizada correctamente.');
+

@@ -1,5 +1,6 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -20,6 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['inicio_admin_error'] = "Metodo no permitido.";
     volver_inicio_admin();
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_inicio.php", 'inicio_admin_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 
@@ -68,51 +70,7 @@ function inicio_admin_upload(string $field, ?string $actual = null): ?string
 
 function inicio_admin_crear_tablas(mysqli $conn): void
 {
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS configuracion_inicio (
-            id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-            hero_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/paisajes/hero.jpg',
-            logo_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/logo/logo_sg.png',
-            hero_titulo VARCHAR(160) NOT NULL,
-            hero_subtitulo VARCHAR(255) NOT NULL,
-            boton_texto VARCHAR(80) NOT NULL DEFAULT 'CONOCER MAS',
-            boton_url VARCHAR(255) NOT NULL DEFAULT '#porque-elegirnos',
-            acceso_rapido_texto VARCHAR(120) NOT NULL DEFAULT 'Ver proximos senderos',
-            acceso_rapido_badge VARCHAR(40) NOT NULL DEFAULT 'Agenda',
-            acceso_rapido_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/senderos.php',
-            porque_titulo VARCHAR(160) NOT NULL,
-            galeria_titulo VARCHAR(180) NOT NULL,
-            galeria_subtitulo VARCHAR(255) NOT NULL,
-            cta_titulo VARCHAR(180) NOT NULL,
-            cta_texto TEXT NOT NULL,
-            cta_boton_texto VARCHAR(80) NOT NULL,
-            cta_boton_url VARCHAR(255) NOT NULL,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS inicio_tarjetas (
-            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            icono VARCHAR(60) NOT NULL DEFAULT 'map',
-            titulo VARCHAR(160) NOT NULL,
-            descripcion TEXT NOT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS inicio_galeria (
-            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            imagen VARCHAR(255) NOT NULL,
-            titulo VARCHAR(160) DEFAULT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
+    // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 try {
@@ -237,3 +195,4 @@ try {
 
 mysqli_close($conn);
 volver_inicio_admin();
+

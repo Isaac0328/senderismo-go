@@ -10,6 +10,10 @@
 }
 
 .roles-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
     margin-bottom: 14px;
 }
 
@@ -23,6 +27,27 @@
 .roles-subtitle {
     margin: 6px 0 0;
     color: #555;
+}
+
+.roles-panel-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+    color: #111;
+    font-weight: 900;
+    padding: 10px 14px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.roles-panel-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
 }
 
 .roles-grid {
@@ -213,6 +238,14 @@
 @media (max-width: 640px) {
     .roles-page {
         padding: 88px 12px 20px;
+    }
+
+    .roles-header {
+        flex-direction: column;
+    }
+
+    .roles-panel-link {
+        width: 100%;
     }
 
     .roles-title {

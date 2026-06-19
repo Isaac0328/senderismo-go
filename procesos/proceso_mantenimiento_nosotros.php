@@ -1,5 +1,6 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -18,7 +19,7 @@ function volver_nosotros(string $extra = ''): void
 
 function crear_tablas_nosotros(mysqli $conn): void
 {
-    require_once __DIR__ . '/../pantallas/nosotros.php';
+    // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 function texto_post(string $campo, int $max = 1200, bool $requerido = true): string
@@ -73,6 +74,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['nosotros_admin_error'] = 'Metodo no permitido.';
     volver_nosotros();
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_nosotros.php", 'nosotros_admin_error');
 
 $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if (!$conn) {
@@ -273,3 +275,4 @@ mysqli_stmt_close($stmt);
 mysqli_close($conn);
 $_SESSION['nosotros_admin_success'] = $id > 0 ? 'Registro actualizado.' : 'Registro agregado.';
 volver_nosotros();
+

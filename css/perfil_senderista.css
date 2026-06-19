@@ -385,22 +385,34 @@
     gap: 10px;
 }
 
-.perfil-history-list article {
+.perfil-history-card {
+    display: block;
     border: 1px solid rgba(0, 0, 0, .07);
     border-left: 4px solid #11994c;
     border-radius: 10px;
     background: #fff;
     padding: 12px;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 
-.perfil-history-list article span {
+.perfil-history-card:hover,
+.perfil-history-card:focus-visible {
+    border-color: rgba(17, 153, 76, .35);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, .10);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.perfil-history-card span {
     color: #0b6b35;
     font-size: .75rem;
     font-weight: 950;
     text-transform: uppercase;
 }
 
-.perfil-history-list article strong {
+.perfil-history-card strong {
     display: block;
     margin-top: 5px;
     color: #111;
@@ -408,12 +420,22 @@
     line-height: 1.2;
 }
 
-.perfil-history-list article p,
-.perfil-history-list article small {
+.perfil-history-card p,
+.perfil-history-card small {
     display: block;
     margin: 5px 0 0;
     color: #666;
     line-height: 1.35;
+}
+
+.perfil-history-card em {
+    display: inline-flex;
+    margin-top: 10px;
+    color: #c1121f;
+    font-size: .76rem;
+    font-style: normal;
+    font-weight: 950;
+    text-transform: uppercase;
 }
 
 .perfil-section-title {
@@ -432,6 +454,59 @@
 .perfil-section-title small {
     margin-top: 4px;
     line-height: 1.4;
+}
+
+.perfil-collapsible-panel {
+    margin: 24px 0 18px;
+    border-top: 1px solid rgba(0, 0, 0, .08);
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+    background: #fff;
+}
+
+.perfil-collapsible-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 0;
+    color: #111;
+    cursor: pointer;
+    list-style: none;
+}
+
+.perfil-collapsible-summary::-webkit-details-marker {
+    display: none;
+}
+
+.perfil-collapsible-summary strong {
+    display: block;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-collapsible-summary small {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+    font-size: .78rem;
+    font-weight: 850;
+    line-height: 1.4;
+}
+
+.perfil-collapsible-summary svg {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    color: #e10600;
+    transition: transform .2s ease;
+}
+
+.perfil-collapsible-panel[open] .perfil-collapsible-summary svg {
+    transform: rotate(180deg);
+}
+
+.perfil-collapsible-body {
+    padding: 4px 0 18px;
 }
 
 .perfil-grid {
@@ -712,6 +787,10 @@
 
     .perfil-card {
         padding: 20px 14px;
+    }
+
+    .perfil-collapsible-summary {
+        padding: 16px 0;
     }
 
     .perfil-media-panel {

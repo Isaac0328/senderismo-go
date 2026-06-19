@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -41,60 +41,7 @@ function inicio_admin_url(?string $ruta): string
 
 function inicio_admin_crear_tablas(mysqli $conn): void
 {
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS configuracion_inicio (
-            id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-            hero_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/paisajes/hero.jpg',
-            logo_imagen VARCHAR(255) NOT NULL DEFAULT 'imagenes/logo/logo_sg.png',
-            hero_titulo VARCHAR(160) NOT NULL,
-            hero_subtitulo VARCHAR(255) NOT NULL,
-            boton_texto VARCHAR(80) NOT NULL DEFAULT 'CONOCER MAS',
-            boton_url VARCHAR(255) NOT NULL DEFAULT '#porque-elegirnos',
-            acceso_rapido_texto VARCHAR(120) NOT NULL DEFAULT 'Ver proximos senderos',
-            acceso_rapido_badge VARCHAR(40) NOT NULL DEFAULT 'Agenda',
-            acceso_rapido_url VARCHAR(255) NOT NULL DEFAULT 'pantallas/senderos.php',
-            porque_titulo VARCHAR(160) NOT NULL,
-            galeria_titulo VARCHAR(180) NOT NULL,
-            galeria_subtitulo VARCHAR(255) NOT NULL,
-            cta_titulo VARCHAR(180) NOT NULL,
-            cta_texto TEXT NOT NULL,
-            cta_boton_texto VARCHAR(80) NOT NULL,
-            cta_boton_url VARCHAR(255) NOT NULL,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS inicio_tarjetas (
-            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            icono VARCHAR(60) NOT NULL DEFAULT 'map',
-            titulo VARCHAR(160) NOT NULL,
-            descripcion TEXT NOT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-
-    mysqli_query($conn, "
-        CREATE TABLE IF NOT EXISTS inicio_galeria (
-            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            imagen VARCHAR(255) NOT NULL,
-            titulo VARCHAR(160) DEFAULT NULL,
-            orden INT NOT NULL DEFAULT 0,
-            activo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    ");
-
-    mysqli_query($conn, "
-        INSERT IGNORE INTO configuracion_inicio
-            (id, hero_imagen, logo_imagen, hero_titulo, hero_subtitulo, boton_texto, boton_url, acceso_rapido_texto, acceso_rapido_badge, acceso_rapido_url, porque_titulo, galeria_titulo, galeria_subtitulo, cta_titulo, cta_texto, cta_boton_texto, cta_boton_url)
-        VALUES
-            (1, 'imagenes/paisajes/hero.jpg', 'imagenes/logo/logo_sg.png', 'Senderismo... Go!', 'Apasionados por la naturaleza!', 'CONOCER MAS', '#porque-elegirnos', 'Ver proximos senderos', 'Agenda', 'pantallas/senderos.php', 'Por que elegirnos?', 'Algunos de los paisajes que veras con nosotros', 'Descubre un vistazo de las experiencias que te esperan', 'Conoce un poco mas sobre nosotros', 'Somos una comunidad apasionada por la naturaleza, dedicada a crear experiencias unicas de senderismo que conectan a las personas con paisajes increibles y momentos inolvidables.', 'Saber mas', 'pantallas/nosotros.php')
-    ");
+    // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
 inicio_admin_crear_tablas($conn);
@@ -304,3 +251,4 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>
+

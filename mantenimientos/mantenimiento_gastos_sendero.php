@@ -10,6 +10,7 @@ require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 contabilidad_bootstrap($conn);
 
@@ -40,15 +41,20 @@ function fgs_money($value): string
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
-    SELECT s.id, s.nombre, s.fecha_sendero, s.estado, COALESCE(SUM(csg.total), 0) AS total_gastos
+$resSenderos = sgf_execute_query($conn, "
+    SELECT s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre AS dificultad_nombre, COALESCE(SUM(csg.total), 0) AS total_gastos
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN contabilidad_sendero_gastos csg ON csg.sendero_id = s.id
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado
+    {$senderoWhere}
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-");
+", $senderoTypes, $senderoValues);
 while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
     $senderos[] = $row;
 }
@@ -115,30 +121,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <?php unset($_SESSION['gastos_sendero_error']); ?>
         <?php endif; ?>
 
-        <section class="fin-card fin-filter-card">
-            <div class="fin-card-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="map"></i>
-            </div>
-            <form method="GET" class="fin-filter-form">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $sendero): ?>
-                        <option value="<?= (int) $sendero['id'] ?>" <?= (int) $sendero['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= fgs_h($sendero['nombre']) ?> - <?= fgs_h(fgs_fecha($sendero['fecha_sendero'])) ?> (<?= fgs_h(fgs_money($sendero['total_gastos'])) ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit">
-                    <i data-feather="search"></i>
-                    Consultar
-                </button>
-                <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_gastos_sendero.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'mantenimientos/mantenimiento_gastos_sendero.php',
+            'card_class' => 'fin-card fin-filter-card',
+            'head_class' => 'fin-card-head',
+            'form_class' => 'fin-filter-form',
+            'icon' => 'map',
+            'option_label' => static function (array $sendero): string {
+                $km = $sendero['distancia_km'] !== null ? ' - ' . number_format((float) $sendero['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($sendero['dificultad_nombre']) ? ' - ' . $sendero['dificultad_nombre'] : '';
+                return $sendero['nombre'] . ' - ' . fgs_fecha($sendero['fecha_sendero']) . $dificultad . $km . ' (' . fgs_money($sendero['total_gastos']) . ')';
+            },
+        ]); ?>
 
         <?php if (!$senderoSeleccionado): ?>
             <section class="fin-empty">

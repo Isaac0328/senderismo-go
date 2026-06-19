@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
 $pageTitle = "Usuarios por Sendero | Senderismo Go!";
 $cssFiles = [
@@ -48,18 +49,29 @@ function dinero_reporte_sendero($monto): string
 }
 
 $senderos = [];
-$resSenderos = mysqli_query($conn, "
+$senderoFiltros = sgf_params();
+$nivelesDificultad = sgf_niveles_dificultad($conn);
+[$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
+
+$resSenderos = sgf_execute_query($conn, "
     SELECT
         s.id,
         s.nombre,
         s.fecha_sendero,
         s.estado,
+        s.distancia_km,
+        nd.nombre AS dificultad_nombre,
         COUNT(rs.id) AS total_registros
     FROM senderos s
+    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado
+    {$senderoWhere}
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY s.fecha_sendero DESC, s.nombre ASC
-");
+",
+    $senderoTypes,
+    $senderoValues
+);
 
 if ($resSenderos) {
     while ($row = mysqli_fetch_assoc($resSenderos)) {
@@ -210,30 +222,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </a>
         </header>
 
-        <section class="report-card report-filter-card">
-            <div class="report-head">
-                <div>
-                    <span>Filtro</span>
-                    <h2>Seleccionar sendero</h2>
-                </div>
-                <i data-feather="map"></i>
-            </div>
-            <form class="sendero-report-filter" method="GET">
-                <select name="sendero_id" required>
-                    <option value="">Elige un sendero</option>
-                    <?php foreach ($senderos as $senderoItem): ?>
-                        <option value="<?= (int) $senderoItem['id'] ?>" <?= (int) $senderoItem['id'] === $senderoId ? 'selected' : '' ?>>
-                            <?= hrs($senderoItem['nombre']) ?> - <?= hrs(fecha_reporte_sendero($senderoItem['fecha_sendero'])) ?> (<?= (int) $senderoItem['total_registros'] ?> registros)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit">
-                    <i data-feather="search"></i>
-                    Consultar
-                </button>
-                <a href="<?= BASE_URL ?>pantallas/reporte_usuarios_sendero.php">Limpiar</a>
-            </form>
-        </section>
+        <?php sgf_render([
+            'params' => $senderoFiltros,
+            'niveles' => $nivelesDificultad,
+            'senderos' => $senderos,
+            'selected_id' => $senderoId,
+            'clear_url' => BASE_URL . 'pantallas/reporte_usuarios_sendero.php',
+            'card_class' => 'report-card report-filter-card',
+            'head_class' => 'report-head',
+            'form_class' => 'sendero-report-filter',
+            'icon' => 'map',
+            'option_label' => static function (array $senderoItem): string {
+                $km = $senderoItem['distancia_km'] !== null ? ' - ' . number_format((float) $senderoItem['distancia_km'], 1) . ' km' : '';
+                $dificultad = !empty($senderoItem['dificultad_nombre']) ? ' - ' . $senderoItem['dificultad_nombre'] : '';
+                return $senderoItem['nombre'] . ' - ' . fecha_reporte_sendero($senderoItem['fecha_sendero']) . $dificultad . $km . ' (' . (int) $senderoItem['total_registros'] . ' registros)';
+            },
+        ]); ?>
 
         <?php if (!$senderoSeleccionado): ?>
             <section class="report-empty-state">
