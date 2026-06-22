@@ -19,6 +19,9 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $idSendero = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($idSendero <= 0) {
@@ -51,6 +54,17 @@ function dinero_registro($monto): string
 function registro_crear_tabla_menores(mysqli $conn): void
 {
     // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
+}
+
+function registro_sendero_disponible(array $sendero): bool
+{
+    if (($sendero['estado'] ?? '') !== 'pendiente' || empty($sendero['fecha_sendero'])) {
+        return false;
+    }
+
+    $hoy = new DateTime('today');
+    $fechaSendero = new DateTime((string) $sendero['fecha_sendero']);
+    return $fechaSendero >= $hoy;
 }
 
 function perfil_senderista_completo(array $detalle): bool
@@ -88,6 +102,12 @@ mysqli_stmt_close($stmt);
 
 if (!$sendero) {
     header("Location: " . BASE_URL . "pantallas/senderos.php");
+    exit;
+}
+
+if (!registro_sendero_disponible($sendero)) {
+    $_SESSION['registro_sendero_error'] = "Este sendero ya no esta disponible para registro.";
+    header("Location: " . BASE_URL . "pantallas/senderos_detalle.php?id=" . (int) $idSendero);
     exit;
 }
 
@@ -507,4 +527,3 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 mysqli_close($conn);
 include_once __DIR__ . "/../componentes/pie_pagina.php";
 ?>
-

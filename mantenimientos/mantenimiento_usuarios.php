@@ -128,10 +128,15 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <div class="usuarios-grid">
 
             <!-- FORM -->
-            <section class="card">
-                <div class="card-head">
-                    <h2 id="formTitle">Nuevo Usuario</h2>
-                    <p>Los campos con * son obligatorios.</p>
+            <section class="card user-form-card is-collapsed" data-user-form-card>
+                <div class="card-head collapsible-head">
+                    <div>
+                        <h2 id="formTitle">Nuevo Usuario</h2>
+                        <p>Los campos con * son obligatorios.</p>
+                    </div>
+                    <button type="button" class="collapse-toggle" data-user-form-toggle aria-expanded="false" aria-controls="userForm">
+                        <i data-feather="chevron-down"></i>
+                    </button>
                 </div>
 
                 <form id="userForm" class="user-form" method="POST"
@@ -179,10 +184,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
 
                         <div class="form-group">
-                            <label for="password">ContraseÃ±a <span class="hint">(obligatoria al crear, opcional al
+                            <label for="password">Contrase&ntilde;a <span class="hint">(obligatoria al crear, opcional al
                                     editar)</span></label>
                             <input type="password" name="password" id="password" minlength="6" maxlength="120"
-                                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+                                placeholder="********">
                         </div>
                     </div>
 

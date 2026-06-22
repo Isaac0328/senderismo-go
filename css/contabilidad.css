@@ -336,6 +336,11 @@
     border-radius: 8px;
 }
 
+.fin-income-form .fin-table-wrap {
+    max-height: min(68vh, 720px);
+    scrollbar-gutter: stable;
+}
+
 .fin-table-wrap table {
     width: 100%;
     min-width: 980px;
@@ -343,7 +348,7 @@
 }
 
 .fin-income-form .fin-table-wrap table {
-    min-width: 1280px;
+    min-width: 1680px;
 }
 
 .fin-table-wrap th,
@@ -358,8 +363,9 @@
 .fin-table-wrap th {
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 5;
     background: #f3f3f3;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 10px 18px rgba(0, 0, 0, .06);
     color: #444;
     font-size: .76rem;
     font-weight: 950;
@@ -389,6 +395,24 @@
 
 .fin-number {
     max-width: 120px;
+}
+
+.fin-credit-check {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 150px;
+    color: #333;
+    font-size: .78rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.fin-credit-check input {
+    width: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    accent-color: #0f6b3b;
 }
 
 .fin-pill {
@@ -702,6 +726,12 @@
 
     .fin-route-compact {
         padding: 12px;
+    }
+
+    .fin-income-form .fin-table-wrap {
+        max-height: 58vh;
+        margin-left: 8px;
+        margin-right: 8px;
     }
 
     .fin-sticky-save {

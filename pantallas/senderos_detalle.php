@@ -6,6 +6,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $pageTitle = "Detalle del Sendero | Senderismo Go!";
 
@@ -108,6 +111,17 @@ function dias_restantes_detalle(?string $fecha): int
     $hoy = new DateTime('today');
     $evento = new DateTime($fecha);
     return max(0, (int) $hoy->diff($evento)->format('%r%a'));
+}
+
+function sendero_fecha_vencida(?string $fecha): bool
+{
+    if (empty($fecha)) {
+        return false;
+    }
+
+    $hoy = new DateTime('today');
+    $evento = new DateTime($fecha);
+    return $evento < $hoy;
 }
 
 $sqlSendero = "
@@ -285,7 +299,8 @@ include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
-$esVisitado = ($sendero['estado'] ?? '') === 'visitado';
+$fechaVencida = sendero_fecha_vencida($sendero['fecha_sendero']);
+$esVisitado = ($sendero['estado'] ?? '') === 'visitado' || $fechaVencida;
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = null;
 for ($i = count($puntosEncuentro) - 1; $i >= 0; $i--) {
@@ -317,7 +332,7 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                 Volver a senderos
             </a>
 
-            <span class="status-badge"><?= htmlspecialchars($sendero['estado']) ?></span>
+            <span class="status-badge"><?= htmlspecialchars($esVisitado ? 'visitado' : $sendero['estado']) ?></span>
             <h1><?= htmlspecialchars($sendero['nombre']) ?></h1>
 
             <?php if (!empty($sendero['descripcion_corta'])): ?>

@@ -8,8 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $pageTitle = "Asistencia por Sendero | Senderismo Go!";
 $cssFiles = [
@@ -92,15 +95,15 @@ if ($senderoSeleccionado) {
             rs.inversion_id,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
-            u.id AS usuario_id,
-            u.nombre,
-            u.apellido,
-            u.user,
-            u.email,
-            du.telefono,
+            COALESCE(u.id, 0) AS usuario_id,
+            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
+            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
+            COALESCE(u.email, rs.manual_email, '') AS email,
+            COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
             COALESCE(m.menores, 0) AS total_menores
         FROM registros_senderos rs
-        INNER JOIN usuarios u ON u.id = rs.usuario_id
+        LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         LEFT JOIN (
@@ -109,7 +112,7 @@ if ($senderoSeleccionado) {
             GROUP BY registro_id
         ) m ON m.registro_id = rs.id
         WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
-        ORDER BY rs.asistio DESC, u.nombre ASC, u.apellido ASC"
+        ORDER BY rs.asistio DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);
@@ -303,7 +306,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             </td>
                                             <td>
                                                 <strong><?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?></strong>
-                                                <span>@<?= asis_h($registro['user']) ?> / ID <?= (int) $registro['usuario_id'] ?></span>
+                                                <span>@<?= asis_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
                                             </td>
                                             <td>
                                                 <strong><?= asis_h($registro['telefono'] ?: 'Sin telefono') ?></strong>
@@ -444,24 +447,30 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </label>
                         <label>
                             <input type="radio" name="tipo_participante" value="nuevo">
-                            Nuevo usuario
+                            Asistente temporal
                         </label>
                     </div>
 
                     <div class="asis-form-grid">
-                        <label class="asis-field asis-existing-field">
+                        <div class="asis-field asis-existing-field" data-user-search-root>
                             <span>Elegir usuario</span>
-                            <select name="usuario_id">
-                                <option value="">Selecciona un usuario</option>
+                            <input type="hidden" name="usuario_id" value="" data-user-id-input>
+                            <input type="search" placeholder="Escribe nombre, usuario, correo o telefono" autocomplete="off" data-user-search-input>
+                            <div class="asis-user-results" data-user-results>
                                 <?php foreach ($usuariosDisponibles as $usuario): ?>
-                                    <option value="<?= (int) $usuario['id'] ?>">
-                                        <?= asis_h(trim($usuario['nombre'] . ' ' . $usuario['apellido'])) ?>
-                                        - @<?= asis_h($usuario['user']) ?>
-                                        <?= $usuario['telefono'] ? ' - ' . asis_h($usuario['telefono']) : '' ?>
-                                    </option>
+                                    <?php
+                                    $nombreUsuario = trim($usuario['nombre'] . ' ' . $usuario['apellido']);
+                                    $detalleUsuario = '@' . $usuario['user'] . ($usuario['telefono'] ? ' / ' . $usuario['telefono'] : '') . ($usuario['email'] ? ' / ' . $usuario['email'] : '');
+                                    $busquedaUsuario = strtolower($nombreUsuario . ' ' . $usuario['user'] . ' ' . $usuario['email'] . ' ' . $usuario['telefono']);
+                                    ?>
+                                    <button type="button" data-user-option data-user-id="<?= (int) $usuario['id'] ?>" data-user-label="<?= asis_h($nombreUsuario . ' - @' . $usuario['user']) ?>" data-user-search="<?= asis_h($busquedaUsuario) ?>">
+                                        <strong><?= asis_h($nombreUsuario) ?></strong>
+                                        <span><?= asis_h($detalleUsuario) ?></span>
+                                    </button>
                                 <?php endforeach; ?>
-                            </select>
-                        </label>
+                            </div>
+                            <small class="asis-search-note" data-user-empty style="display:none;">No hay coincidencias con esa busqueda.</small>
+                        </div>
 
                         <div class="asis-new-fields">
                             <label class="asis-field">
@@ -471,10 +480,6 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <label class="asis-field">
                                 <span>Apellido</span>
                                 <input type="text" name="nuevo_apellido" maxlength="100" placeholder="Apellido">
-                            </label>
-                            <label class="asis-field">
-                                <span>Usuario</span>
-                                <input type="text" name="nuevo_user" maxlength="50" placeholder="Opcional">
                             </label>
                             <label class="asis-field">
                                 <span>Email</span>
@@ -498,7 +503,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             </select>
                         </label>
 
-                        <p class="asis-modal-note">Se registrara como inscrito activo y asistente de este sendero.</p>
+                        <p class="asis-modal-note">Se guardara solo en este sendero como asistente temporal, sin crear cuenta en la plataforma.</p>
                     </div>
 
                     <div class="asis-modal-actions">
@@ -581,6 +586,44 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function initUserSearch() {
+        const rootSearch = document.querySelector('[data-user-search-root]');
+        if (!rootSearch) return;
+        const input = rootSearch.querySelector('[data-user-search-input]');
+        const hidden = rootSearch.querySelector('[data-user-id-input]');
+        const results = rootSearch.querySelector('[data-user-results]');
+        const empty = rootSearch.querySelector('[data-user-empty]');
+        const options = Array.from(rootSearch.querySelectorAll('[data-user-option]'));
+        if (!input || !hidden || !results) return;
+
+        const render = (clearSelection = false) => {
+            const term = input.value.trim().toLowerCase();
+            let visible = 0;
+            if (clearSelection) {
+                hidden.value = '';
+            }
+            options.forEach((option) => {
+                const matches = term === '' || (option.dataset.userSearch || '').includes(term);
+                option.hidden = !matches;
+                if (matches) visible++;
+            });
+            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+        };
+
+        options.forEach((option) => {
+            option.addEventListener('click', () => {
+                hidden.value = option.dataset.userId || '';
+                input.value = option.dataset.userLabel || option.textContent.trim();
+                options.forEach((item) => item.hidden = item !== option);
+                if (empty) empty.style.display = 'none';
+            });
+        });
+
+        input.addEventListener('input', () => render(true));
+        input.addEventListener('focus', () => render(false));
+        render();
+    }
+
     if (openButton && modal) {
         openButton.addEventListener('click', function () {
             if (typeof modal.showModal === 'function') {
@@ -601,6 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
         radio.addEventListener('change', syncMode);
     });
     syncMode();
+    initUserSearch();
 
     const editModal = document.querySelector('[data-manual-edit-modal]');
     const editRegistroId = document.querySelector('[data-edit-registro-id]');

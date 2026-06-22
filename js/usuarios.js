@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const resetBtn = document.getElementById('resetBtn');
     const form = document.getElementById('userForm');
+    const formCard = document.querySelector('[data-user-form-card]');
+    const formToggle = document.querySelector('[data-user-form-toggle]');
     const minorTemplate = document.getElementById('userMinorTemplate');
     const minorsEditor = document.querySelector('[data-user-minors-editor]');
     const minorsFields = document.querySelector('[data-user-minors-fields]');
@@ -74,6 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
         emergencia_parentesco: minor.emergencia_parentesco || '',
         emergencia_telefono: minor.emergencia_telefono || '',
         activo: String(minor.activo ?? '1') === '0' ? '0' : '1'
+    });
+
+    const setFormCollapsed = (collapsed) => {
+        if (!formCard || !formToggle) return;
+        formCard.classList.toggle('is-collapsed', collapsed);
+        formToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    };
+
+    formToggle?.addEventListener('click', () => {
+        setFormCollapsed(!formCard?.classList.contains('is-collapsed'));
     });
 
     const collectUserMinors = () => {
@@ -193,8 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
             formTitle.textContent = 'Editar Usuario';
             submitBtn.textContent = 'Actualizar';
 
+            setFormCollapsed(false);
             nombre.focus();
-            form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            formCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
 
@@ -217,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             actionInput.value = 'save';
             formTitle.textContent = 'Nuevo Usuario';
             submitBtn.textContent = 'Guardar';
-            nombre.focus();
+            setFormCollapsed(true);
         });
     }
 

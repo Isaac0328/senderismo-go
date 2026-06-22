@@ -68,32 +68,32 @@ $sql = "
         rs.fecha_registro,
         si.nombre AS inversion_nombre,
         si.monto AS inversion_monto,
-        u.id AS usuario_id,
-        u.nombre,
-        u.apellido,
-        u.user,
-        u.email,
-        u.estado AS usuario_estado,
-        du.telefono,
-        du.rango_edad,
-        du.identificacion,
-        du.es_alergico,
-        du.alergias_detalle,
-        du.grupo_sanguineo,
-        du.enfermedad,
-        du.seguro_medico,
-        du.experiencia_senderismo,
-        du.via_entero,
-        du.referido_nombre,
-        du.emergencia_nombre,
-        du.emergencia_parentesco,
-        du.emergencia_telefono
+        COALESCE(u.id, 0) AS usuario_id,
+        COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
+        COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+        COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
+        COALESCE(u.email, rs.manual_email, '') AS email,
+        COALESCE(u.estado, 1) AS usuario_estado,
+        COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
+        COALESCE(du.rango_edad, '') AS rango_edad,
+        COALESCE(du.identificacion, '') AS identificacion,
+        COALESCE(du.es_alergico, 0) AS es_alergico,
+        COALESCE(du.alergias_detalle, '') AS alergias_detalle,
+        COALESCE(du.grupo_sanguineo, '') AS grupo_sanguineo,
+        COALESCE(du.enfermedad, '') AS enfermedad,
+        COALESCE(du.seguro_medico, '') AS seguro_medico,
+        COALESCE(du.experiencia_senderismo, '') AS experiencia_senderismo,
+        COALESCE(du.via_entero, '') AS via_entero,
+        COALESCE(du.referido_nombre, '') AS referido_nombre,
+        COALESCE(du.emergencia_nombre, '') AS emergencia_nombre,
+        COALESCE(du.emergencia_parentesco, '') AS emergencia_parentesco,
+        COALESCE(du.emergencia_telefono, '') AS emergencia_telefono
     FROM registros_senderos rs
-    INNER JOIN usuarios u ON u.id = rs.usuario_id
-    INNER JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
+    LEFT JOIN usuarios u ON u.id = rs.usuario_id
+    LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
     LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
     WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
-    ORDER BY rs.fecha_registro DESC, u.nombre ASC, u.apellido ASC
+    ORDER BY rs.fecha_registro DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC
 ";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, 'i', $senderoId);

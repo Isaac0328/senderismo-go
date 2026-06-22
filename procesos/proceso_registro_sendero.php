@@ -56,6 +56,13 @@ function crear_tabla_menores_registro(mysqli $conn): void
     // La estructura se gestiona desde scripts_bd/migracion_estructura_configuracion_2026_06_17.sql.
 }
 
+function registro_sendero_redirect_detalle(mysqli $conn, int $senderoId): void
+{
+    mysqli_close($conn);
+    header("Location: " . BASE_URL . "pantallas/senderos_detalle.php?id=" . $senderoId);
+    exit;
+}
+
 function obtener_menores_post(): array
 {
     $menoresPost = $_POST['menores'] ?? [];
@@ -252,15 +259,15 @@ if ($senderoId <= 0) {
 crear_tabla_menores_registro($conn);
 $menores = obtener_menores_post();
 
-$stmt = mysqli_prepare($conn, "SELECT id FROM senderos WHERE id = ? AND activo = 1 LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT id FROM senderos WHERE id = ? AND activo = 1 AND estado = 'pendiente' AND fecha_sendero >= CURDATE() LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $senderoId);
 mysqli_stmt_execute($stmt);
 $senderoExiste = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 mysqli_stmt_close($stmt);
 
 if (!$senderoExiste) {
-    $_SESSION['registro_sendero_error'] = "El sendero seleccionado no esta disponible.";
-    registro_redirect($conn, $senderoId);
+    $_SESSION['registro_sendero_error'] = "Este sendero ya no esta disponible para registro.";
+    registro_sendero_redirect_detalle($conn, $senderoId);
 }
 
 $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_inversiones WHERE id = ? AND sendero_id = ? AND activo = 1 LIMIT 1");

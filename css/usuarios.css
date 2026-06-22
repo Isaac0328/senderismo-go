@@ -73,6 +73,45 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.collapsible-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.collapse-toggle {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 8px;
+    background: #f1f1f1;
+    color: #111;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .18s ease, background .18s ease;
+}
+
+.collapse-toggle:hover {
+    background: #e4e4e4;
+}
+
+.collapse-toggle svg {
+    width: 18px;
+    height: 18px;
+    transition: transform .18s ease;
+}
+
+.user-form-card.is-collapsed .collapse-toggle svg {
+    transform: rotate(-90deg);
+}
+
+.user-form-card.is-collapsed .user-form {
+    display: none;
+}
+
 .card-head h2 {
     margin: 0;
     font-size: 1rem;

@@ -9,6 +9,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const investmentWrap = document.getElementById('investmentOptionsAdmin');
     const investmentTemplate = document.getElementById('investmentOptionTemplate');
     const addInvestmentButton = document.getElementById('addInvestmentOption');
+    const senderoSections = Array.from(document.querySelectorAll('[data-sendero-section]'));
+
+    senderoSections.forEach((section) => {
+        const toggle = section.querySelector('[data-sendero-section-toggle]');
+        if (!toggle) return;
+
+        const syncSectionState = () => {
+            toggle.setAttribute('aria-expanded', section.classList.contains('is-collapsed') ? 'false' : 'true');
+        };
+
+        syncSectionState();
+
+        toggle.addEventListener('click', () => {
+            section.classList.toggle('is-collapsed');
+            syncSectionState();
+        });
+    });
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {

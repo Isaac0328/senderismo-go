@@ -295,9 +295,26 @@ if ($accion === 'agregar_participante') {
     mysqli_begin_transaction($conn);
 
     try {
+        $manualNombre = null;
+        $manualApellido = null;
+        $manualTelefono = null;
+        $manualEmail = null;
+
         if ($tipoParticipante === 'nuevo') {
-            $usuarioId = usuarios_senderos_crear_usuario_basico($conn);
-            $detalleId = usuarios_senderos_detalle_id($conn, $usuarioId, $telefonoNuevo);
+            $manualNombre = usuarios_senderos_text((string) ($_POST['nuevo_nombre'] ?? ''), 100);
+            $manualApellido = usuarios_senderos_text((string) ($_POST['nuevo_apellido'] ?? ''), 100);
+            $manualEmail = usuarios_senderos_text((string) ($_POST['nuevo_email'] ?? ''), 100);
+
+            if ($manualNombre === '' || $manualApellido === '') {
+                throw new RuntimeException('Completa el nombre y apellido del asistente temporal.');
+            }
+            if ($manualEmail !== '' && !filter_var($manualEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('El email del asistente temporal no es valido.');
+            }
+
+            $usuarioId = null;
+            $detalleId = null;
+            $manualTelefono = $telefonoNuevo;
         } else {
             $usuarioId = (int) ($_POST['usuario_id'] ?? 0);
             if ($usuarioId <= 0) {
@@ -316,11 +333,14 @@ if ($accion === 'agregar_participante') {
             $detalleId = usuarios_senderos_detalle_id($conn, $usuarioId);
         }
 
-        $stmt = mysqli_prepare($conn, "SELECT id, estado FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? LIMIT 1");
-        mysqli_stmt_bind_param($stmt, 'ii', $usuarioId, $senderoId);
-        mysqli_stmt_execute($stmt);
-        $registroActual = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-        mysqli_stmt_close($stmt);
+        $registroActual = null;
+        if ($usuarioId !== null) {
+            $stmt = mysqli_prepare($conn, "SELECT id, estado FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, 'ii', $usuarioId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            $registroActual = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+            mysqli_stmt_close($stmt);
+        }
 
         $consentimientoTexto = "Registro administrativo de participante que asistio al sendero sin completar la inscripcion publica.";
         $rgpdTexto = "Registro creado por administracion para control operativo y contable.";
@@ -344,6 +364,10 @@ if ($accion === 'agregar_participante') {
                     consentimiento_texto = ?,
                     rgpd_texto = ?,
                     registro_origen = 'admin_manual',
+                    manual_nombre = NULL,
+                    manual_apellido = NULL,
+                    manual_telefono = NULL,
+                    manual_email = NULL,
                     asistio = ?,
                     fecha_asistencia = CASE WHEN ? = 1 THEN ? ELSE NULL END,
                     asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END,
@@ -373,17 +397,21 @@ if ($accion === 'agregar_participante') {
             $stmt = mysqli_prepare(
                 $conn,
                 "INSERT INTO registros_senderos (
-                    sendero_id, usuario_id, detalle_usuario_id, inversion_id, estado, registro_origen, asistio,
+                    sendero_id, usuario_id, detalle_usuario_id, manual_nombre, manual_apellido, manual_telefono, manual_email, inversion_id, estado, registro_origen, asistio,
                     fecha_asistencia, asistencia_marcada_por, asistencia_notas,
                     consentimiento_aceptado, rgpd_aceptado, consentimiento_texto, rgpd_texto
-                ) VALUES (?, ?, ?, ?, 'registrado', 'admin_manual', ?, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'registrado', 'admin_manual', ?, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
             );
             mysqli_stmt_bind_param(
                 $stmt,
-                'iiiiiisiiisss',
+                'iiissssiiisiiisss',
                 $senderoId,
                 $usuarioId,
                 $detalleId,
+                $manualNombre,
+                $manualApellido,
+                $manualTelefono,
+                $manualEmail,
                 $inversionId,
                 $marcarAsistio,
                 $marcarAsistio,

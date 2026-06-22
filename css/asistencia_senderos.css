@@ -603,6 +603,50 @@
     font: inherit;
 }
 
+.asis-user-results {
+    display: grid;
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, .1);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.asis-user-results button {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    background: #fff;
+    padding: 10px 12px;
+    color: #111;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.asis-user-results button:hover,
+.asis-user-results button:focus {
+    outline: none;
+    background: #f2fff6;
+}
+
+.asis-user-results button[hidden] {
+    display: none;
+}
+
+.asis-user-results strong {
+    font-weight: 950;
+}
+
+.asis-user-results span,
+.asis-search-note {
+    color: #666;
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
 .asis-checkline {
     display: flex;
     align-items: center;

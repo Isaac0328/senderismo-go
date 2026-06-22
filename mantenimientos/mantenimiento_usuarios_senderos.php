@@ -8,8 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $pageTitle = "Mantenimiento Usuarios Senderos | Senderismo Go!";
 $cssFiles = [
@@ -95,22 +98,23 @@ if ($senderoSeleccionado) {
             rs.updated_at,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
-            u.id AS usuario_id,
-            u.nombre,
-            u.apellido,
-            u.user,
-            u.email,
-            u.estado AS usuario_estado,
-            du.telefono
+            COALESCE(u.id, 0) AS usuario_id,
+            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
+            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
+            COALESCE(u.email, rs.manual_email, '') AS email,
+            COALESCE(u.estado, 1) AS usuario_estado,
+            COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
+            rs.registro_origen
         FROM registros_senderos rs
-        INNER JOIN usuarios u ON u.id = rs.usuario_id
+        LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         WHERE rs.sendero_id = ?
         ORDER BY
             CASE rs.estado WHEN 'registrado' THEN 0 ELSE 1 END,
             rs.fecha_registro DESC,
-            u.nombre ASC"
+            COALESCE(u.nombre, rs.manual_nombre) ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);
@@ -275,7 +279,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <tr>
                                         <td>
                                             <strong><?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?></strong>
-                                            <span>@<?= mus_h($registro['user']) ?> / ID <?= (int) $registro['usuario_id'] ?></span>
+                                            <span>@<?= mus_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
                                         </td>
                                         <td>
                                             <strong><?= mus_h($registro['telefono'] ?: 'Sin telefono') ?></strong>
@@ -388,24 +392,30 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </label>
                         <label>
                             <input type="radio" name="tipo_participante" value="nuevo">
-                            Nuevo usuario
+                            Asistente temporal
                         </label>
                     </div>
 
                     <div class="mus-form-grid">
-                        <label class="mus-field mus-existing-field">
+                        <div class="mus-field mus-existing-field" data-user-search-root>
                             <span>Elegir usuario</span>
-                            <select name="usuario_id">
-                                <option value="">Selecciona un usuario</option>
+                            <input type="hidden" name="usuario_id" value="" data-user-id-input>
+                            <input type="search" placeholder="Escribe nombre, usuario, correo o telefono" autocomplete="off" data-user-search-input>
+                            <div class="mus-user-results" data-user-results>
                                 <?php foreach ($usuariosDisponibles as $usuario): ?>
-                                    <option value="<?= (int) $usuario['id'] ?>">
-                                        <?= mus_h(trim($usuario['nombre'] . ' ' . $usuario['apellido'])) ?>
-                                        - @<?= mus_h($usuario['user']) ?>
-                                        <?= $usuario['telefono'] ? ' - ' . mus_h($usuario['telefono']) : '' ?>
-                                    </option>
+                                    <?php
+                                    $nombreUsuario = trim($usuario['nombre'] . ' ' . $usuario['apellido']);
+                                    $detalleUsuario = '@' . $usuario['user'] . ($usuario['telefono'] ? ' / ' . $usuario['telefono'] : '') . ($usuario['email'] ? ' / ' . $usuario['email'] : '');
+                                    $busquedaUsuario = strtolower($nombreUsuario . ' ' . $usuario['user'] . ' ' . $usuario['email'] . ' ' . $usuario['telefono']);
+                                    ?>
+                                    <button type="button" data-user-option data-user-id="<?= (int) $usuario['id'] ?>" data-user-label="<?= mus_h($nombreUsuario . ' - @' . $usuario['user']) ?>" data-user-search="<?= mus_h($busquedaUsuario) ?>">
+                                        <strong><?= mus_h($nombreUsuario) ?></strong>
+                                        <span><?= mus_h($detalleUsuario) ?></span>
+                                    </button>
                                 <?php endforeach; ?>
-                            </select>
-                        </label>
+                            </div>
+                            <small class="mus-search-note" data-user-empty style="display:none;">No hay coincidencias con esa busqueda.</small>
+                        </div>
 
                         <div class="mus-new-fields">
                             <label class="mus-field">
@@ -415,10 +425,6 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <label class="mus-field">
                                 <span>Apellido</span>
                                 <input type="text" name="nuevo_apellido" maxlength="100" placeholder="Apellido">
-                            </label>
-                            <label class="mus-field">
-                                <span>Usuario</span>
-                                <input type="text" name="nuevo_user" maxlength="50" placeholder="Opcional, se puede generar">
                             </label>
                             <label class="mus-field">
                                 <span>Email</span>
@@ -446,6 +452,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <input type="checkbox" name="marcar_asistio" value="1" checked>
                             Marcar como asistio a este sendero
                         </label>
+                        <p class="mus-modal-note">El asistente temporal queda guardado solo en este sendero y no crea cuenta en la plataforma.</p>
                     </div>
 
                     <div class="mus-modal-actions">
@@ -478,6 +485,46 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function initUserSearch() {
+        var rootSearch = document.querySelector('[data-user-search-root]');
+        if (!rootSearch) return;
+        var input = rootSearch.querySelector('[data-user-search-input]');
+        var hidden = rootSearch.querySelector('[data-user-id-input]');
+        var results = rootSearch.querySelector('[data-user-results]');
+        var empty = rootSearch.querySelector('[data-user-empty]');
+        var options = Array.prototype.slice.call(rootSearch.querySelectorAll('[data-user-option]'));
+        if (!input || !hidden || !results) return;
+
+        function render(clearSelection) {
+            var term = input.value.trim().toLowerCase();
+            var visible = 0;
+            if (clearSelection) {
+                hidden.value = '';
+            }
+            options.forEach(function (option) {
+                var matches = term === '' || (option.dataset.userSearch || '').indexOf(term) !== -1;
+                option.hidden = !matches;
+                if (matches) visible++;
+            });
+            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        options.forEach(function (option) {
+            option.addEventListener('click', function () {
+                hidden.value = option.dataset.userId || '';
+                input.value = option.dataset.userLabel || option.textContent.trim();
+                options.forEach(function (item) {
+                    item.hidden = item !== option;
+                });
+                if (empty) empty.style.display = 'none';
+            });
+        });
+
+        input.addEventListener('input', function () { render(true); });
+        input.addEventListener('focus', function () { render(false); });
+        render(false);
+    }
+
     if (openButton && modal) {
         openButton.addEventListener('click', function () {
             if (typeof modal.showModal === 'function') {
@@ -498,6 +545,7 @@ document.addEventListener('DOMContentLoaded', function () {
         radio.addEventListener('change', syncMode);
     });
     syncMode();
+    initUserSearch();
 });
 </script>
 

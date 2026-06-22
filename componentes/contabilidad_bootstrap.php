@@ -118,7 +118,12 @@ if (!function_exists('contabilidad_bootstrap')) {
                 registro_id INT NOT NULL,
                 sendero_id INT NOT NULL,
                 pagado TINYINT(1) NOT NULL DEFAULT 0,
+                estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente',
+                monto_esperado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 monto_pagado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                credito_id INT DEFAULT NULL,
                 fecha_pago DATE DEFAULT NULL,
                 metodo_pago VARCHAR(60) DEFAULT NULL,
                 metodo_pago_id INT DEFAULT NULL,
@@ -127,6 +132,8 @@ if (!function_exists('contabilidad_bootstrap')) {
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY uq_cont_pago_registro (registro_id),
                 INDEX idx_cont_pagos_sendero (sendero_id, pagado),
+                INDEX idx_cont_pagos_estado_financiero (sendero_id, estado_financiero),
+                INDEX idx_cont_pagos_credito (credito_id),
                 INDEX idx_cont_pagos_metodo_pago (metodo_pago_id),
                 CONSTRAINT fk_cont_pagos_registro FOREIGN KEY (registro_id) REFERENCES registros_senderos(id) ON DELETE CASCADE ON UPDATE CASCADE,
                 CONSTRAINT fk_cont_pagos_sendero FOREIGN KEY (sendero_id) REFERENCES senderos(id) ON DELETE CASCADE ON UPDATE CASCADE
@@ -145,6 +152,73 @@ if (!function_exists('contabilidad_bootstrap')) {
             mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD COLUMN metodo_pago_id INT DEFAULT NULL AFTER metodo_pago");
             mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD INDEX idx_cont_pagos_metodo_pago (metodo_pago_id)");
         }
+
+        $columnsPago = [
+            'estado_financiero' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente' AFTER pagado",
+            'monto_esperado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN monto_esperado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER estado_financiero",
+            'credito_aplicado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER monto_pagado",
+            'saldo_pendiente' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_aplicado",
+            'credito_id' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_id INT DEFAULT NULL AFTER saldo_pendiente",
+        ];
+
+        foreach ($columnsPago as $columnName => $alterSql) {
+            $resColumn = mysqli_query($conn, "
+                SELECT COUNT(*) AS total
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = '{$dbName}'
+                  AND TABLE_NAME = 'contabilidad_registro_pagos'
+                  AND COLUMN_NAME = '{$columnName}'
+            ");
+            $hasColumn = $resColumn ? (int) (mysqli_fetch_assoc($resColumn)['total'] ?? 0) : 0;
+            if ($hasColumn === 0) {
+                mysqli_query($conn, $alterSql);
+            }
+        }
+
+        mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD INDEX IF NOT EXISTS idx_cont_pagos_estado_financiero (sendero_id, estado_financiero)");
+        mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD INDEX IF NOT EXISTS idx_cont_pagos_credito (credito_id)");
+        mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos MODIFY COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente'");
+
+        mysqli_query($conn, "
+            CREATE TABLE IF NOT EXISTS usuario_creditos (
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                registro_origen_id INT DEFAULT NULL,
+                sendero_origen_id INT DEFAULT NULL,
+                monto DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                saldo_disponible DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                estado ENUM('activo','usado','vencido','anulado') NOT NULL DEFAULT 'activo',
+                motivo VARCHAR(255) DEFAULT NULL,
+                creado_por INT DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_usuario_creditos_usuario (usuario_id, estado),
+                INDEX idx_usuario_creditos_registro (registro_origen_id),
+                INDEX idx_usuario_creditos_sendero (sendero_origen_id),
+                CONSTRAINT fk_usuario_creditos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT fk_usuario_creditos_registro FOREIGN KEY (registro_origen_id) REFERENCES registros_senderos(id) ON DELETE SET NULL ON UPDATE CASCADE,
+                CONSTRAINT fk_usuario_creditos_sendero FOREIGN KEY (sendero_origen_id) REFERENCES senderos(id) ON DELETE SET NULL ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        ");
+
+        mysqli_query($conn, "
+            CREATE TABLE IF NOT EXISTS usuario_credito_movimientos (
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                credito_id INT NOT NULL,
+                registro_id INT DEFAULT NULL,
+                sendero_id INT DEFAULT NULL,
+                tipo ENUM('creacion','aplicacion','ajuste','anulacion') NOT NULL,
+                monto DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                nota VARCHAR(255) DEFAULT NULL,
+                creado_por INT DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_credito_movimientos_credito (credito_id, tipo),
+                INDEX idx_credito_movimientos_registro (registro_id),
+                CONSTRAINT fk_credito_movimientos_credito FOREIGN KEY (credito_id) REFERENCES usuario_creditos(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT fk_credito_movimientos_registro FOREIGN KEY (registro_id) REFERENCES registros_senderos(id) ON DELETE SET NULL ON UPDATE CASCADE,
+                CONSTRAINT fk_credito_movimientos_sendero FOREIGN KEY (sendero_id) REFERENCES senderos(id) ON DELETE SET NULL ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        ");
 
         $resMetodoFk = mysqli_query($conn, "
             SELECT COUNT(*) AS total

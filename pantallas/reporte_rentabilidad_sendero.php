@@ -8,9 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
+sg_actualizar_senderos_vencidos($conn);
 contabilidad_bootstrap($conn);
 
 $pageTitle = "Rentabilidad por Sendero | Senderismo Go!";
@@ -150,18 +152,18 @@ if ($sendero) {
         "SELECT
             crp.*,
             cmp.nombre AS metodo_nombre,
-            u.nombre,
-            u.apellido,
-            u.user,
+            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
+            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
             rs.asistio,
             si.nombre AS inversion_nombre
         FROM contabilidad_registro_pagos crp
         INNER JOIN registros_senderos rs ON rs.id = crp.registro_id
-        INNER JOIN usuarios u ON u.id = rs.usuario_id
+        LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         LEFT JOIN contabilidad_metodo_pago cmp ON cmp.id = crp.metodo_pago_id
         WHERE crp.sendero_id = ? AND rs.estado = 'registrado'
-        ORDER BY crp.pagado DESC, u.nombre ASC, u.apellido ASC"
+        ORDER BY crp.pagado DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);

@@ -9,9 +9,11 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
 
+sg_actualizar_senderos_vencidos($conn);
 contabilidad_bootstrap($conn);
 
 $pageTitle = "Ingresos por Sendero | Senderismo Go!";
@@ -90,6 +92,10 @@ $totales = [
     'asistieron' => 0,
     'esperado' => 0.0,
     'cobrado' => 0.0,
+    'credito' => 0.0,
+    'por_cobrar' => 0.0,
+    'diferencia' => 0.0,
+    'no_asistio_sin_pago' => 0,
 ];
 
 if ($senderoSeleccionado) {
@@ -101,22 +107,28 @@ if ($senderoSeleccionado) {
             rs.asistio,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
-            u.id AS usuario_id,
-            u.nombre,
-            u.apellido,
-            u.user,
-            u.email,
-            du.telefono,
+            COALESCE(u.id, 0) AS usuario_id,
+            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
+            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
+            COALESCE(u.email, rs.manual_email, '') AS email,
+            COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
             COALESCE(m.total_menores, 0) AS total_menores,
             COALESCE(m.total_menores_monto, 0) AS total_menores_monto,
             crp.pagado,
+            crp.estado_financiero,
+            crp.monto_esperado AS pago_monto_esperado,
             crp.monto_pagado,
+            crp.credito_aplicado,
+            crp.saldo_pendiente,
+            crp.credito_id,
             crp.fecha_pago,
             crp.metodo_pago,
             crp.metodo_pago_id,
-            crp.nota AS pago_nota
+            crp.nota AS pago_nota,
+            COALESCE(uc.credito_disponible, 0) AS credito_disponible
         FROM registros_senderos rs
-        INNER JOIN usuarios u ON u.id = rs.usuario_id
+        LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         LEFT JOIN (
@@ -126,8 +138,14 @@ if ($senderoSeleccionado) {
             GROUP BY rsm.registro_id
         ) m ON m.registro_id = rs.id
         LEFT JOIN contabilidad_registro_pagos crp ON crp.registro_id = rs.id
+        LEFT JOIN (
+            SELECT usuario_id, COALESCE(SUM(saldo_disponible), 0) AS credito_disponible
+            FROM usuario_creditos
+            WHERE estado = 'activo' AND saldo_disponible > 0
+            GROUP BY usuario_id
+        ) uc ON uc.usuario_id = rs.usuario_id
         WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
-        ORDER BY crp.pagado DESC, rs.asistio DESC, u.nombre ASC, u.apellido ASC"
+        ORDER BY crp.pagado DESC, rs.asistio DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);
@@ -136,14 +154,38 @@ if ($senderoSeleccionado) {
         $esperado = (float) ($row['inversion_monto'] ?? 0) + (float) ($row['total_menores_monto'] ?? 0);
         $row['monto_esperado'] = $esperado;
         $row['monto_pagado'] = $row['monto_pagado'] !== null ? (float) $row['monto_pagado'] : $esperado;
+        $row['credito_aplicado'] = $row['credito_aplicado'] !== null ? (float) $row['credito_aplicado'] : 0.0;
+        $asistioRow = (int) ($row['asistio'] ?? 0) === 1;
+        $pagadoRow = (int) ($row['pagado'] ?? 0) === 1;
+        $row['estado_financiero'] = $row['estado_financiero'] ?: ($pagadoRow ? 'pagado' : ($asistioRow ? 'deuda' : 'no_asistio_sin_pago'));
+        $row['saldo_pendiente'] = $row['saldo_pendiente'] !== null ? (float) $row['saldo_pendiente'] : max(0, $esperado - ((int) ($row['pagado'] ?? 0) === 1 ? (float) $row['monto_pagado'] : 0));
+        if (
+            !$pagadoRow
+            && (float) $row['credito_aplicado'] <= 0
+            && (float) $row['saldo_pendiente'] <= 0
+            && in_array($row['estado_financiero'], ['pendiente', 'deuda'], true)
+        ) {
+            $row['saldo_pendiente'] = $asistioRow ? $esperado : 0;
+        }
+        if (!$asistioRow && !$pagadoRow && (float) $row['credito_aplicado'] <= 0 && in_array($row['estado_financiero'], ['pendiente', 'deuda'], true)) {
+            $row['estado_financiero'] = 'no_asistio_sin_pago';
+            $row['saldo_pendiente'] = 0;
+        }
         $totales['inscritos']++;
-        $totales['pagados'] += (int) ($row['pagado'] ?? 0) === 1 ? 1 : 0;
-        $totales['asistieron'] += (int) ($row['asistio'] ?? 0) === 1 ? 1 : 0;
+        $totales['pagados'] += $pagadoRow ? 1 : 0;
+        $totales['asistieron'] += $asistioRow ? 1 : 0;
         $totales['esperado'] += $esperado;
-        $totales['cobrado'] += (int) ($row['pagado'] ?? 0) === 1 ? (float) $row['monto_pagado'] : 0;
+        $totales['cobrado'] += $pagadoRow ? (float) $row['monto_pagado'] : 0;
+        $totales['credito'] += (float) $row['credito_aplicado'];
+        if ($row['estado_financiero'] === 'no_asistio_sin_pago') {
+            $totales['no_asistio_sin_pago']++;
+        } else {
+            $totales['por_cobrar'] += (float) $row['saldo_pendiente'];
+        }
         $registros[] = $row;
     }
     mysqli_stmt_close($stmt);
+    $totales['diferencia'] = max(0, (float) $totales['esperado'] - (float) $totales['cobrado']);
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -209,6 +251,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article class="ok"><span>Pagados</span><strong><?= (int) $totales['pagados'] ?></strong></article>
                     <article><span>Asistieron</span><strong><?= (int) $totales['asistieron'] ?></strong></article>
                     <article class="money"><span>Cobrado</span><strong><?= fis_h(fis_money($totales['cobrado'])) ?></strong></article>
+                    <article class="money"><span>Credito</span><strong><?= fis_h(fis_money($totales['credito'])) ?></strong></article>
+                    <article class="warn"><span>Diferencia</span><strong><?= fis_h(fis_money($totales['diferencia'])) ?></strong></article>
+                    <article class="warn"><span>Por cobrar</span><strong><?= fis_h(fis_money($totales['por_cobrar'])) ?></strong></article>
+                    <article><span>No asist./sin pago</span><strong><?= (int) $totales['no_asistio_sin_pago'] ?></strong></article>
                     <article class="warn"><span>Esperado</span><strong><?= fis_h(fis_money($totales['esperado'])) ?></strong></article>
                 </div>
             </section>
@@ -247,10 +293,15 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <th>Asistio</th>
                                         <th>Participante</th>
                                         <th>Inversion</th>
+                                        <th>Estado</th>
                                         <th>Esperado</th>
                                         <th>Monto pagado</th>
+                                        <th>Credito disp.</th>
+                                        <th>Credito aplicado</th>
+                                        <th>Saldo</th>
                                         <th>Fecha pago</th>
                                         <th>Metodo</th>
+                                        <th>Nota credito</th>
                                         <th>Nota</th>
                                     </tr>
                                 </thead>
@@ -260,8 +311,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         $rid = (int) $registro['registro_id'];
                                         $pagado = (int) ($registro['pagado'] ?? 0) === 1;
                                         $asistio = (int) ($registro['asistio'] ?? 0) === 1;
+                                        $estadoFinanciero = (string) ($registro['estado_financiero'] ?? 'pendiente');
                                         ?>
-                                        <tr class="<?= $pagado ? 'is-paid' : '' ?>">
+                                        <tr class="<?= $pagado ? 'is-paid' : '' ?>" data-expected="<?= fis_h($registro['monto_esperado']) ?>">
                                             <td>
                                                 <input type="hidden" name="registro_ids[]" value="<?= $rid ?>">
                                                 <label class="fin-mini-check">
@@ -283,8 +335,25 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 <strong><?= fis_h($registro['inversion_nombre'] ?: 'Sin inversion') ?></strong>
                                                 <span>Menores: <?= (int) $registro['total_menores'] ?></span>
                                             </td>
+                                            <td>
+                                                <select name="estado_financiero[<?= $rid ?>]" data-fin-status>
+                                                    <option value="">Automatico</option>
+                                                    <option value="pendiente" <?= $estadoFinanciero === 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
+                                                    <option value="pagado" <?= $estadoFinanciero === 'pagado' ? 'selected' : '' ?>>Pagado</option>
+                                                    <option value="parcial" <?= $estadoFinanciero === 'parcial' ? 'selected' : '' ?>>Parcial</option>
+                                                    <option value="credito_aplicado" <?= $estadoFinanciero === 'credito_aplicado' ? 'selected' : '' ?>>Credito aplicado</option>
+                                                    <option value="deuda" <?= $estadoFinanciero === 'deuda' ? 'selected' : '' ?>>Deuda</option>
+                                                    <option value="cortesia" <?= $estadoFinanciero === 'cortesia' ? 'selected' : '' ?>>Cortesia</option>
+                                                    <option value="no_asistio_sin_pago" <?= $estadoFinanciero === 'no_asistio_sin_pago' ? 'selected' : '' ?>>No asistio / sin pago</option>
+                                                </select>
+                                            </td>
                                             <td><strong><?= fis_h(fis_money($registro['monto_esperado'])) ?></strong></td>
                                             <td><input class="fin-number" type="number" name="monto_pagado[<?= $rid ?>]" min="0" step="0.01" value="<?= fis_h($registro['monto_pagado']) ?>" data-paid-amount></td>
+                                            <td>
+                                                <strong><?= fis_h(fis_money($registro['credito_disponible'])) ?></strong>
+                                            </td>
+                                            <td><input class="fin-number" type="number" name="credito_aplicado[<?= $rid ?>]" min="0" step="0.01" max="<?= fis_h($registro['credito_disponible'] + $registro['credito_aplicado']) ?>" value="<?= fis_h($registro['credito_aplicado']) ?>" data-credit-amount></td>
+                                            <td><strong data-row-balance><?= fis_h(fis_money($registro['saldo_pendiente'])) ?></strong></td>
                                             <td><input type="date" name="fecha_pago[<?= $rid ?>]" value="<?= fis_h($registro['fecha_pago'] ?? '') ?>"></td>
                                             <td>
                                                 <select name="metodo_pago_id[<?= $rid ?>]">
@@ -296,6 +365,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
+                                            <td>
+                                                <label class="fin-credit-check">
+                                                    <input type="checkbox" name="generar_credito[]" value="<?= $rid ?>" <?= $pagado && !$asistio ? 'checked' : '' ?>>
+                                                    Crear si pago y no asistio
+                                                </label>
+                                            </td>
                                             <td><input type="text" name="nota[<?= $rid ?>]" maxlength="255" value="<?= fis_h($registro['pago_nota'] ?? '') ?>" placeholder="Opcional"></td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -305,6 +380,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                         <div class="fin-sticky-save">
                             <strong>Cobrado: <span data-income-total><?= fis_h(fis_money($totales['cobrado'])) ?></span></strong>
+                            <strong>Credito: <span data-credit-total><?= fis_h(fis_money($totales['credito'])) ?></span></strong>
+                            <strong>Diferencia: <span data-diff-total><?= fis_h(fis_money($totales['diferencia'])) ?></span></strong>
+                            <strong>Por cobrar: <span data-debt-total><?= fis_h(fis_money($totales['por_cobrar'])) ?></span></strong>
                             <button type="submit">Guardar ingresos</button>
                         </div>
                     </form>
@@ -323,14 +401,38 @@ document.addEventListener('DOMContentLoaded', function () {
     const attendedChecks = () => form.querySelectorAll('input[type="checkbox"][name="asistio[]"]');
     const recalc = () => {
         let total = 0;
+        let totalCredit = 0;
+        let totalDebt = 0;
+        let expectedTotal = 0;
         paidChecks().forEach((check) => {
             const row = check.closest('tr');
             row?.classList.toggle('is-paid', check.checked);
+            const expected = parseFloat(row?.dataset.expected || '0');
+            expectedTotal += Math.max(0, expected);
             const amount = parseFloat(row?.querySelector('[data-paid-amount]')?.value || '0');
+            const credit = parseFloat(row?.querySelector('[data-credit-amount]')?.value || '0');
+            const status = row?.querySelector('[data-fin-status]')?.value || '';
+            const attended = row?.querySelector('input[type="checkbox"][name="asistio[]"]')?.checked || false;
+            let balance = Math.max(0, expected - (Math.max(0, amount) + Math.max(0, credit)));
+            if (status === 'no_asistio_sin_pago' || (!attended && !check.checked && amount <= 0 && credit <= 0 && status !== 'deuda')) {
+                balance = 0;
+            }
+            const balanceTarget = row?.querySelector('[data-row-balance]');
+            if (balanceTarget) balanceTarget.textContent = money.format(balance);
             if (check.checked) total += Math.max(0, amount);
+            totalCredit += Math.max(0, credit);
+            if (status !== 'no_asistio_sin_pago' && (attended || status === 'deuda' || status === 'parcial')) {
+                totalDebt += balance;
+            }
         });
         const target = form.querySelector('[data-income-total]');
         if (target) target.textContent = money.format(total);
+        const creditTarget = form.querySelector('[data-credit-total]');
+        if (creditTarget) creditTarget.textContent = money.format(totalCredit);
+        const diffTarget = form.querySelector('[data-diff-total]');
+        if (diffTarget) diffTarget.textContent = money.format(Math.max(0, expectedTotal - total));
+        const debtTarget = form.querySelector('[data-debt-total]');
+        if (debtTarget) debtTarget.textContent = money.format(totalDebt);
     };
     form.querySelector('[data-paid-all]')?.addEventListener('click', () => {
         paidChecks().forEach(check => check.checked = true);

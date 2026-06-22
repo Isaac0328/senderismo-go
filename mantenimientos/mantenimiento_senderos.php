@@ -31,6 +31,9 @@ $jsFiles = [
 ];
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 function img_admin_src(?string $ruta): string
 {
@@ -310,10 +313,16 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 <input type="hidden" name="id" value="<?= (int) ($edit['id'] ?? 0) ?>">
 
                 <div class="form-grid">
-                    <div class="form-section-title span-6">
-                        <span>Datos generales</span>
-                        <p>Nombre, fecha, ubicacion y estado publico del sendero.</p>
-                    </div>
+                    <section class="sendero-collapsible span-6" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="true">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Contenido base</span>
+                                <strong>Datos generales</strong>
+                                <small>Nombre, fecha, ubicacion y estado publico del sendero.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field span-3">
                         <label for="nombre">Nombre *</label>
@@ -361,10 +370,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <input type="text" id="descripcion_corta" name="descripcion_corta" maxlength="255" value="<?= htmlspecialchars($edit['descripcion_corta'] ?? '') ?>" placeholder="Texto breve para las tarjetas publicas">
                     </div>
 
-                    <div class="form-section-title span-6">
-                        <span>Imagenes del sendero</span>
-                        <p>Principal para el detalle, flyer para proximos, catalogo para visitados y galeria adicional.</p>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section class="sendero-collapsible span-6 is-collapsed" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="false">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Material visual</span>
+                                <strong>Imagenes del sendero</strong>
+                                <small>Principal para el detalle, flyer para proximos, catalogo para visitados y galeria adicional.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field span-3">
                         <label for="imagen_principal">Imagen principal</label>
@@ -390,10 +408,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <small id="galleryHelp">Puedes cargar varias imagenes a la vez.</small>
                     </div>
 
-                    <div class="form-section-title span-6">
-                        <span>Caracteristicas de la ruta</span>
-                        <p>Tiempos, trayecto, distancia, desnivel, senal y descripcion completa.</p>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section class="sendero-collapsible span-6 is-collapsed" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="false">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Datos tecnicos</span>
+                                <strong>Caracteristicas de la ruta</strong>
+                                <small>Tiempos, trayecto, distancia, desnivel, senal y descripcion completa.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field">
                         <label>Ida vehiculo</label>
@@ -472,10 +499,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </div>
 
-                    <div class="form-section-title span-6">
-                        <span>Recomendaciones del sendero</span>
-                        <p>Anotaciones importantes y catalogos auxiliares que aplican a la ruta.</p>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section class="sendero-collapsible span-6 is-collapsed" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="false">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Informacion al visitante</span>
+                                <strong>Recomendaciones del sendero</strong>
+                                <small>Anotaciones importantes y catalogos auxiliares que aplican a la ruta.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field span-6">
                         <label class="section-label">Detalles del sendero</label>
@@ -490,10 +526,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </div>
 
-                    <div class="form-section-title span-6">
-                        <span>Inversiones</span>
-                        <p>Opciones de pago con monto, fecha limite y elementos incluidos por cada opcion.</p>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section class="sendero-collapsible span-6 is-collapsed" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="false">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Reservas y pagos</span>
+                                <strong>Inversiones</strong>
+                                <small>Opciones de pago con monto, fecha limite y elementos incluidos por cada opcion.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field span-6">
                         <div class="investment-admin-head">
@@ -585,10 +630,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </div>
 
-                    <div class="form-section-title span-6">
-                        <span>Puntos de encuentro</span>
-                        <p>Define hasta dos ubicaciones con sus horas y enlaces de mapa.</p>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section class="sendero-collapsible span-6 is-collapsed" data-sendero-section>
+                        <button type="button" class="sendero-section-toggle" data-sendero-section-toggle aria-expanded="false">
+                            <span class="sendero-section-heading">
+                                <span class="sendero-section-kicker">Logistica</span>
+                                <strong>Puntos de encuentro</strong>
+                                <small>Define hasta dos ubicaciones con sus horas y enlaces de mapa.</small>
+                            </span>
+                            <span class="sendero-section-arrow" aria-hidden="true"></span>
+                        </button>
+                        <div class="sendero-section-body">
 
                     <div class="field span-6">
                         <label class="section-label">Puntos de encuentro</label>
@@ -651,6 +705,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <?php endfor; ?>
                         </div>
                     </div>
+
+                        </div>
+                    </section>
 
                     <label class="active-toggle">
                         <input type="checkbox" name="activo" value="1" <?= (int) ($edit['activo'] ?? 1) === 1 ? 'checked' : '' ?>>

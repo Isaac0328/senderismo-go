@@ -6,6 +6,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $pageTitle = "Senderos | Senderismo Go!";
 

@@ -9,6 +9,9 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+
+sg_actualizar_senderos_vencidos($conn);
 
 $pageTitle = "Panel Administrativo | Senderismo Go!";
 

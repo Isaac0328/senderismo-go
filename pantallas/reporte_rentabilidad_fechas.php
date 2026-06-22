@@ -8,8 +8,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
 
+sg_actualizar_senderos_vencidos($conn);
 contabilidad_bootstrap($conn);
 
 $pageTitle = "Rentabilidad por Fechas | Senderismo Go!";
@@ -245,4 +247,3 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 mysqli_close($conn);
 include_once __DIR__ . '/../componentes/pie_pagina.php';
 ?>
-
