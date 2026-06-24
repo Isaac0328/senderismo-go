@@ -468,6 +468,10 @@ try {
 
         $inversionId = (int) ($_POST['inversion_id'] ?? 0);
         $marcarAsistio = !empty($_POST['marcar_asistio']) ? 1 : 0;
+        $manualNombre = usuarios_senderos_text((string) ($_POST['manual_nombre'] ?? ''), 100);
+        $manualApellido = usuarios_senderos_text((string) ($_POST['manual_apellido'] ?? ''), 100);
+        $manualTelefono = usuarios_senderos_digits((string) ($_POST['manual_telefono'] ?? ''));
+        $manualEmail = usuarios_senderos_text((string) ($_POST['manual_email'] ?? ''), 100);
         $nota = usuarios_senderos_text((string) ($_POST['asistencia_notas'] ?? ''), 255);
         $adminId = (int) ($_SESSION['usuario_id'] ?? 0);
         $fechaAsistencia = usuarios_senderos_fecha_asistencia($conn, $senderoId);
@@ -476,18 +480,42 @@ try {
             $_SESSION['usuarios_senderos_error'] = "Selecciona una inversion valida para este sendero.";
             usuarios_senderos_redirect($conn, $senderoId);
         }
+        if ($manualEmail !== '' && !filter_var($manualEmail, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['usuarios_senderos_error'] = "El email del asistente temporal no es valido.";
+            usuarios_senderos_redirect($conn, $senderoId);
+        }
 
         $stmt = mysqli_prepare(
             $conn,
             "UPDATE registros_senderos
              SET inversion_id = ?,
+                 manual_nombre = NULLIF(?, ''),
+                 manual_apellido = NULLIF(?, ''),
+                 manual_telefono = NULLIF(?, ''),
+                 manual_email = NULLIF(?, ''),
                  asistio = ?,
                  fecha_asistencia = CASE WHEN ? = 1 THEN ? ELSE NULL END,
                  asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END,
                  asistencia_notas = ?
              WHERE id = ? AND sendero_id = ? AND registro_origen = 'admin_manual'"
         );
-        mysqli_stmt_bind_param($stmt, 'iiisiisii', $inversionId, $marcarAsistio, $marcarAsistio, $fechaAsistencia, $marcarAsistio, $adminId, $nota, $registroId, $senderoId);
+        mysqli_stmt_bind_param(
+            $stmt,
+            'issssiisiisii',
+            $inversionId,
+            $manualNombre,
+            $manualApellido,
+            $manualTelefono,
+            $manualEmail,
+            $marcarAsistio,
+            $marcarAsistio,
+            $fechaAsistencia,
+            $marcarAsistio,
+            $adminId,
+            $nota,
+            $registroId,
+            $senderoId
+        );
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         $_SESSION['usuarios_senderos_success'] = "Asistente manual actualizado.";

@@ -20,7 +20,8 @@ $cssFiles = [
     "css/contabilidad.css"
 ];
 $jsFiles = [
-    "js/barra_navegacion.js"
+    "js/barra_navegacion.js",
+    "js/catalogos_tablas.js"
 ];
 
 function mp_h($value): string
@@ -131,7 +132,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <p>Crea el primer metodo para registrar pagos.</p>
                     </div>
                 <?php else: ?>
-                    <div class="fin-table-wrap">
+                    <div class="fin-table-search">
+                        <i data-feather="search"></i>
+                        <input type="search" data-catalog-table-search placeholder="Buscar metodo, descripcion, estado...">
+                    </div>
+                    <div class="fin-table-wrap fin-catalog-table-wrap">
                         <table>
                             <thead>
                                 <tr>
@@ -188,4 +193,3 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 mysqli_close($conn);
 include_once __DIR__ . '/../componentes/pie_pagina.php';
 ?>
-

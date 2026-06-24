@@ -57,11 +57,16 @@ $resSenderos = sgf_execute_query($conn, "
         s.estado,
         s.distancia_km,
         nd.nombre AS dificultad_nombre,
-        COUNT(rs.id) AS registrados,
-        SUM(CASE WHEN rs.asistio = 1 AND rs.estado = 'registrado' THEN 1 ELSE 0 END) AS asistieron
+        COALESCE(SUM(CASE WHEN rs.estado = 'registrado' THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS registrados,
+        COALESCE(SUM(CASE WHEN rs.asistio = 1 AND rs.estado = 'registrado' THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron
     FROM senderos s
     LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
+    LEFT JOIN (
+        SELECT registro_id, COUNT(*) AS menores
+        FROM registro_sendero_menores
+        GROUP BY registro_id
+    ) m ON m.registro_id = rs.id
     {$senderoWhere}
     GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
@@ -96,11 +101,15 @@ if ($senderoSeleccionado) {
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
             COALESCE(u.id, 0) AS usuario_id,
-            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
-            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(NULLIF(TRIM(u.nombre), ''), NULLIF(TRIM(rs.manual_nombre), ''), 'Sin nombre') AS nombre,
+            COALESCE(NULLIF(TRIM(u.apellido), ''), NULLIF(TRIM(rs.manual_apellido), ''), '') AS apellido,
+            COALESCE(NULLIF(TRIM(rs.manual_nombre), ''), '') AS manual_nombre,
+            COALESCE(NULLIF(TRIM(rs.manual_apellido), ''), '') AS manual_apellido,
+            COALESCE(NULLIF(TRIM(rs.manual_telefono), ''), '') AS manual_telefono,
+            COALESCE(NULLIF(TRIM(rs.manual_email), ''), '') AS manual_email,
             COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
             COALESCE(u.email, rs.manual_email, '') AS email,
-            COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
+            COALESCE(NULLIF(TRIM(du.telefono), ''), NULLIF(TRIM(rs.manual_telefono), ''), '') AS telefono,
             COALESCE(m.menores, 0) AS total_menores
         FROM registros_senderos rs
         LEFT JOIN usuarios u ON u.id = rs.usuario_id
@@ -112,7 +121,7 @@ if ($senderoSeleccionado) {
             GROUP BY registro_id
         ) m ON m.registro_id = rs.id
         WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
-        ORDER BY rs.asistio DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC"
+        ORDER BY rs.asistio DESC, COALESCE(NULLIF(TRIM(u.nombre), ''), NULLIF(TRIM(rs.manual_nombre), ''), 'zzz') ASC, COALESCE(NULLIF(TRIM(u.apellido), ''), NULLIF(TRIM(rs.manual_apellido), ''), '') ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);
@@ -163,8 +172,8 @@ if ($senderoSeleccionado) {
     mysqli_stmt_close($stmt);
 }
 
-$totalRegistros = count($registros);
-$totalAsistieron = array_sum(array_map(static fn($r) => (int) ($r['asistio'] ?? 0), $registros));
+$totalRegistros = count($registros) + $totalMenores;
+$totalAsistieron = array_sum(array_map(static fn($r) => ((int) ($r['asistio'] ?? 0) === 1 ? 1 + (int) ($r['total_menores'] ?? 0) : 0), $registros));
 $pendientes = max(0, $totalRegistros - $totalAsistieron);
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -333,6 +342,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                             data-edit-manual
                                                             data-registro-id="<?= $rid ?>"
                                                             data-nombre="<?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>"
+                                                            data-manual-nombre="<?= asis_h($registro['manual_nombre'] ?? '') ?>"
+                                                            data-manual-apellido="<?= asis_h($registro['manual_apellido'] ?? '') ?>"
+                                                            data-manual-telefono="<?= asis_h($registro['manual_telefono'] ?? '') ?>"
+                                                            data-manual-email="<?= asis_h($registro['manual_email'] ?? '') ?>"
                                                             data-inversion-id="<?= (int) ($registro['inversion_id'] ?? 0) ?>"
                                                             data-asistio="<?= (int) ($registro['asistio'] ?? 0) ?>"
                                                             data-nota="<?= asis_h($registro['asistencia_notas'] ?? '') ?>"
@@ -380,6 +393,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 data-edit-manual
                                                 data-registro-id="<?= $rid ?>"
                                                 data-nombre="<?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>"
+                                                data-manual-nombre="<?= asis_h($registro['manual_nombre'] ?? '') ?>"
+                                                data-manual-apellido="<?= asis_h($registro['manual_apellido'] ?? '') ?>"
+                                                data-manual-telefono="<?= asis_h($registro['manual_telefono'] ?? '') ?>"
+                                                data-manual-email="<?= asis_h($registro['manual_email'] ?? '') ?>"
                                                 data-inversion-id="<?= (int) ($registro['inversion_id'] ?? 0) ?>"
                                                 data-asistio="<?= (int) ($registro['asistio'] ?? 0) ?>"
                                                 data-nota="<?= asis_h($registro['asistencia_notas'] ?? '') ?>"
@@ -534,6 +551,26 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                     <div class="asis-form-grid">
                         <label class="asis-field">
+                            <span>Nombre</span>
+                            <input type="text" name="manual_nombre" maxlength="100" placeholder="Nombre del asistente" data-edit-manual-nombre>
+                        </label>
+
+                        <label class="asis-field">
+                            <span>Apellido</span>
+                            <input type="text" name="manual_apellido" maxlength="100" placeholder="Apellido del asistente" data-edit-manual-apellido>
+                        </label>
+
+                        <label class="asis-field">
+                            <span>Telefono</span>
+                            <input type="text" name="manual_telefono" maxlength="20" placeholder="8090000000" data-edit-manual-telefono>
+                        </label>
+
+                        <label class="asis-field">
+                            <span>Email</span>
+                            <input type="email" name="manual_email" maxlength="100" placeholder="Opcional" data-edit-manual-email>
+                        </label>
+
+                        <label class="asis-field">
                             <span>Inversion</span>
                             <select name="inversion_id" required data-edit-inversion>
                                 <option value="">Selecciona una inversion</option>
@@ -649,6 +686,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const editModal = document.querySelector('[data-manual-edit-modal]');
     const editRegistroId = document.querySelector('[data-edit-registro-id]');
     const editNombre = document.querySelector('[data-edit-nombre]');
+    const editManualNombre = document.querySelector('[data-edit-manual-nombre]');
+    const editManualApellido = document.querySelector('[data-edit-manual-apellido]');
+    const editManualTelefono = document.querySelector('[data-edit-manual-telefono]');
+    const editManualEmail = document.querySelector('[data-edit-manual-email]');
     const editInversion = document.querySelector('[data-edit-inversion]');
     const editAsistio = document.querySelector('[data-edit-asistio]');
     const editNota = document.querySelector('[data-edit-nota]');
@@ -669,8 +710,12 @@ document.addEventListener('DOMContentLoaded', function () {
             editInversion.value = button.dataset.inversionId || '';
             editAsistio.checked = button.dataset.asistio === '1';
             editNota.value = button.dataset.nota || '';
+            if (editManualNombre) editManualNombre.value = button.dataset.manualNombre || '';
+            if (editManualApellido) editManualApellido.value = button.dataset.manualApellido || '';
+            if (editManualTelefono) editManualTelefono.value = button.dataset.manualTelefono || '';
+            if (editManualEmail) editManualEmail.value = button.dataset.manualEmail || '';
             if (editNombre) {
-                editNombre.textContent = button.dataset.nombre || 'Asistente manual';
+                editNombre.textContent = button.dataset.nombre || 'Completa los datos del asistente temporal';
             }
 
             if (typeof editModal.showModal === 'function') {

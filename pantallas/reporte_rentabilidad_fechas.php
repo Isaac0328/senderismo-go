@@ -56,7 +56,13 @@ $totales = [
     'inscritos' => 0,
     'pagados' => 0,
     'asistieron' => 0,
-    'ingresos' => 0.0,
+    'esperado' => 0.0,
+    'cobrado_bruto' => 0.0,
+    'credito_aplicado' => 0.0,
+    'credito_generado' => 0.0,
+    'monto_retenido' => 0.0,
+    'por_cobrar' => 0.0,
+    'ingreso_neto' => 0.0,
     'gastos' => 0.0,
     'utilidad' => 0.0,
     'margen' => 0.0,
@@ -78,17 +84,44 @@ if ($desdeValida && $hastaValida) {
             COALESCE(r.inscritos, 0) AS inscritos,
             COALESCE(r.asistieron, 0) AS asistieron,
             COALESCE(r.pagados, 0) AS pagados,
-            COALESCE(r.ingresos, 0) AS ingresos,
+            COALESCE(r.esperado, 0) AS esperado,
+            COALESCE(r.cobrado_bruto, 0) AS cobrado_bruto,
+            COALESCE(r.credito_aplicado, 0) AS credito_aplicado,
+            COALESCE(r.credito_generado, 0) AS credito_generado,
+            COALESCE(r.monto_retenido, 0) AS monto_retenido,
+            COALESCE(r.por_cobrar, 0) AS por_cobrar,
+            COALESCE(r.ingreso_neto, 0) AS ingreso_neto,
             COALESCE(g.gastos, 0) AS gastos
         FROM senderos s
         LEFT JOIN (
             SELECT
                 rs.sendero_id,
-                COUNT(rs.id) AS inscritos,
-                SUM(CASE WHEN rs.asistio = 1 THEN 1 ELSE 0 END) AS asistieron,
-                SUM(CASE WHEN crp.pagado = 1 THEN 1 ELSE 0 END) AS pagados,
-                SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END) AS ingresos
+                COALESCE(SUM(1 + COALESCE(m.menores, 0)), 0) AS inscritos,
+                COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron,
+                COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS pagados,
+                SUM(CASE WHEN COALESCE(crp.estado_financiero, '') <> 'cortesia' THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END) AS esperado,
+                SUM(CASE WHEN crp.pagado = 1 THEN COALESCE(crp.monto_pagado, 0) ELSE 0 END) AS cobrado_bruto,
+                SUM(COALESCE(crp.credito_aplicado, 0)) AS credito_aplicado,
+                SUM(COALESCE(crp.credito_generado, 0)) AS credito_generado,
+                SUM(COALESCE(crp.monto_retenido, 0)) AS monto_retenido,
+                SUM(
+                    CASE
+                        WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'no_asistio_sin_pago') THEN 0
+                        ELSE COALESCE(crp.saldo_pendiente, 0)
+                    END
+                ) AS por_cobrar,
+                SUM(
+                    CASE
+                        WHEN COALESCE(crp.estado_financiero, '') = 'cortesia' THEN 0
+                        ELSE GREATEST(COALESCE(crp.monto_pagado, 0) + COALESCE(crp.credito_aplicado, 0) - COALESCE(crp.credito_generado, 0), 0)
+                    END
+                ) AS ingreso_neto
             FROM registros_senderos rs
+            LEFT JOIN (
+                SELECT registro_id, COUNT(*) AS menores
+                FROM registro_sendero_menores
+                GROUP BY registro_id
+            ) m ON m.registro_id = rs.id
             LEFT JOIN contabilidad_registro_pagos crp ON crp.registro_id = rs.id
             WHERE rs.estado = 'registrado'
             GROUP BY rs.sendero_id
@@ -105,10 +138,16 @@ if ($desdeValida && $hastaValida) {
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($res)) {
-        $row['ingresos'] = (float) $row['ingresos'];
+        $row['esperado'] = (float) $row['esperado'];
+        $row['cobrado_bruto'] = (float) $row['cobrado_bruto'];
+        $row['credito_aplicado'] = (float) $row['credito_aplicado'];
+        $row['credito_generado'] = (float) $row['credito_generado'];
+        $row['monto_retenido'] = (float) $row['monto_retenido'];
+        $row['por_cobrar'] = (float) $row['por_cobrar'];
+        $row['ingreso_neto'] = (float) $row['ingreso_neto'];
         $row['gastos'] = (float) $row['gastos'];
-        $row['utilidad'] = $row['ingresos'] - $row['gastos'];
-        $row['margen'] = $row['ingresos'] > 0 ? ($row['utilidad'] / $row['ingresos']) * 100 : 0;
+        $row['utilidad'] = $row['ingreso_neto'] - $row['gastos'];
+        $row['margen'] = $row['ingreso_neto'] > 0 ? ($row['utilidad'] / $row['ingreso_neto']) * 100 : 0;
         $row['retorno'] = $row['gastos'] > 0 ? ($row['utilidad'] / $row['gastos']) * 100 : 0;
         $rows[] = $row;
 
@@ -116,13 +155,19 @@ if ($desdeValida && $hastaValida) {
         $totales['inscritos'] += (int) $row['inscritos'];
         $totales['pagados'] += (int) $row['pagados'];
         $totales['asistieron'] += (int) $row['asistieron'];
-        $totales['ingresos'] += $row['ingresos'];
+        $totales['esperado'] += $row['esperado'];
+        $totales['cobrado_bruto'] += $row['cobrado_bruto'];
+        $totales['credito_aplicado'] += $row['credito_aplicado'];
+        $totales['credito_generado'] += $row['credito_generado'];
+        $totales['monto_retenido'] += $row['monto_retenido'];
+        $totales['por_cobrar'] += $row['por_cobrar'];
+        $totales['ingreso_neto'] += $row['ingreso_neto'];
         $totales['gastos'] += $row['gastos'];
         $totales['utilidad'] += $row['utilidad'];
     }
     mysqli_stmt_close($stmt);
 
-    $totales['margen'] = $totales['ingresos'] > 0 ? ($totales['utilidad'] / $totales['ingresos']) * 100 : 0;
+    $totales['margen'] = $totales['ingreso_neto'] > 0 ? ($totales['utilidad'] / $totales['ingreso_neto']) * 100 : 0;
     $totales['retorno'] = $totales['gastos'] > 0 ? ($totales['utilidad'] / $totales['gastos']) * 100 : 0;
 }
 
@@ -136,7 +181,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <div>
                 <span class="fin-kicker">Reporte financiero</span>
                 <h1>Rentabilidad por fechas</h1>
-                <p>Selecciona un rango de fechas para resumir ingresos, gastos, utilidad y rentabilidad de los senderos realizados o programados en ese periodo.</p>
+                <p>Selecciona un rango para resumir efectivo cobrado, creditos, gastos, utilidad neta y rentabilidad de los senderos del periodo.</p>
             </div>
             <a class="fin-back" href="<?= BASE_URL ?>pantallas/panel_administrativo.php">
                 <i data-feather="arrow-left"></i>
@@ -174,7 +219,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <p><?= (int) $totales['senderos'] ?> senderos encontrados</p>
                 </div>
                 <div class="fin-stat-grid">
-                    <article class="money"><span>Ingresos</span><strong><?= rrf_h(rrf_money($totales['ingresos'])) ?></strong></article>
+                    <article class="money"><span>Ingreso neto</span><strong><?= rrf_h(rrf_money($totales['ingreso_neto'])) ?></strong></article>
+                    <article><span>Cobrado bruto</span><strong><?= rrf_h(rrf_money($totales['cobrado_bruto'])) ?></strong></article>
+                    <article><span>Credito aplicado</span><strong><?= rrf_h(rrf_money($totales['credito_aplicado'])) ?></strong></article>
+                    <article class="warn"><span>Credito abonado</span><strong><?= rrf_h(rrf_money($totales['credito_generado'])) ?></strong></article>
                     <article class="warn"><span>Gastos</span><strong><?= rrf_h(rrf_money($totales['gastos'])) ?></strong></article>
                     <article class="<?= $totales['utilidad'] >= 0 ? 'ok' : 'warn' ?>"><span>Utilidad</span><strong><?= rrf_h(rrf_money($totales['utilidad'])) ?></strong></article>
                     <article><span>Margen</span><strong><?= rrf_h(rrf_pct($totales['margen'])) ?></strong></article>
@@ -200,8 +248,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <article><span>Inscritos</span><strong><?= (int) $totales['inscritos'] ?></strong></article>
                         <article><span>Pagados</span><strong><?= (int) $totales['pagados'] ?></strong></article>
                         <article><span>Asistieron</span><strong><?= (int) $totales['asistieron'] ?></strong></article>
+                        <article><span>Esperado</span><strong><?= rrf_h(rrf_money($totales['esperado'])) ?></strong></article>
+                        <article><span>Retenido</span><strong><?= rrf_h(rrf_money($totales['monto_retenido'])) ?></strong></article>
+                        <article><span>Por cobrar</span><strong><?= rrf_h(rrf_money($totales['por_cobrar'])) ?></strong></article>
                     </div>
-                    <div class="fin-table-wrap">
+                    <div class="fin-table-wrap fin-date-profit-table">
                         <table>
                             <thead>
                                 <tr>
@@ -210,7 +261,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Inscritos</th>
                                     <th>Pagados</th>
                                     <th>Asistieron</th>
-                                    <th>Ingresos</th>
+                                    <th>Esperado</th>
+                                    <th>Ingreso neto</th>
+                                    <th>Cobrado bruto</th>
+                                    <th>Credito aplicado</th>
+                                    <th>Credito abonado</th>
+                                    <th>Por cobrar</th>
                                     <th>Gastos</th>
                                     <th>Utilidad</th>
                                     <th>Margen</th>
@@ -226,7 +282,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <td><?= (int) $row['inscritos'] ?></td>
                                         <td><?= (int) $row['pagados'] ?></td>
                                         <td><?= (int) $row['asistieron'] ?></td>
-                                        <td><strong><?= rrf_h(rrf_money($row['ingresos'])) ?></strong></td>
+                                        <td><?= rrf_h(rrf_money($row['esperado'])) ?></td>
+                                        <td><strong><?= rrf_h(rrf_money($row['ingreso_neto'])) ?></strong></td>
+                                        <td><?= rrf_h(rrf_money($row['cobrado_bruto'])) ?></td>
+                                        <td><?= rrf_h(rrf_money($row['credito_aplicado'])) ?></td>
+                                        <td><?= rrf_h(rrf_money($row['credito_generado'])) ?></td>
+                                        <td><?= rrf_h(rrf_money($row['por_cobrar'])) ?></td>
                                         <td><?= rrf_h(rrf_money($row['gastos'])) ?></td>
                                         <td><strong><?= rrf_h(rrf_money($row['utilidad'])) ?></strong></td>
                                         <td><?= rrf_h(rrf_pct((float) $row['margen'])) ?></td>

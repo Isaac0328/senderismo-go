@@ -26,6 +26,28 @@ if (isset($jsFiles)) {
         });
     })();
 
+    <?php if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in']) && $_SESSION['logged_in'] === true): ?>
+    (function () {
+        var pingUrl = '<?= asset_url('procesos/ping_sesion.php') ?>';
+        var intervalMs = 4 * 60 * 1000;
+
+        function pingSession() {
+            fetch(pingUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store'
+            }).catch(function () {});
+        }
+
+        window.setInterval(pingSession, intervalMs);
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                pingSession();
+            }
+        });
+    })();
+    <?php endif; ?>
+
     feather.replace();
 </script>
 

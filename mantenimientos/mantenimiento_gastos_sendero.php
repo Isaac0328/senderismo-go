@@ -94,6 +94,7 @@ if ($senderoSeleccionado) {
 }
 
 $totalActual = array_sum(array_map(static fn($row) => (float) $row['total'], $gastosSendero));
+$gastosSenderoGuardadoOk = !empty($_SESSION['gastos_sendero_success']);
 
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
@@ -234,6 +235,74 @@ document.addEventListener('DOMContentLoaded', function () {
     const money = new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' });
     const form = document.querySelector('.fin-expense-form');
     if (!form) return;
+    const senderoInput = form.querySelector('input[name="sendero_id"]');
+    const draftKey = 'sg:gastos_sendero:borrador:' + (senderoInput?.value || '0');
+    const clearSavedDraft = <?= $gastosSenderoGuardadoOk ? 'true' : 'false' ?>;
+
+    const formControls = () => Array.from(form.querySelectorAll('input, select, textarea'))
+        .filter((control) => control.name && control.name !== 'csrf_token');
+
+    const saveDraft = () => {
+        try {
+            const fields = {};
+            formControls().forEach((control) => {
+                fields[control.name] = control.type === 'checkbox' ? control.checked : control.value;
+            });
+            localStorage.setItem(draftKey, JSON.stringify({
+                savedAt: Date.now(),
+                fields
+            }));
+        } catch (error) {}
+    };
+
+    const removeDraft = () => {
+        try {
+            localStorage.removeItem(draftKey);
+        } catch (error) {}
+    };
+
+    const showDraftNotice = (text) => {
+        const notice = document.createElement('div');
+        notice.className = 'fin-alert success';
+        notice.textContent = text;
+        form.parentNode.insertBefore(notice, form);
+    };
+
+    const restoreDraft = () => {
+        if (clearSavedDraft) {
+            removeDraft();
+            return;
+        }
+
+        let draft = null;
+        try {
+            draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+        } catch (error) {
+            draft = null;
+        }
+
+        if (!draft || !draft.fields || typeof draft.fields !== 'object') return;
+
+        const savedDate = draft.savedAt
+            ? new Date(draft.savedAt).toLocaleString('es-DO')
+            : 'recientemente';
+
+        const shouldRestore = window.confirm('Tienes un borrador de gastos guardado (' + savedDate + '). Deseas recuperarlo?');
+        if (!shouldRestore) return;
+
+        formControls().forEach((control) => {
+            if (!Object.prototype.hasOwnProperty.call(draft.fields, control.name)) return;
+
+            if (control.type === 'checkbox') {
+                control.checked = Boolean(draft.fields[control.name]);
+            } else {
+                control.value = draft.fields[control.name];
+            }
+        });
+
+        showDraftNotice('Borrador recuperado. Revisa los datos y guarda cuando estes listo.');
+    };
+
     const recalc = () => {
         let total = 0;
         form.querySelectorAll('tbody tr').forEach((row) => {
@@ -259,6 +328,10 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     form.addEventListener('input', recalc);
     form.addEventListener('change', recalc);
+    form.addEventListener('input', saveDraft);
+    form.addEventListener('change', saveDraft);
+    form.addEventListener('submit', saveDraft);
+    restoreDraft();
     recalc();
 });
 </script>

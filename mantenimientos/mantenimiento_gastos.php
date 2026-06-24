@@ -20,7 +20,8 @@ $cssFiles = [
     "css/contabilidad.css"
 ];
 $jsFiles = [
-    "js/barra_navegacion.js"
+    "js/barra_navegacion.js",
+    "js/catalogos_tablas.js"
 ];
 
 function fin_h($value): string
@@ -167,7 +168,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <p>Crea tu primer gasto para poder usarlo en los senderos.</p>
                     </div>
                 <?php else: ?>
-                    <div class="fin-table-wrap">
+                    <div class="fin-table-search">
+                        <i data-feather="search"></i>
+                        <input type="search" data-catalog-table-search placeholder="Buscar gasto, categoria, unidad, estado...">
+                    </div>
+                    <div class="fin-table-wrap fin-catalog-table-wrap">
                         <table>
                             <thead>
                                 <tr>

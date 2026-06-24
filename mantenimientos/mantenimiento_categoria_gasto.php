@@ -20,7 +20,8 @@ $cssFiles = [
     "css/contabilidad.css"
 ];
 $jsFiles = [
-    "js/barra_navegacion.js"
+    "js/barra_navegacion.js",
+    "js/catalogos_tablas.js"
 ];
 
 function cg_h($value): string
@@ -131,7 +132,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <p>Crea la primera categoria para clasificar tus gastos.</p>
                     </div>
                 <?php else: ?>
-                    <div class="fin-table-wrap">
+                    <div class="fin-table-search">
+                        <i data-feather="search"></i>
+                        <input type="search" data-catalog-table-search placeholder="Buscar categoria, descripcion, estado...">
+                    </div>
+                    <div class="fin-table-wrap fin-catalog-table-wrap">
                         <table>
                             <thead>
                                 <tr>

@@ -42,6 +42,7 @@ $pagados = $_POST['pagado'] ?? [];
 $asistieron = $_POST['asistio'] ?? [];
 $montos = $_POST['monto_pagado'] ?? [];
 $creditosAplicados = $_POST['credito_aplicado'] ?? [];
+$creditosGenerados = $_POST['credito_generado'] ?? [];
 $estadosFinancieros = $_POST['estado_financiero'] ?? [];
 $generarCreditos = $_POST['generar_credito'] ?? [];
 $fechas = $_POST['fecha_pago'] ?? [];
@@ -59,6 +60,7 @@ $pagadosMap = array_flip(is_array($pagados) ? array_map('intval', $pagados) : []
 $asistieronMap = array_flip(is_array($asistieron) ? array_map('intval', $asistieron) : []);
 $montos = is_array($montos) ? $montos : [];
 $creditosAplicados = is_array($creditosAplicados) ? $creditosAplicados : [];
+$creditosGenerados = is_array($creditosGenerados) ? $creditosGenerados : [];
 $estadosFinancieros = is_array($estadosFinancieros) ? $estadosFinancieros : [];
 $generarCreditosMap = array_flip(is_array($generarCreditos) ? array_map('intval', $generarCreditos) : []);
 $fechas = is_array($fechas) ? $fechas : [];
@@ -116,8 +118,8 @@ try {
     $stmtPago = mysqli_prepare(
         $conn,
         "INSERT INTO contabilidad_registro_pagos
-            (registro_id, sendero_id, pagado, estado_financiero, monto_esperado, monto_pagado, credito_aplicado, saldo_pendiente, credito_id, fecha_pago, metodo_pago, metodo_pago_id, nota)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (registro_id, sendero_id, pagado, estado_financiero, monto_esperado, monto_pagado, credito_aplicado, saldo_pendiente, credito_id, credito_generado, monto_retenido, fecha_pago, metodo_pago, metodo_pago_id, nota)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
             sendero_id = VALUES(sendero_id),
             pagado = VALUES(pagado),
@@ -127,6 +129,8 @@ try {
             credito_aplicado = VALUES(credito_aplicado),
             saldo_pendiente = VALUES(saldo_pendiente),
             credito_id = VALUES(credito_id),
+            credito_generado = VALUES(credito_generado),
+            monto_retenido = VALUES(monto_retenido),
             fecha_pago = VALUES(fecha_pago),
             metodo_pago = VALUES(metodo_pago),
             metodo_pago_id = VALUES(metodo_pago_id),
@@ -172,6 +176,8 @@ try {
         $asistio = isset($asistieronMap[$registroId]) ? 1 : 0;
         $monto = max(0, (float) ($montos[$registroId] ?? 0));
         $creditoAplicado = max(0, (float) ($creditosAplicados[$registroId] ?? 0));
+        $creditoGenerado = max(0, (float) ($creditosGenerados[$registroId] ?? 0));
+        $montoRetenido = 0.0;
         $fecha = trim((string) ($fechas[$registroId] ?? ''));
         $fecha = preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) ? $fecha : null;
         if ($pagado === 1 && $fecha === null) {
@@ -179,6 +185,7 @@ try {
         }
         if ($pagado === 0) {
             $monto = 0;
+            $creditoGenerado = 0;
             $fecha = null;
         }
         if ($creditoAplicado > 0 && $usuarioId <= 0) {
@@ -249,6 +256,8 @@ try {
             $pagado = 0;
             $monto = 0;
             $creditoAplicado = 0;
+            $creditoGenerado = 0;
+            $montoRetenido = 0;
             $saldoPendiente = 0;
             $creditoIdAplicado = null;
         }
@@ -256,6 +265,8 @@ try {
             $pagado = 0;
             $monto = 0;
             $creditoAplicado = 0;
+            $creditoGenerado = 0;
+            $montoRetenido = 0;
             $saldoPendiente = 0;
             $creditoIdAplicado = null;
         }
@@ -281,11 +292,21 @@ try {
             $metodoPagoId = null;
             $metodo = '';
         }
+        if (isset($generarCreditosMap[$registroId]) && $monto > 0 && $asistio === 0 && $usuarioId > 0) {
+            $creditoGenerado = min($creditoGenerado > 0 ? $creditoGenerado : $monto, $monto);
+            $montoRetenido = max(0, $monto - $creditoGenerado);
+        } elseif ($pagado === 1 && $monto > 0 && $asistio === 0) {
+            $creditoGenerado = 0;
+            $montoRetenido = $monto;
+        } else {
+            $creditoGenerado = 0;
+            $montoRetenido = 0;
+        }
         $nota = ingresos_clean_text((string) ($notas[$registroId] ?? ''), 255);
 
         mysqli_stmt_bind_param(
             $stmtPago,
-            'iiisddddissis',
+            'iiisddddiddssis',
             $registroId,
             $senderoId,
             $pagado,
@@ -295,6 +316,8 @@ try {
             $creditoAplicado,
             $saldoPendiente,
             $creditoIdAplicado,
+            $creditoGenerado,
+            $montoRetenido,
             $fecha,
             $metodo,
             $metodoPagoId,
@@ -311,8 +334,13 @@ try {
         $totalCreditoAplicado += $creditoAplicado;
         $totalDeuda += $saldoPendiente;
 
-        if (isset($generarCreditosMap[$registroId]) && $monto > 0 && $asistio === 0 && $usuarioId > 0) {
+        $debeGenerarCredito = isset($generarCreditosMap[$registroId]) && $creditoGenerado > 0 && $monto > 0 && $asistio === 0 && $usuarioId > 0;
+
+        if ($debeGenerarCredito) {
             $motivo = "Credito generado por pago sin asistencia en sendero #{$senderoId}";
+            if ($montoRetenido > 0) {
+                $motivo .= ". Retenido RD$ " . number_format($montoRetenido, 2);
+            }
             $stmtFindCredito = mysqli_prepare($conn, "SELECT id FROM usuario_creditos WHERE registro_origen_id = ? LIMIT 1");
             mysqli_stmt_bind_param($stmtFindCredito, 'i', $registroId);
             mysqli_stmt_execute($stmtFindCredito);
@@ -327,7 +355,7 @@ try {
                      SET monto = ?, saldo_disponible = ?, estado = 'activo', motivo = ?, creado_por = ?
                      WHERE id = ?"
                 );
-                mysqli_stmt_bind_param($stmtUpdateCredito, 'ddsii', $monto, $monto, $motivo, $adminId, $creditoId);
+                mysqli_stmt_bind_param($stmtUpdateCredito, 'ddsii', $creditoGenerado, $creditoGenerado, $motivo, $adminId, $creditoId);
                 mysqli_stmt_execute($stmtUpdateCredito);
                 mysqli_stmt_close($stmtUpdateCredito);
             } else {
@@ -336,7 +364,7 @@ try {
                     "INSERT INTO usuario_creditos (usuario_id, registro_origen_id, sendero_origen_id, monto, saldo_disponible, estado, motivo, creado_por)
                      VALUES (?, ?, ?, ?, ?, 'activo', ?, ?)"
                 );
-                mysqli_stmt_bind_param($stmtNewCredito, 'iiiddsi', $usuarioId, $registroId, $senderoId, $monto, $monto, $motivo, $adminId);
+                mysqli_stmt_bind_param($stmtNewCredito, 'iiiddsi', $usuarioId, $registroId, $senderoId, $creditoGenerado, $creditoGenerado, $motivo, $adminId);
                 mysqli_stmt_execute($stmtNewCredito);
                 $creditoId = (int) mysqli_insert_id($conn);
                 mysqli_stmt_close($stmtNewCredito);
@@ -346,10 +374,23 @@ try {
                     "INSERT INTO usuario_credito_movimientos (credito_id, registro_id, sendero_id, tipo, monto, nota, creado_por)
                      VALUES (?, ?, ?, 'creacion', ?, ?, ?)"
                 );
-                mysqli_stmt_bind_param($stmtMov, 'iiidsi', $creditoId, $registroId, $senderoId, $monto, $motivo, $adminId);
+                mysqli_stmt_bind_param($stmtMov, 'iiidsi', $creditoId, $registroId, $senderoId, $creditoGenerado, $motivo, $adminId);
                 mysqli_stmt_execute($stmtMov);
                 mysqli_stmt_close($stmtMov);
             }
+        } else {
+            $stmtAnularCredito = mysqli_prepare(
+                $conn,
+                "UPDATE usuario_creditos
+                 SET saldo_disponible = 0,
+                     estado = 'anulado',
+                     motivo = CONCAT(COALESCE(motivo, ''), ' | Credito anulado desde ingresos del sendero')
+                 WHERE registro_origen_id = ?
+                   AND estado = 'activo'"
+            );
+            mysqli_stmt_bind_param($stmtAnularCredito, 'i', $registroId);
+            mysqli_stmt_execute($stmtAnularCredito);
+            mysqli_stmt_close($stmtAnularCredito);
         }
     }
 

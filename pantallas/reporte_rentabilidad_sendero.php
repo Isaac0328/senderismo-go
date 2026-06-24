@@ -46,6 +46,21 @@ function rrs_pct(float $value): string
     return number_format($value, 2) . '%';
 }
 
+function rrs_estado_financiero(string $estado): string
+{
+    $labels = [
+        'pendiente' => 'Pendiente',
+        'pagado' => 'Pagado',
+        'parcial' => 'Parcial',
+        'credito_aplicado' => 'Credito aplicado',
+        'deuda' => 'Deuda',
+        'cortesia' => 'Cortesia',
+        'no_asistio_sin_pago' => 'No asistio / sin pago',
+    ];
+
+    return $labels[$estado] ?? ucfirst(str_replace('_', ' ', $estado));
+}
+
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
 $senderoFiltros = sgf_params();
 $nivelesDificultad = sgf_niveles_dificultad($conn);
@@ -65,9 +80,15 @@ $resSenderos = sgf_execute_query($conn, "
     FROM senderos s
     LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN (
-        SELECT sendero_id, SUM(monto_pagado) AS ingresos
+        SELECT
+            sendero_id,
+            SUM(
+                CASE
+                    WHEN estado_financiero = 'cortesia' THEN 0
+                    ELSE GREATEST(COALESCE(monto_pagado, 0) + COALESCE(credito_aplicado, 0) - COALESCE(credito_generado, 0), 0)
+                END
+            ) AS ingresos
         FROM contabilidad_registro_pagos
-        WHERE pagado = 1
         GROUP BY sendero_id
     ) i ON i.sendero_id = s.id
     LEFT JOIN (
@@ -94,7 +115,13 @@ $resumen = [
     'inscritos' => 0,
     'pagados' => 0,
     'asistieron' => 0,
-    'ingresos' => 0.0,
+    'esperado' => 0.0,
+    'cobrado_bruto' => 0.0,
+    'credito_aplicado' => 0.0,
+    'credito_generado' => 0.0,
+    'monto_retenido' => 0.0,
+    'por_cobrar' => 0.0,
+    'ingreso_neto' => 0.0,
     'gastos' => 0.0,
     'utilidad' => 0.0,
     'margen' => 0.0,
@@ -107,11 +134,26 @@ if ($sendero) {
     $stmt = mysqli_prepare(
         $conn,
         "SELECT
-            COUNT(rs.id) AS inscritos,
-            SUM(CASE WHEN rs.asistio = 1 THEN 1 ELSE 0 END) AS asistieron,
-            SUM(CASE WHEN crp.pagado = 1 THEN 1 ELSE 0 END) AS pagados,
-            COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END), 0) AS ingresos
+            COALESCE(SUM(1 + COALESCE(m.menores, 0)), 0) AS inscritos,
+            COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron,
+            COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS pagados,
+            COALESCE(SUM(CASE WHEN COALESCE(crp.estado_financiero, '') <> 'cortesia' THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END), 0) AS esperado,
+            COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END), 0) AS cobrado_bruto,
+            COALESCE(SUM(COALESCE(crp.credito_aplicado, 0)), 0) AS credito_aplicado,
+            COALESCE(SUM(COALESCE(crp.credito_generado, 0)), 0) AS credito_generado,
+            COALESCE(SUM(COALESCE(crp.monto_retenido, 0)), 0) AS monto_retenido,
+            COALESCE(SUM(
+                CASE
+                    WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'no_asistio_sin_pago') THEN 0
+                    ELSE COALESCE(crp.saldo_pendiente, 0)
+                END
+            ), 0) AS por_cobrar
         FROM registros_senderos rs
+        LEFT JOIN (
+            SELECT registro_id, COUNT(*) AS menores
+            FROM registro_sendero_menores
+            GROUP BY registro_id
+        ) m ON m.registro_id = rs.id
         LEFT JOIN contabilidad_registro_pagos crp ON crp.registro_id = rs.id
         WHERE rs.sendero_id = ? AND rs.estado = 'registrado'"
     );
@@ -123,7 +165,13 @@ if ($sendero) {
     $resumen['inscritos'] = (int) ($row['inscritos'] ?? 0);
     $resumen['pagados'] = (int) ($row['pagados'] ?? 0);
     $resumen['asistieron'] = (int) ($row['asistieron'] ?? 0);
-    $resumen['ingresos'] = (float) ($row['ingresos'] ?? 0);
+    $resumen['esperado'] = (float) ($row['esperado'] ?? 0);
+    $resumen['cobrado_bruto'] = (float) ($row['cobrado_bruto'] ?? 0);
+    $resumen['credito_aplicado'] = (float) ($row['credito_aplicado'] ?? 0);
+    $resumen['credito_generado'] = (float) ($row['credito_generado'] ?? 0);
+    $resumen['monto_retenido'] = (float) ($row['monto_retenido'] ?? 0);
+    $resumen['por_cobrar'] = (float) ($row['por_cobrar'] ?? 0);
+    $resumen['ingreso_neto'] = max(0, $resumen['cobrado_bruto'] + $resumen['credito_aplicado'] - $resumen['credito_generado']);
 
     $stmt = mysqli_prepare(
         $conn,
@@ -173,8 +221,8 @@ if ($sendero) {
     }
     mysqli_stmt_close($stmt);
 
-    $resumen['utilidad'] = $resumen['ingresos'] - $resumen['gastos'];
-    $resumen['margen'] = $resumen['ingresos'] > 0 ? ($resumen['utilidad'] / $resumen['ingresos']) * 100 : 0;
+    $resumen['utilidad'] = $resumen['ingreso_neto'] - $resumen['gastos'];
+    $resumen['margen'] = $resumen['ingreso_neto'] > 0 ? ($resumen['utilidad'] / $resumen['ingreso_neto']) * 100 : 0;
     $resumen['retorno'] = $resumen['gastos'] > 0 ? ($resumen['utilidad'] / $resumen['gastos']) * 100 : 0;
 }
 
@@ -188,7 +236,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <div>
                 <span class="fin-kicker">Reporte financiero</span>
                 <h1>Rentabilidad por sendero</h1>
-                <p>Consulta un sendero para ver ingresos cobrados, gastos detallados, utilidad y rentabilidad.</p>
+                <p>Consulta efectivo cobrado, creditos aplicados, creditos abonados, gastos, utilidad neta y rentabilidad por ruta.</p>
             </div>
             <a class="fin-back" href="<?= BASE_URL ?>pantallas/panel_administrativo.php">
                 <i data-feather="arrow-left"></i>
@@ -228,7 +276,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <p>Fecha: <?= rrs_h(rrs_fecha($sendero['fecha_sendero'])) ?></p>
                 </div>
                 <div class="fin-stat-grid">
-                    <article class="money"><span>Ingresos</span><strong><?= rrs_h(rrs_money($resumen['ingresos'])) ?></strong></article>
+                    <article class="money"><span>Ingreso neto</span><strong><?= rrs_h(rrs_money($resumen['ingreso_neto'])) ?></strong></article>
+                    <article><span>Cobrado bruto</span><strong><?= rrs_h(rrs_money($resumen['cobrado_bruto'])) ?></strong></article>
+                    <article><span>Credito aplicado</span><strong><?= rrs_h(rrs_money($resumen['credito_aplicado'])) ?></strong></article>
+                    <article class="warn"><span>Credito abonado</span><strong><?= rrs_h(rrs_money($resumen['credito_generado'])) ?></strong></article>
                     <article class="warn"><span>Gastos</span><strong><?= rrs_h(rrs_money($resumen['gastos'])) ?></strong></article>
                     <article class="<?= $resumen['utilidad'] >= 0 ? 'ok' : 'warn' ?>"><span>Utilidad</span><strong><?= rrs_h(rrs_money($resumen['utilidad'])) ?></strong></article>
                     <article><span>Margen</span><strong><?= rrs_h(rrs_pct($resumen['margen'])) ?></strong></article>
@@ -248,17 +299,20 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article><span>Inscritos</span><strong><?= (int) $resumen['inscritos'] ?></strong></article>
                     <article><span>Pagados</span><strong><?= (int) $resumen['pagados'] ?></strong></article>
                     <article><span>Asistieron</span><strong><?= (int) $resumen['asistieron'] ?></strong></article>
+                    <article><span>Esperado</span><strong><?= rrs_h(rrs_money($resumen['esperado'])) ?></strong></article>
+                    <article><span>Retenido</span><strong><?= rrs_h(rrs_money($resumen['monto_retenido'])) ?></strong></article>
+                    <article><span>Por cobrar</span><strong><?= rrs_h(rrs_money($resumen['por_cobrar'])) ?></strong></article>
                 </div>
             </section>
 
-            <section class="fin-card">
-                <div class="fin-card-head">
+            <details class="fin-card fin-report-section" open>
+                <summary class="fin-card-head">
                     <div>
                         <span>Detalle</span>
                         <h2>Gastos del sendero</h2>
                     </div>
-                    <i data-feather="shopping-bag"></i>
-                </div>
+                    <i data-feather="chevron-down"></i>
+                </summary>
                 <?php if (empty($gastosDetalle)): ?>
                     <div class="fin-empty compact"><h2>Sin gastos registrados</h2><p>Este sendero aun no tiene gastos asignados.</p></div>
                 <?php else: ?>
@@ -289,16 +343,16 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </table>
                     </div>
                 <?php endif; ?>
-            </section>
+            </details>
 
-            <section class="fin-card">
-                <div class="fin-card-head">
+            <details class="fin-card fin-report-section" open>
+                <summary class="fin-card-head">
                     <div>
                         <span>Detalle</span>
                         <h2>Ingresos registrados</h2>
                     </div>
-                    <i data-feather="credit-card"></i>
-                </div>
+                    <i data-feather="chevron-down"></i>
+                </summary>
                 <?php if (empty($ingresosDetalle)): ?>
                     <div class="fin-empty compact"><h2>Sin pagos registrados</h2><p>Este sendero aun no tiene ingresos marcados.</p></div>
                 <?php else: ?>
@@ -309,7 +363,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Estado</th>
                                     <th>Participante</th>
                                     <th>Inversion</th>
-                                    <th>Monto</th>
+                                    <th>Esperado</th>
+                                    <th>Cobrado</th>
+                                    <th>Credito aplicado</th>
+                                    <th>Credito abonado</th>
+                                    <th>Retenido</th>
+                                    <th>Saldo</th>
                                     <th>Fecha pago</th>
                                     <th>Metodo</th>
                                     <th>Asistio</th>
@@ -318,10 +377,19 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <tbody>
                                 <?php foreach ($ingresosDetalle as $ingreso): ?>
                                     <tr class="<?= (int) $ingreso['pagado'] === 1 ? 'is-paid' : '' ?>">
-                                        <td><span class="fin-pill <?= (int) $ingreso['pagado'] === 1 ? 'ok' : 'off' ?>"><?= (int) $ingreso['pagado'] === 1 ? 'Pagado' : 'Pendiente' ?></span></td>
+                                        <td>
+                                            <span class="fin-pill <?= (int) $ingreso['pagado'] === 1 ? 'ok' : 'off' ?>">
+                                                <?= rrs_h(rrs_estado_financiero((string) ($ingreso['estado_financiero'] ?? 'pendiente'))) ?>
+                                            </span>
+                                        </td>
                                         <td><strong><?= rrs_h(trim($ingreso['nombre'] . ' ' . $ingreso['apellido'])) ?></strong><span>@<?= rrs_h($ingreso['user']) ?></span></td>
                                         <td><?= rrs_h($ingreso['inversion_nombre'] ?: 'Sin inversion') ?></td>
+                                        <td><strong><?= rrs_h(rrs_money($ingreso['monto_esperado'])) ?></strong></td>
                                         <td><strong><?= rrs_h(rrs_money($ingreso['monto_pagado'])) ?></strong></td>
+                                        <td><?= rrs_h(rrs_money($ingreso['credito_aplicado'])) ?></td>
+                                        <td><?= rrs_h(rrs_money($ingreso['credito_generado'])) ?></td>
+                                        <td><?= rrs_h(rrs_money($ingreso['monto_retenido'])) ?></td>
+                                        <td><?= rrs_h(rrs_money($ingreso['saldo_pendiente'])) ?></td>
                                         <td><?= rrs_h(rrs_fecha($ingreso['fecha_pago'])) ?></td>
                                         <td><?= rrs_h($ingreso['metodo_nombre'] ?: $ingreso['metodo_pago'] ?: '-') ?></td>
                                         <td><?= (int) $ingreso['asistio'] === 1 ? 'Si' : 'No' ?></td>
@@ -331,7 +399,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </table>
                     </div>
                 <?php endif; ?>
-            </section>
+            </details>
         <?php endif; ?>
     </section>
 </main>

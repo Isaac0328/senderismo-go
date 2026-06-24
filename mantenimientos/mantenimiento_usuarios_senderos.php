@@ -99,12 +99,12 @@ if ($senderoSeleccionado) {
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
             COALESCE(u.id, 0) AS usuario_id,
-            COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
-            COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
+            COALESCE(NULLIF(TRIM(u.nombre), ''), NULLIF(TRIM(rs.manual_nombre), ''), 'Sin nombre') AS nombre,
+            COALESCE(NULLIF(TRIM(u.apellido), ''), NULLIF(TRIM(rs.manual_apellido), ''), '') AS apellido,
             COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
             COALESCE(u.email, rs.manual_email, '') AS email,
             COALESCE(u.estado, 1) AS usuario_estado,
-            COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
+            COALESCE(NULLIF(TRIM(du.telefono), ''), NULLIF(TRIM(rs.manual_telefono), ''), '') AS telefono,
             rs.registro_origen
         FROM registros_senderos rs
         LEFT JOIN usuarios u ON u.id = rs.usuario_id
@@ -114,7 +114,7 @@ if ($senderoSeleccionado) {
         ORDER BY
             CASE rs.estado WHEN 'registrado' THEN 0 ELSE 1 END,
             rs.fecha_registro DESC,
-            COALESCE(u.nombre, rs.manual_nombre) ASC"
+            COALESCE(NULLIF(TRIM(u.nombre), ''), NULLIF(TRIM(rs.manual_nombre), ''), 'zzz') ASC"
     );
     mysqli_stmt_bind_param($stmt, 'i', $senderoId);
     mysqli_stmt_execute($stmt);

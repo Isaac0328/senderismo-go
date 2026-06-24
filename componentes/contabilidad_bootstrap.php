@@ -124,6 +124,8 @@ if (!function_exists('contabilidad_bootstrap')) {
                 credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 credito_id INT DEFAULT NULL,
+                credito_generado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                monto_retenido DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 fecha_pago DATE DEFAULT NULL,
                 metodo_pago VARCHAR(60) DEFAULT NULL,
                 metodo_pago_id INT DEFAULT NULL,
@@ -159,6 +161,8 @@ if (!function_exists('contabilidad_bootstrap')) {
             'credito_aplicado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER monto_pagado",
             'saldo_pendiente' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_aplicado",
             'credito_id' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_id INT DEFAULT NULL AFTER saldo_pendiente",
+            'credito_generado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_generado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_id",
+            'monto_retenido' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN monto_retenido DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_generado",
         ];
 
         foreach ($columnsPago as $columnName => $alterSql) {
