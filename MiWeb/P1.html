@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelPile Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .gallery-item:hover {
+            transform: scale(1.03);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            aspect-ratio: 1/1;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .gallery-item:hover .delete-btn {
+            opacity: 1;
+        }
+        .upload-container {
+            position: relative;
+            border: 2px dashed #cbd5e0;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-container:hover {
+            border-color: #4f46e5;
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+        #file-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <header class="mb-10">
+            <h1 class="text-4xl font-bold text-center text-indigo-700 mb-2">PixelPile Gallery</h1>
+            <p class="text-center text-gray-600">Organize your images effortlessly</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-10">
+            <div class="upload-container relative">
+                <div class="flex flex-col items-center justify-center">
+                    <i data-feather="upload" class="w-12 h-12 text-indigo-500 mb-3"></i>
+                    <h3 class="text-lg font-medium text-gray-700">Drag & drop images here</h3>
+                    <p class="text-sm text-gray-500 mt-1">or click to browse files</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" multiple>
+            </div>
+            <div class="flex justify-center mt-4">
+                <button id="upload-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition">
+                    <i data-feather="upload" class="w-4 h-4"></i>
+                    Upload Images
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Your Gallery</h2>
+                <div class="flex gap-2">
+                    <button id="grid-view" class="p-2 rounded-md bg-indigo-100 text-indigo-600">
+                        <i data-feather="grid"></i>
+                    </button>
+                    <button id="list-view" class="p-2 rounded-md hover:bg-gray-100 text-gray-500">
+                        <i data-feather="list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="gallery" class="gallery">
+                <!-- Images will be loaded here -->
+                <div class="text-center py-10 text-gray-500" id="empty-state">
+                    <i data-feather="image" class="w-12 h-12 mx-auto mb-3"></i>
+                    <p>No images yet. Upload some to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        feather.replace();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+            const gallery = document.getElementById('gallery');
+            const emptyState = document.getElementById('empty-state');
+            const gridViewBtn = document.getElementById('grid-view');
+            const listViewBtn = document.getElementById('list-view');
+
+            // Check for existing images in localStorage
+            loadImagesFromStorage();
+
+            // Upload button click handler
+            uploadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // File input change handler
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files);
+                    fileInput.value = ''; // Reset the input
+                }
+            });
+
+            // Drag and drop functionality
+            const uploadContainer = document.querySelector('.upload-container');
+            
+            uploadContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('border-indigo-500', 'bg-indigo-50');
+            });
+
+            uploadContainer.addEventListener('dragleave', function() {
+                this.classList.remove('border-indigo-500', 'bg-indigo-50');
+            });
+
+            uploadContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('border-indigo-500', 'bg-indigo-50');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleImageUpload(e.dataTransfer.files);
+                }
+            });
+
+            // View toggle buttons
+            gridViewBtn.addEventListener('click', function() {
+                gallery.classList.remove('grid-cols-1');
+                gallery.classList.add('grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+                gridViewBtn.classList.add('bg-indigo-100', 'text-indigo-600');
+                listViewBtn.classList.remove('bg-indigo-100', 'text-indigo-600');
+            });
+
+            listViewBtn.addEventListener('click', function() {
+                gallery.classList.add('grid-cols-1');
+                gallery.classList.remove('sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+                listViewBtn.classList.add('bg-indigo-100', 'text-indigo-600');
+                gridViewBtn.classList.remove('bg-indigo-100', 'text-indigo-600');
+            });
+
+            function handleImageUpload(files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    if (!file.type.match('image.*')) {
+                        continue; // Skip non-image files
+                    }
+
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const imageData = e.target.result;
+                        addImageToGallery(imageData);
+                        saveImageToStorage(imageData);
+                        
+                        if (emptyState) {
+                            emptyState.style.display = 'none';
+                        }
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function addImageToGallery(imageData) {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.alt = 'Uploaded image';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '<i data-feather="trash-2" class="w-4 h-4"></i>';
+                deleteBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    galleryItem.remove();
+                    removeImageFromStorage(imageData);
+                    feather.replace();
+                    
+                    // Show empty state if no images left
+                    if (gallery.children.length === 0) {
+                        emptyState.style.display = 'block';
+                    }
+                });
+                
+                galleryItem.appendChild(img);
+                galleryItem.appendChild(deleteBtn);
+                gallery.appendChild(galleryItem);
+                
+                feather.replace();
+            }
+
+            function saveImageToStorage(imageData) {
+                let images = JSON.parse(localStorage.getItem('galleryImages') || '[]');
+                images.push(imageData);
+                localStorage.setItem('galleryImages', JSON.stringify(images));
+            }
+
+            function loadImagesFromStorage() {
+                const images = JSON.parse(localStorage.getItem('galleryImages') || '[]');
+                
+                if (images.length > 0 && emptyState) {
+                    emptyState.style.display = 'none';
+                }
+                
+                images.forEach(imageData => {
+                    addImageToGallery(imageData);
+                });
+            }
+
+            function removeImageFromStorage(imageData) {
+                let images = JSON.parse(localStorage.getItem('galleryImages') || '[]');
+                images = images.filter(img => img !== imageData);
+                localStorage.setItem('galleryImages', JSON.stringify(images));
+            }
+        });
+    </script>
+</body>
+</html>

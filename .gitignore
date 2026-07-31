@@ -19,10 +19,13 @@ vendor/
 # Archivos de entorno local
 .env
 .env.*
+.private/
 
 # Respaldos con datos reales o credenciales locales
+bd/*.sql
 respaldos_bd/*.sql
 scripts_bd/respaldos_bd/*.sql
+wordpress_backup/
 
 # Imagenes subidas por usuarios
 imagenes/perfiles/*

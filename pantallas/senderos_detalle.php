@@ -404,31 +404,41 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
 
             <aside class="detail-section terrain-card">
                 <span class="section-kicker">Caracteristicas</span>
-                <h2>Terreno y dificultad</h2>
-                <div class="feature-list">
-                    <span><strong>Trayecto vehiculo:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
-                    <span><strong>Ida vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
-                    <span><strong>Regreso vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
-                    <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
-                    <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
-                </div>
-                <div class="difficulty-meter <?= $dificultadClase ?>" style="--difficulty-level: <?= $nivelNumero ?>%;">
-                    <div class="difficulty-meter-head">
-                        <span>Nivel de dificultad</span>
-                        <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</strong>
-                    </div>
-                    <div class="difficulty-bar" aria-label="Nivel de dificultad <?= $nivelNumero ?> de 100">
-                        <span class="difficulty-marker"></span>
-                    </div>
-                    <div class="difficulty-scale">
-                        <span>Bajo</span>
-                        <span>Alto</span>
+                <h2>Caracteristicas del recorrido</h2>
+
+                <div class="terrain-subsection">
+                    <h3 class="terrain-subtitle"><i data-feather="truck"></i>Trayecto en vehiculo</h3>
+                    <div class="feature-list">
+                        <span><strong>Tipo de trayecto:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
+                        <span><strong>Tiempo de ida:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
+                        <span><strong>Tiempo de regreso:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
                     </div>
                 </div>
-                <div class="terrain-tags">
-                    <?php foreach ($tiposTerreno as $terreno): ?>
-                        <span><?= htmlspecialchars($terreno) ?></span>
-                    <?php endforeach; ?>
+
+                <div class="terrain-subsection">
+                    <h3 class="terrain-subtitle"><i data-feather="map"></i>Trayecto del sendero</h3>
+                    <div class="feature-list">
+                        <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
+                        <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
+                    </div>
+                    <div class="difficulty-meter <?= $dificultadClase ?>" style="--difficulty-level: <?= $nivelNumero ?>%;">
+                        <div class="difficulty-meter-head">
+                            <span>Nivel de dificultad</span>
+                            <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</strong>
+                        </div>
+                        <div class="difficulty-bar" aria-label="Nivel de dificultad <?= $nivelNumero ?> de 100">
+                            <span class="difficulty-marker"></span>
+                        </div>
+                        <div class="difficulty-scale">
+                            <span>Bajo</span>
+                            <span>Alto</span>
+                        </div>
+                    </div>
+                    <div class="terrain-tags">
+                        <?php foreach ($tiposTerreno as $terreno): ?>
+                            <span><?= htmlspecialchars($terreno) ?></span>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </aside>
         </section>

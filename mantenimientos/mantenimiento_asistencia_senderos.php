@@ -10,7 +10,9 @@ require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
+require_once __DIR__ . '/../componentes/senderos_admin_data.php';
 
 sg_actualizar_senderos_vencidos($conn);
 
@@ -26,21 +28,17 @@ $jsFiles = [
 
 function asis_h($value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    return sg_h($value);
 }
 
 function asis_fecha(?string $fecha, bool $conHora = false): string
 {
-    if (!$fecha) {
-        return 'Sin fecha';
-    }
-    $time = strtotime($fecha);
-    return $time ? date($conHora ? 'd/m/Y h:i A' : 'd/m/Y', $time) : 'Sin fecha';
+    return sg_fecha($fecha, $conHora);
 }
 
 function asis_money($monto): string
 {
-    return $monto === null || $monto === '' ? 'Sin monto' : 'RD$ ' . number_format((float) $monto, 2);
+    return sg_money($monto, 'Sin monto');
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
@@ -48,40 +46,8 @@ $senderoFiltros = sgf_params();
 $nivelesDificultad = sgf_niveles_dificultad($conn);
 [$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
-$senderos = [];
-$resSenderos = sgf_execute_query($conn, "
-    SELECT
-        s.id,
-        s.nombre,
-        s.fecha_sendero,
-        s.estado,
-        s.distancia_km,
-        nd.nombre AS dificultad_nombre,
-        COALESCE(SUM(CASE WHEN rs.estado = 'registrado' THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS registrados,
-        COALESCE(SUM(CASE WHEN rs.asistio = 1 AND rs.estado = 'registrado' THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron
-    FROM senderos s
-    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
-    LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
-    LEFT JOIN (
-        SELECT registro_id, COUNT(*) AS menores
-        FROM registro_sendero_menores
-        GROUP BY registro_id
-    ) m ON m.registro_id = rs.id
-    {$senderoWhere}
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
-    ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-", $senderoTypes, $senderoValues);
-while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
-    $senderos[] = $row;
-}
-
-$senderoSeleccionado = null;
-foreach ($senderos as $sendero) {
-    if ((int) $sendero['id'] === $senderoId) {
-        $senderoSeleccionado = $sendero;
-        break;
-    }
-}
+$senderos = sg_admin_senderos_para_asistencia($conn, $senderoWhere, $senderoTypes, $senderoValues);
+$senderoSeleccionado = sg_admin_find_row_by_id($senderos, $senderoId);
 
 $registros = [];
 $inversionesSendero = [];

@@ -9,15 +9,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../componentes/recordar_sesion.php';
 sg_restaurar_sesion_recordada();
 
-// Seguridad: solo Admin
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
-if (($_SESSION['usuario_rol_id'] ?? 0) != 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'usuarios.usuarios';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_SESSION['usuarios_error'] = "MÃ©todo no permitido.";

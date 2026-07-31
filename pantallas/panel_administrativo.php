@@ -10,8 +10,10 @@ require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+require_once __DIR__ . '/../componentes/permisos.php';
 
 sg_actualizar_senderos_vencidos($conn);
+sg_seed_permission_catalog($conn);
 
 $pageTitle = "Panel Administrativo | Senderismo Go!";
 
@@ -62,6 +64,54 @@ function admin_days_left(?string $date): string
     return $days > 1 ? "En {$days} dias" : 'Vencido';
 }
 
+function admin_item_permission(array $item): string
+{
+    return (string) ($item['permission'] ?? '');
+}
+
+function admin_can_view(mysqli $conn, array|string $permission): bool
+{
+    return sg_has_permission($conn, $permission);
+}
+
+function admin_filter_items(mysqli $conn, array $items): array
+{
+    return array_values(array_filter($items, static function (array $item) use ($conn): bool {
+        $permission = admin_item_permission($item);
+        return $permission === '' || admin_can_view($conn, $permission);
+    }));
+}
+
+function admin_filter_groups(mysqli $conn, array $groups): array
+{
+    $filtered = [];
+    foreach ($groups as $group) {
+        if (isset($group['sections'])) {
+            $sections = [];
+            foreach ($group['sections'] as $section) {
+                $items = admin_filter_items($conn, $section['items'] ?? []);
+                if (!empty($items)) {
+                    $section['items'] = $items;
+                    $sections[] = $section;
+                }
+            }
+            if (!empty($sections)) {
+                $group['sections'] = $sections;
+                $filtered[] = $group;
+            }
+            continue;
+        }
+
+        $items = admin_filter_items($conn, $group['items'] ?? []);
+        if (!empty($items)) {
+            $group['items'] = $items;
+            $filtered[] = $group;
+        }
+    }
+
+    return $filtered;
+}
+
 $adminName = $_SESSION['usuario_nombre'] ?? 'Administrador';
 $adminRole = $_SESSION['usuario_rol'] ?? $_SESSION['rol_nombre'] ?? 'Administrador';
 $firstAdminName = trim(explode(' ', trim($adminName))[0] ?? '') ?: 'Admin';
@@ -72,10 +122,11 @@ $moduleGroups = [
         'title' => 'Interfaz publica',
         'icon' => 'globe',
         'items' => [
-            ['Inicio', 'Portada, tarjetas, galeria y llamados', 'home', BASE_URL . 'mantenimientos/mantenimiento_inicio.php'],
-            ['Nosotros', 'Historia, valores, pasos, indicadores y equipo', 'users', BASE_URL . 'mantenimientos/mantenimiento_nosotros.php'],
-            ['Contacto', 'Redes, telefonos, ubicacion y mensajes', 'phone-call', BASE_URL . 'mantenimientos/mantenimiento_contacto.php'],
-            ['Tema visual', 'Paletas, colores globales y personalizacion', 'sliders', BASE_URL . 'mantenimientos/mantenimiento_tema.php'],
+            ['Configuracion general', 'Identidad, encabezado, menu, SEO y pie de pagina', 'settings', BASE_URL . 'mantenimientos/mantenimiento_configuracion_sitio.php', 'permission' => 'interfaz.configuracion_general'],
+            ['Inicio', 'Portada, tarjetas, galeria y llamados', 'home', BASE_URL . 'mantenimientos/mantenimiento_inicio.php', 'permission' => 'interfaz.inicio'],
+            ['Nosotros', 'Historia, valores, pasos, indicadores y equipo', 'users', BASE_URL . 'mantenimientos/mantenimiento_nosotros.php', 'permission' => 'interfaz.nosotros'],
+            ['Contacto', 'Redes, telefonos, ubicacion y mensajes', 'phone-call', BASE_URL . 'mantenimientos/mantenimiento_contacto.php', 'permission' => 'interfaz.contacto'],
+            ['Tema visual', 'Paletas, colores globales y personalizacion', 'sliders', BASE_URL . 'mantenimientos/mantenimiento_tema.php', 'permission' => 'interfaz.tema'],
         ],
     ],
     [
@@ -83,8 +134,10 @@ $moduleGroups = [
         'title' => 'Seguridad y accesos',
         'icon' => 'shield',
         'items' => [
-            ['Usuarios', 'Datos, salud, menores, perfil y estado', 'user-check', BASE_URL . 'mantenimientos/mantenimiento_usuarios.php', $stats['totalUsuarios']],
-            ['Roles y permisos', 'Perfiles administrativos y control de acceso', 'key', BASE_URL . 'mantenimientos/mantenimiento_roles.php'],
+            ['Usuarios', 'Datos, salud, menores, perfil y estado', 'user-check', BASE_URL . 'mantenimientos/mantenimiento_usuarios.php', $stats['totalUsuarios'], 'permission' => 'usuarios.usuarios'],
+            ['Pasaporte senderista', 'Niveles, insignias y progreso del usuario', 'award', BASE_URL . 'mantenimientos/mantenimiento_pasaporte.php', 'permission' => 'usuarios.pasaporte'],
+            ['Roles', 'Perfiles administrativos de usuarios', 'key', BASE_URL . 'mantenimientos/mantenimiento_roles.php', 'permission' => 'usuarios.roles'],
+            ['Permisos por rol', 'Distribucion de accesos por ventana', 'lock', BASE_URL . 'mantenimientos/mantenimiento_permisos_roles.php', 'permission' => 'usuarios.permisos_roles'],
         ],
     ],
     [
@@ -92,11 +145,11 @@ $moduleGroups = [
         'title' => 'Senderos y logistica',
         'icon' => 'map-pin',
         'items' => [
-            ['Senderos', 'Rutas, fechas, inversiones, imagenes y detalle', 'map', BASE_URL . 'mantenimientos/mantenimiento_senderos.php', $stats['senderos']],
-            ['Usuarios por sendero', 'Acciones sobre reservas y participantes', 'users', BASE_URL . 'mantenimientos/mantenimiento_usuarios_senderos.php'],
-            ['Asistencia', 'Marcar quienes fueron realmente', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php'],
-            ['Puntos de encuentro', 'Ubicaciones reutilizables para salidas', 'map', BASE_URL . 'mantenimientos/mantenimiento_puntos_encuentro.php'],
-            ['Detalles', 'Terrenos, anotaciones, incluye y dificultad', 'file-text', BASE_URL . 'mantenimientos/mantenimiento_detalles.php'],
+            ['Senderos', 'Rutas, fechas, inversiones, imagenes y detalle', 'map', BASE_URL . 'mantenimientos/mantenimiento_senderos.php', $stats['senderos'], 'permission' => 'operaciones.senderos'],
+            ['Usuarios por sendero', 'Acciones sobre reservas y participantes', 'users', BASE_URL . 'mantenimientos/mantenimiento_usuarios_senderos.php', 'permission' => 'operaciones.usuarios_senderos'],
+            ['Asistencia', 'Marcar quienes fueron realmente', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php', 'permission' => 'operaciones.asistencia'],
+            ['Puntos de encuentro', 'Ubicaciones reutilizables para salidas', 'map', BASE_URL . 'mantenimientos/mantenimiento_puntos_encuentro.php', 'permission' => 'operaciones.puntos_encuentro'],
+            ['Detalles', 'Terrenos, anotaciones, incluye y dificultad', 'file-text', BASE_URL . 'mantenimientos/mantenimiento_detalles.php', 'permission' => 'operaciones.detalles'],
         ],
     ],
     [
@@ -104,12 +157,13 @@ $moduleGroups = [
         'title' => 'Contabilidad y pagos',
         'icon' => 'dollar-sign',
         'items' => [
-            ['Tarjeta de pago', 'Datos bancarios visibles en el detalle', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_tarjeta_pago.php'],
-            ['Categorias de gasto', 'Clasificacion financiera de costos', 'folder', BASE_URL . 'mantenimientos/mantenimiento_categoria_gasto.php'],
-            ['Gastos catalogo', 'Costos frecuentes por alimento, equipo o servicio', 'tag', BASE_URL . 'mantenimientos/mantenimiento_gastos.php'],
-            ['Gastos por sendero', 'Costos reales por ruta', 'shopping-bag', BASE_URL . 'mantenimientos/mantenimiento_gastos_sendero.php'],
-            ['Metodos de pago', 'Formas de cobro para los ingresos', 'briefcase', BASE_URL . 'mantenimientos/mantenimiento_metodo_pago.php'],
-            ['Ingresos por sendero', 'Pagos, creditos, cortesias y asistencia financiera', 'trending-up', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php'],
+            ['Panel financiero', 'Indicadores, tendencias, alertas y rentabilidad', 'bar-chart-2', BASE_URL . 'pantallas/panel_financiero.php', 'permission' => 'finanzas.panel'],
+            ['Tarjeta de pago', 'Datos bancarios visibles en el detalle', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_tarjeta_pago.php', 'permission' => 'finanzas.tarjeta_pago'],
+            ['Categorias de gasto', 'Clasificacion financiera de costos', 'folder', BASE_URL . 'mantenimientos/mantenimiento_categoria_gasto.php', 'permission' => 'finanzas.categorias_gasto'],
+            ['Gastos catalogo', 'Costos frecuentes por alimento, equipo o servicio', 'tag', BASE_URL . 'mantenimientos/mantenimiento_gastos.php', 'permission' => 'finanzas.gastos_catalogo'],
+            ['Gastos por sendero', 'Costos reales por ruta', 'shopping-bag', BASE_URL . 'mantenimientos/mantenimiento_gastos_sendero.php', 'permission' => 'finanzas.gastos_sendero'],
+            ['Metodos de pago', 'Formas de cobro para los ingresos', 'briefcase', BASE_URL . 'mantenimientos/mantenimiento_metodo_pago.php', 'permission' => 'finanzas.metodos_pago'],
+            ['Ingresos por sendero', 'Pagos, creditos, cortesias y asistencia financiera', 'trending-up', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
         ],
     ],
     [
@@ -120,35 +174,37 @@ $moduleGroups = [
             [
                 'label' => 'General',
                 'items' => [
-                    ['Reporte de Usuarios', 'Altas, roles, estado y datos generales', 'users', BASE_URL . 'pantallas/reportes.php#usuarios'],
-                    ['Reporte de Actividad', 'Movimiento reciente de la plataforma', 'activity', BASE_URL . 'pantallas/reportes.php#actividad'],
-                    ['Contactos Recibidos', 'Solicitudes enviadas desde la web', 'mail', BASE_URL . 'pantallas/reporte_contacto.php', $stats['mensajesNuevos']],
+                    ['Reporte de Usuarios', 'Altas, roles, estado y datos generales', 'users', BASE_URL . 'pantallas/reportes.php#usuarios', 'permission' => 'reportes.usuarios'],
+                    ['Reporte de Actividad', 'Movimiento reciente de la plataforma', 'activity', BASE_URL . 'pantallas/reportes.php#actividad', 'permission' => 'reportes.actividad'],
+                    ['Contactos Recibidos', 'Solicitudes enviadas desde la web', 'mail', BASE_URL . 'pantallas/reporte_contacto.php', $stats['mensajesNuevos'], 'permission' => 'reportes.contactos'],
                 ],
             ],
             [
                 'label' => 'Operaciones',
                 'items' => [
-                    ['Senderos y Galeria', 'Rutas, imagenes y comportamiento general', 'git-branch', BASE_URL . 'pantallas/reportes.php#senderos'],
-                    ['Usuarios por Sendero', 'Participantes, salud, emergencia y menores', 'user', BASE_URL . 'pantallas/reporte_usuarios_sendero.php'],
+                    ['Senderos y Galeria', 'Rutas, imagenes y comportamiento general', 'git-branch', BASE_URL . 'pantallas/reportes.php#senderos', 'permission' => 'reportes.senderos_galeria'],
+                    ['Usuarios por Sendero', 'Participantes, salud, emergencia y menores', 'user', BASE_URL . 'pantallas/reporte_usuarios_sendero.php', 'permission' => 'reportes.usuarios_sendero'],
                 ],
             ],
             [
                 'label' => 'Finanzas',
                 'items' => [
-                    ['Rentabilidad por Sendero', 'Ingresos, gastos, utilidad y margen', 'trending-up', BASE_URL . 'pantallas/reporte_rentabilidad_sendero.php'],
-                    ['Rentabilidad por Fechas', 'Resumen financiero por periodo', 'calendar', BASE_URL . 'pantallas/reporte_rentabilidad_fechas.php'],
+                    ['Rentabilidad por Sendero', 'Ingresos, gastos, utilidad y margen', 'trending-up', BASE_URL . 'pantallas/reporte_rentabilidad_sendero.php', 'permission' => 'reportes.rentabilidad_sendero'],
+                    ['Rentabilidad por Fechas', 'Resumen financiero por periodo', 'calendar', BASE_URL . 'pantallas/reporte_rentabilidad_fechas.php', 'permission' => 'reportes.rentabilidad_fechas'],
                 ],
             ],
         ],
     ],
 ];
 
-$quickActions = [
-    ['Nuevo sendero', 'Crear una salida o ruta de catalogo', 'plus-circle', BASE_URL . 'mantenimientos/mantenimiento_senderos.php'],
-    ['Registrar usuario', 'Agregar o completar un participante', 'user-plus', BASE_URL . 'mantenimientos/mantenimiento_usuarios.php'],
-    ['Marcar asistencia', 'Confirmar quienes fueron al sendero', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php'],
-    ['Registrar ingresos', 'Pagos, creditos y cortesias', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php'],
-];
+$moduleGroups = admin_filter_groups($conn, $moduleGroups);
+
+$quickActions = admin_filter_items($conn, [
+    ['Nuevo sendero', 'Crear una salida o ruta de catalogo', 'plus-circle', BASE_URL . 'mantenimientos/mantenimiento_senderos.php', 'permission' => 'operaciones.senderos'],
+    ['Registrar usuario', 'Agregar o completar un participante', 'user-plus', BASE_URL . 'mantenimientos/mantenimiento_usuarios.php', 'permission' => 'usuarios.usuarios'],
+    ['Marcar asistencia', 'Confirmar quienes fueron al sendero', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php', 'permission' => 'operaciones.asistencia'],
+    ['Registrar ingresos', 'Pagos, creditos y cortesias', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
+]);
 
 $balanceTotal = (float) $stats['ingresosTotales'] - (float) $stats['gastosTotales'];
 
@@ -331,7 +387,7 @@ include_once __DIR__ . '/../componentes/encabezado.php';
                             <span class="card-label">Finanzas</span>
                             <h2>Resumen financiero</h2>
                         </div>
-                        <a href="<?= BASE_URL ?>pantallas/reporte_rentabilidad_sendero.php">Ver reporte</a>
+                        <a href="<?= BASE_URL ?>pantallas/panel_financiero.php">Abrir panel</a>
                     </div>
                     <div class="finance-grid">
                         <div>

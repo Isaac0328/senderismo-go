@@ -176,6 +176,14 @@
     border-left: 1px solid rgba(0, 0, 0, .08);
 }
 
+.admin-nav-submenu[hidden] {
+    display: none !important;
+}
+
+.admin-nav-submenu.is-open {
+    display: grid;
+}
+
 .admin-nav-subgroup {
     display: block;
     margin: 10px 0 3px;

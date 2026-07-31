@@ -8,14 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../componentes/recordar_sesion.php';
 sg_restaurar_sesion_recordada();
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
-if ((int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'operaciones.detalles';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 $pageTitle = "Mantenimiento Detalles | Senderismo Go!";
 

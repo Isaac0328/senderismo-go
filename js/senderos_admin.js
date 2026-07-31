@@ -9,7 +9,169 @@ document.addEventListener('DOMContentLoaded', () => {
     const investmentWrap = document.getElementById('investmentOptionsAdmin');
     const investmentTemplate = document.getElementById('investmentOptionTemplate');
     const addInvestmentButton = document.getElementById('addInvestmentOption');
+    const senderoForm = document.querySelector('form.senderos-form');
     const senderoSections = Array.from(document.querySelectorAll('[data-sendero-section]'));
+
+    const openSenderoSection = (element) => {
+        const section = element?.closest('[data-sendero-section]');
+        if (!section) return;
+        section.classList.remove('is-collapsed');
+        const toggle = section.querySelector('[data-sendero-section-toggle]');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    };
+
+    const reportSenderoFieldError = (field, message) => {
+        if (!field) return;
+        field.setCustomValidity(message);
+        openSenderoSection(field);
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => field.reportValidity(), 180);
+    };
+
+    if (senderoForm && investmentWrap) {
+        senderoForm.addEventListener('input', (event) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
+                event.target.setCustomValidity('');
+            }
+        });
+
+        senderoForm.addEventListener('submit', (event) => {
+            const state = senderoForm.querySelector('[name="estado"]')?.value || 'pendiente';
+            const investmentCards = Array.from(investmentWrap.querySelectorAll('[data-investment-card]'));
+            const activeCards = investmentCards.filter((card) => card.querySelector('input[name$="[activo]"]')?.checked);
+
+            if (state === 'pendiente' && activeCards.length === 0) {
+                event.preventDefault();
+                const activeField = investmentCards[0]?.querySelector('input[name$="[activo]"]');
+                reportSenderoFieldError(activeField, 'Activa al menos una inversion para este sendero.');
+                return;
+            }
+
+            for (const card of activeCards) {
+                const amountField = card.querySelector('input[name$="[monto]"]');
+                const amount = Number(amountField?.value || 0);
+                if (!amountField || !Number.isFinite(amount) || amount <= 0) {
+                    event.preventDefault();
+                    reportSenderoFieldError(amountField, 'Coloca un monto mayor a cero para esta inversion activa.');
+                    return;
+                }
+            }
+
+            if (state === 'pendiente') {
+                const senderoDate = senderoForm.querySelector('[name="fecha_sendero"]');
+                if (!senderoDate?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(senderoDate, 'Selecciona la fecha del proximo sendero.');
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const selectedDate = new Date(`${senderoDate.value}T00:00:00`);
+                if (selectedDate < today) {
+                    event.preventDefault();
+                    reportSenderoFieldError(senderoDate, 'La fecha debe ser de hoy o posterior.');
+                }
+            }
+        });
+    }
+
+    const sortableGallery = document.querySelector('[data-sortable-gallery]');
+    const galleryOrderForm = document.querySelector('[data-gallery-order-form]');
+    const gallerySaveOrder = document.querySelector('[data-gallery-save-order]');
+    const galleryOrderStatus = document.querySelector('[data-gallery-order-status]');
+
+    if (sortableGallery && galleryOrderForm) {
+        let draggedItem = null;
+
+        const galleryItems = () => Array.from(sortableGallery.querySelectorAll('[data-gallery-item]'));
+
+        const syncGalleryOrder = () => {
+            const items = galleryItems();
+            items.forEach((item, index) => {
+                const number = item.querySelector('[data-gallery-order-number]');
+                const left = item.querySelector('[data-gallery-move="left"]');
+                const right = item.querySelector('[data-gallery-move="right"]');
+                if (number) number.textContent = String(index + 1);
+                if (left) left.disabled = index === 0;
+                if (right) right.disabled = index === items.length - 1;
+            });
+        };
+
+        const markGalleryDirty = () => {
+            galleryOrderForm.classList.add('is-dirty');
+            if (gallerySaveOrder) gallerySaveOrder.disabled = false;
+            if (galleryOrderStatus) galleryOrderStatus.textContent = 'Hay cambios pendientes. Guarda el nuevo orden.';
+            syncGalleryOrder();
+        };
+
+        sortableGallery.addEventListener('dragstart', (event) => {
+            const item = event.target.closest('[data-gallery-item]');
+            if (!item) return;
+            draggedItem = item;
+            item.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.imageId || '');
+        });
+
+        sortableGallery.addEventListener('dragover', (event) => {
+            if (!draggedItem) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            const target = event.target.closest('[data-gallery-item]');
+            galleryItems().forEach((item) => item.classList.toggle('is-drag-target', item === target && item !== draggedItem));
+        });
+
+        sortableGallery.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const target = event.target.closest('[data-gallery-item]');
+            if (!draggedItem || !target || target === draggedItem) return;
+
+            const items = galleryItems();
+            const fromIndex = items.indexOf(draggedItem);
+            const targetIndex = items.indexOf(target);
+            sortableGallery.insertBefore(draggedItem, fromIndex < targetIndex ? target.nextSibling : target);
+            markGalleryDirty();
+        });
+
+        sortableGallery.addEventListener('dragend', () => {
+            galleryItems().forEach((item) => item.classList.remove('is-dragging', 'is-drag-target'));
+            draggedItem = null;
+        });
+
+        sortableGallery.addEventListener('click', (event) => {
+            const moveButton = event.target.closest('[data-gallery-move]');
+            if (moveButton) {
+                const item = moveButton.closest('[data-gallery-item]');
+                if (!item) return;
+                if (moveButton.dataset.galleryMove === 'left' && item.previousElementSibling) {
+                    sortableGallery.insertBefore(item, item.previousElementSibling);
+                    markGalleryDirty();
+                }
+                if (moveButton.dataset.galleryMove === 'right' && item.nextElementSibling) {
+                    sortableGallery.insertBefore(item.nextElementSibling, item);
+                    markGalleryDirty();
+                }
+                return;
+            }
+
+            const deleteButton = event.target.closest('[data-gallery-delete-form]');
+            if (!deleteButton) return;
+            const deleteForm = document.getElementById(deleteButton.dataset.galleryDeleteForm || '');
+            if (deleteForm && window.confirm('¿Quitar esta imagen de la galeria?')) {
+                deleteForm.submit();
+            }
+        });
+
+        galleryOrderForm.addEventListener('submit', () => {
+            if (gallerySaveOrder) {
+                gallerySaveOrder.disabled = true;
+                gallerySaveOrder.textContent = 'Guardando...';
+            }
+        });
+
+        syncGalleryOrder();
+    }
 
     senderoSections.forEach((section) => {
         const toggle = section.querySelector('[data-sendero-section-toggle]');

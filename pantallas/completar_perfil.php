@@ -19,6 +19,10 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/helpers.php';
+require_once __DIR__ . '/../componentes/pasaporte_bootstrap.php';
+
+pasaporte_bootstrap($conn);
 
 $usuarioId = (int) $_SESSION['usuario_id'];
 $senderoId = isset($_GET['sendero_id']) ? (int) $_GET['sendero_id'] : 0;
@@ -26,7 +30,7 @@ $esMiPerfil = ($perfilModo ?? '') === 'mi_perfil';
 
 function perfil_h($value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    return sg_h($value);
 }
 
 function perfil_selected(array $data, string $key, string $value): string
@@ -51,6 +55,90 @@ function perfil_media_url(?string $ruta, string $fallback): string
     return BASE_URL . ltrim($ruta, '/');
 }
 
+function perfil_table_exists(mysqli $conn, string $table): bool
+{
+    $stmt = mysqli_prepare($conn, "
+        SELECT COUNT(*) AS total
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+    ");
+    mysqli_stmt_bind_param($stmt, "s", $table);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    return (int) ($row['total'] ?? 0) > 0;
+}
+
+function perfil_nivel_senderista(mysqli $conn, int $asistidas, float $kmAcumulados): array
+{
+    $niveles = [];
+    $res = mysqli_query($conn, "
+        SELECT *
+        FROM pasaporte_niveles
+        WHERE activo = 1
+        ORDER BY min_senderos ASC, min_km ASC, orden ASC, id ASC
+    ");
+    while ($res && $row = mysqli_fetch_assoc($res)) {
+        $niveles[] = $row;
+    }
+
+    if (empty($niveles)) {
+        return [
+            'nombre' => 'Explorador inicial',
+            'texto' => 'Tu aventura apenas esta tomando forma.',
+            'icono' => 'compass',
+            'color' => '#0f7a3f',
+            'siguiente' => null,
+            'faltan_senderos' => 0,
+            'faltan_km' => 0,
+            'progreso' => 100,
+        ];
+    }
+
+    $actual = $niveles[0];
+    foreach ($niveles as $nivel) {
+        if ($asistidas >= (int) $nivel['min_senderos'] && $kmAcumulados >= (float) $nivel['min_km']) {
+            $actual = $nivel;
+        }
+    }
+
+    $siguiente = null;
+    foreach ($niveles as $nivel) {
+        $superaActual = (int) $nivel['min_senderos'] > (int) $actual['min_senderos']
+            || (float) $nivel['min_km'] > (float) $actual['min_km'];
+        $cumplido = $asistidas >= (int) $nivel['min_senderos'] && $kmAcumulados >= (float) $nivel['min_km'];
+        if ($superaActual && !$cumplido) {
+            $siguiente = $nivel;
+            break;
+        }
+    }
+
+    $faltanSenderos = $siguiente ? max(0, (int) $siguiente['min_senderos'] - $asistidas) : 0;
+    $faltanKm = $siguiente ? max(0, (float) $siguiente['min_km'] - $kmAcumulados) : 0;
+    $progreso = 100;
+    if ($siguiente) {
+        $baseSenderos = (int) $actual['min_senderos'];
+        $baseKm = (float) $actual['min_km'];
+        $senderosObjetivo = max(1, (int) $siguiente['min_senderos'] - $baseSenderos);
+        $kmObjetivo = max(1, (float) $siguiente['min_km'] - $baseKm);
+        $progresoSenderos = (($asistidas - $baseSenderos) / $senderosObjetivo) * 100;
+        $progresoKm = (($kmAcumulados - $baseKm) / $kmObjetivo) * 100;
+        $progreso = (int) min(99, max(0, min($progresoSenderos, $progresoKm)));
+    }
+
+    return [
+        'nombre' => $actual['nombre'],
+        'texto' => $actual['descripcion'] ?: 'Sigue sumando rutas y kilometros para avanzar de nivel.',
+        'icono' => $actual['icono'] ?: 'map',
+        'color' => $actual['color'] ?: '#0f7a3f',
+        'siguiente' => $siguiente,
+        'faltan_senderos' => $faltanSenderos,
+        'faltan_km' => $faltanKm,
+        'progreso' => $progreso,
+    ];
+}
+
 $stmt = mysqli_prepare($conn, "SELECT nombre, apellido, user, email, created_at, last_login FROM usuarios WHERE id = ? LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $usuarioId);
 mysqli_stmt_execute($stmt);
@@ -61,6 +149,73 @@ $stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM registros_senderos 
 mysqli_stmt_bind_param($stmt, "i", $usuarioId);
 mysqli_stmt_execute($stmt);
 $registroStats = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: ['total' => 0];
+mysqli_stmt_close($stmt);
+
+$pasaporteStats = [
+    'reservas_total' => 0,
+    'reservas_proximas' => 0,
+    'rutas_asistidas' => 0,
+    'km_asistidos' => 0,
+    'nivel_maximo' => 0,
+    'menores' => 0,
+    'creditos_activos' => 0.0,
+];
+
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT
+        COUNT(*) AS reservas_total,
+        COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN 1 ELSE 0 END), 0) AS rutas_asistidas,
+        COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN s.distancia_km ELSE 0 END), 0) AS km_asistidos,
+        COALESCE(MAX(CASE WHEN rs.asistio = 1 THEN nd.nivel_numero ELSE 0 END), 0) AS nivel_maximo,
+        COALESCE(SUM(CASE WHEN s.estado = 'pendiente' AND s.activo = 1 AND s.fecha_sendero >= CURDATE() THEN 1 ELSE 0 END), 0) AS reservas_proximas
+     FROM registros_senderos rs
+     INNER JOIN senderos s ON s.id = rs.sendero_id
+     LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
+     WHERE rs.usuario_id = ? AND rs.estado = 'registrado'"
+);
+mysqli_stmt_bind_param($stmt, "i", $usuarioId);
+mysqli_stmt_execute($stmt);
+$pasaporteStats = array_merge($pasaporteStats, mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: []);
+mysqli_stmt_close($stmt);
+
+if (perfil_table_exists($conn, 'registro_sendero_menores')) {
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT COUNT(DISTINCT rm.id) AS total
+         FROM registro_sendero_menores rm
+         INNER JOIN registros_senderos rs ON rs.id = rm.registro_id
+         WHERE rs.usuario_id = ? AND rs.estado = 'registrado'"
+    );
+    mysqli_stmt_bind_param($stmt, "i", $usuarioId);
+    mysqli_stmt_execute($stmt);
+    $rowMenores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+    mysqli_stmt_close($stmt);
+    $pasaporteStats['menores'] = (int) ($rowMenores['total'] ?? 0);
+}
+
+if (perfil_table_exists($conn, 'usuario_creditos')) {
+    $stmt = mysqli_prepare($conn, "SELECT COALESCE(SUM(saldo_disponible), 0) AS total FROM usuario_creditos WHERE usuario_id = ? AND estado = 'activo'");
+    mysqli_stmt_bind_param($stmt, "i", $usuarioId);
+    mysqli_stmt_execute($stmt);
+    $rowCreditos = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+    mysqli_stmt_close($stmt);
+    $pasaporteStats['creditos_activos'] = (float) ($rowCreditos['total'] ?? 0);
+}
+
+$proximaReserva = null;
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT s.id, s.nombre, s.fecha_sendero, s.lugar, s.provincia
+     FROM registros_senderos rs
+     INNER JOIN senderos s ON s.id = rs.sendero_id
+     WHERE rs.usuario_id = ? AND rs.estado = 'registrado' AND s.estado = 'pendiente' AND s.activo = 1 AND s.fecha_sendero >= CURDATE()
+     ORDER BY s.fecha_sendero ASC, s.nombre ASC
+     LIMIT 1"
+);
+mysqli_stmt_bind_param($stmt, "i", $usuarioId);
+mysqli_stmt_execute($stmt);
+$proximaReserva = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: null;
 mysqli_stmt_close($stmt);
 
 $detalle = [];
@@ -140,12 +295,46 @@ function perfil_fecha_historial(?string $fecha): string
 }
 
 $perfilCompleto = perfil_completo_vista($detalle);
+$camposPerfil = [
+    'telefono',
+    'rango_edad',
+    'identificacion',
+    'grupo_sanguineo',
+    'enfermedad',
+    'seguro_medico',
+    'experiencia_senderismo',
+    'via_entero',
+    'emergencia_nombre',
+    'emergencia_parentesco',
+    'emergencia_telefono',
+];
+$camposCompletos = 0;
+foreach ($camposPerfil as $campoPerfil) {
+    if (trim((string) ($detalle[$campoPerfil] ?? '')) !== '') {
+        $camposCompletos++;
+    }
+}
+if ((int) ($detalle['es_alergico'] ?? 0) !== 1 || trim((string) ($detalle['alergias_detalle'] ?? '')) !== '') {
+    $camposCompletos++;
+}
+$perfilProgreso = (int) min(100, round(($camposCompletos / (count($camposPerfil) + 1)) * 100));
 $nombreCompleto = trim((string) (($usuario['nombre'] ?? '') . ' ' . ($usuario['apellido'] ?? '')));
 $iniciales = strtoupper(substr((string) ($usuario['nombre'] ?? 'U'), 0, 1) . substr((string) ($usuario['apellido'] ?? ''), 0, 1));
 $imagenCabeceraRuta = trim((string) ($detalle['imagen_cabecera'] ?? ''));
 $tieneImagenCabecera = $imagenCabeceraRuta !== '';
 $imagenCabecera = perfil_media_url($imagenCabeceraRuta, 'imagenes/paisajes/hero.jpg');
 $imagenPerfil = trim((string) ($detalle['imagen_perfil'] ?? ''));
+$nivelSenderista = perfil_nivel_senderista($conn, (int) ($pasaporteStats['rutas_asistidas'] ?? 0), (float) ($pasaporteStats['km_asistidos'] ?? 0));
+$faltantesNivel = [];
+if ((int) ($nivelSenderista['faltan_senderos'] ?? 0) > 0) {
+    $faltantesNivel[] = (int) $nivelSenderista['faltan_senderos'] . ' ruta(s)';
+}
+if ((float) ($nivelSenderista['faltan_km'] ?? 0) > 0) {
+    $faltantesNivel[] = number_format((float) $nivelSenderista['faltan_km'], 1) . ' km';
+}
+$textoProximoNivel = $nivelSenderista['siguiente']
+    ? 'Faltan ' . ($faltantesNivel ? implode(' y ', $faltantesNivel) : 'un poco mas') . ' para ' . ($nivelSenderista['siguiente']['nombre'] ?? 'el proximo nivel')
+    : 'Nivel maximo alcanzado';
 
 $rangosEdad = ['0-18', '19-30', '31-40', '41-50', '51-60', '61+'];
 $gruposSanguineos = ['O+', 'O-', 'A+', 'A-', 'AB+', 'AB-', 'B+', 'B-'];
@@ -242,6 +431,80 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 </div>
             </details>
 
+            <?php if ($esMiPerfil): ?>
+                <section class="perfil-passport-panel" aria-label="Pasaporte del senderista">
+                    <div class="perfil-level-card" style="--passport-level-color: <?= perfil_h($nivelSenderista['color'] ?? '#0f7a3f') ?>;">
+                        <div class="perfil-level-top">
+                            <span class="perfil-level-kicker">Pasaporte senderista</span>
+                            <span class="perfil-level-icon"><i data-feather="<?= perfil_h($nivelSenderista['icono'] ?? 'map') ?>"></i></span>
+                        </div>
+                        <h2><?= perfil_h($nivelSenderista['nombre']) ?></h2>
+                        <p><?= perfil_h($nivelSenderista['texto']) ?></p>
+                        <div class="perfil-progress-block">
+                            <div class="perfil-progress-head">
+                                <strong><?= (int) $nivelSenderista['progreso'] ?>%</strong>
+                                <span><?= perfil_h($textoProximoNivel) ?></span>
+                            </div>
+                            <div class="perfil-progress-track" aria-hidden="true">
+                                <span style="width: <?= (int) $nivelSenderista['progreso'] ?>%;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perfil-metrics-grid">
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="map"></i> Rutas asistidas</span>
+                            <strong><?= (int) ($pasaporteStats['rutas_asistidas'] ?? 0) ?></strong>
+                            <small>Confirmadas por administracion</small>
+                        </article>
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="navigation"></i> Kilometros</span>
+                            <strong><?= number_format((float) ($pasaporteStats['km_asistidos'] ?? 0), 1) ?> km</strong>
+                            <small>Acumulados en rutas asistidas</small>
+                        </article>
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="activity"></i> Dificultad max.</span>
+                            <strong><?= (int) ($pasaporteStats['nivel_maximo'] ?? 0) ?>/100</strong>
+                            <small>Mayor nivel completado</small>
+                        </article>
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="calendar"></i> Proximas</span>
+                            <strong><?= (int) ($pasaporteStats['reservas_proximas'] ?? 0) ?></strong>
+                            <small>Reservas activas futuras</small>
+                        </article>
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="users"></i> Menores</span>
+                            <strong><?= (int) ($pasaporteStats['menores'] ?? 0) ?></strong>
+                            <small>Registrados bajo tu perfil</small>
+                        </article>
+                        <article class="perfil-metric-card">
+                            <span><i data-feather="credit-card"></i> Saldo a favor</span>
+                            <strong><?= sg_money($pasaporteStats['creditos_activos'] ?? 0) ?></strong>
+                            <small>Credito disponible registrado</small>
+                        </article>
+                    </div>
+
+                    <div class="perfil-next-step">
+                        <div>
+                            <span>Proximo paso</span>
+                            <?php if ($proximaReserva): ?>
+                                <strong><?= perfil_h($proximaReserva['nombre']) ?></strong>
+                                <p><?= perfil_h(sg_fecha($proximaReserva['fecha_sendero'])) ?> · <?= perfil_h(trim(($proximaReserva['lugar'] ?? '') . ', ' . ($proximaReserva['provincia'] ?? ''), ', ')) ?></p>
+                            <?php elseif (!$perfilCompleto): ?>
+                                <strong>Completa tus datos</strong>
+                                <p>Tu perfil necesita informacion de salud y emergencia para reservar con mas agilidad.</p>
+                            <?php else: ?>
+                                <strong>Explora tu proxima ruta</strong>
+                                <p>No tienes reservas futuras. Revisa los proximos senderos disponibles.</p>
+                            <?php endif; ?>
+                        </div>
+                        <a href="<?= $proximaReserva ? BASE_URL . 'pantallas/senderos_detalle.php?id=' . (int) $proximaReserva['id'] : BASE_URL . 'pantallas/senderos.php' ?>">
+                            <?= $proximaReserva ? 'Ver reserva' : 'Ver senderos' ?>
+                        </a>
+                    </div>
+                </section>
+            <?php endif; ?>
+
             <div class="perfil-user-summary">
                 <div>
                     <span>Nombre</span>
@@ -257,7 +520,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                 </div>
                 <div>
                     <span>Estado del perfil</span>
-                    <strong class="<?= $perfilCompleto ? 'perfil-status-ok' : 'perfil-status-pending' ?>"><?= $perfilCompleto ? 'Completo' : 'Pendiente' ?></strong>
+                    <strong class="<?= $perfilCompleto ? 'perfil-status-ok' : 'perfil-status-pending' ?>"><?= $perfilCompleto ? 'Completo' : 'Pendiente' ?> · <?= $perfilProgreso ?>%</strong>
                 </div>
                 <div>
                     <span>Reservas activas</span>

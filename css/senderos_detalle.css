@@ -341,10 +341,39 @@
     margin-top: 14px;
 }
 
+.terrain-subsection {
+    margin-top: 16px;
+}
+
+.terrain-subsection + .terrain-subsection {
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, .09);
+}
+
+.terrain-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 9px;
+    color: #2f3c34;
+    font-size: .78rem;
+    font-weight: 950;
+    letter-spacing: 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.terrain-subtitle svg {
+    width: 16px;
+    height: 16px;
+    color: #16834d;
+    stroke-width: 2;
+}
+
 .feature-list {
     display: grid;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 0;
 }
 
 .feature-list span {
@@ -441,11 +470,6 @@
     color: #222;
     font-size: .82rem;
     font-weight: 900;
-}
-
-.terrain-tags span:first-child {
-    background: #111;
-    color: #fff;
 }
 
 .section-head-row {

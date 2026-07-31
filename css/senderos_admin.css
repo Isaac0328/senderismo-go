@@ -954,6 +954,23 @@
     border-radius: 8px;
     background: #eee;
     aspect-ratio: 4 / 3;
+    cursor: grab;
+    border: 2px solid transparent;
+    transition: opacity .18s ease, transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.admin-gallery-item:active {
+    cursor: grabbing;
+}
+
+.admin-gallery-item.is-dragging {
+    opacity: .45;
+    transform: scale(.96);
+}
+
+.admin-gallery-item.is-drag-target {
+    border-color: #159057;
+    box-shadow: 0 0 0 3px rgba(21, 144, 87, .16);
 }
 
 .admin-gallery-item img {
@@ -963,21 +980,98 @@
     display: block;
 }
 
-.admin-gallery-item form {
+.gallery-order-number,
+.gallery-drag-handle {
     position: absolute;
-    right: 8px;
-    bottom: 8px;
+    top: 7px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    min-width: 27px;
+    height: 27px;
+    border-radius: 7px;
+    background: rgba(17, 17, 17, .82);
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 950;
+    backdrop-filter: blur(5px);
 }
 
-.admin-gallery-item button {
+.gallery-order-number { left: 7px; }
+.gallery-drag-handle { right: 7px; }
+.gallery-drag-handle svg { width: 15px; height: 15px; }
+
+.gallery-item-actions {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    bottom: 7px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gallery-item-actions button {
     border: 0;
-    border-radius: 999px;
-    padding: 6px 9px;
-    background: rgba(225, 6, 0, .9);
+    min-height: 28px;
+    border-radius: 7px;
     color: #fff;
     font-size: .75rem;
     font-weight: 900;
     cursor: pointer;
+    backdrop-filter: blur(5px);
+}
+
+.gallery-move-button {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    padding: 0;
+    background: rgba(17, 17, 17, .78);
+}
+
+.gallery-move-button svg {
+    width: 14px;
+    height: 14px;
+}
+
+.gallery-move-button:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+.gallery-remove-button {
+    margin-left: auto;
+    padding: 5px 9px;
+    background: rgba(225, 6, 0, .9);
+}
+
+.gallery-order-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px 12px;
+}
+
+.gallery-order-toolbar span {
+    color: #68736c;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.gallery-order-form.is-dirty .gallery-order-toolbar span {
+    color: #986500;
+}
+
+.gallery-order-toolbar button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.gallery-delete-form {
+    display: none;
 }
 
 .table-tools {

@@ -11,6 +11,7 @@ require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/csrf.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
+require_once __DIR__ . '/../componentes/permisos.php';
 
 sg_actualizar_senderos_vencidos($conn);
 
@@ -21,7 +22,8 @@ $cssFiles = [
     "css/mantenimiento_usuarios_senderos.css"
 ];
 $jsFiles = [
-    "js/barra_navegacion.js"
+    "js/barra_navegacion.js",
+    "js/mantenimiento_usuarios_senderos.js"
 ];
 
 function mus_h($value): string
@@ -104,11 +106,25 @@ if ($senderoSeleccionado) {
             COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
             COALESCE(u.email, rs.manual_email, '') AS email,
             COALESCE(u.estado, 1) AS usuario_estado,
-            COALESCE(NULLIF(TRIM(du.telefono), ''), NULLIF(TRIM(rs.manual_telefono), ''), '') AS telefono,
+            COALESCE(NULLIF(TRIM(du.telefono), ''), NULLIF(TRIM(dup.telefono), ''), NULLIF(TRIM(rs.manual_telefono), ''), '') AS telefono,
+            COALESCE(du.rango_edad, dup.rango_edad, '') AS rango_edad,
+            COALESCE(du.identificacion, dup.identificacion, '') AS identificacion,
+            COALESCE(du.es_alergico, dup.es_alergico, 0) AS es_alergico,
+            COALESCE(du.alergias_detalle, dup.alergias_detalle, '') AS alergias_detalle,
+            COALESCE(du.grupo_sanguineo, dup.grupo_sanguineo, '') AS grupo_sanguineo,
+            COALESCE(du.enfermedad, dup.enfermedad, '') AS enfermedad,
+            COALESCE(du.seguro_medico, dup.seguro_medico, '') AS seguro_medico,
+            COALESCE(du.experiencia_senderismo, dup.experiencia_senderismo, '') AS experiencia_senderismo,
+            COALESCE(du.via_entero, dup.via_entero, '') AS via_entero,
+            COALESCE(du.referido_nombre, dup.referido_nombre, '') AS referido_nombre,
+            COALESCE(du.emergencia_nombre, dup.emergencia_nombre, '') AS emergencia_nombre,
+            COALESCE(du.emergencia_parentesco, dup.emergencia_parentesco, '') AS emergencia_parentesco,
+            COALESCE(du.emergencia_telefono, dup.emergencia_telefono, '') AS emergencia_telefono,
             rs.registro_origen
         FROM registros_senderos rs
         LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
+        LEFT JOIN detalles_usuarios dup ON dup.usuario_id = u.id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         WHERE rs.sendero_id = ?
         ORDER BY
@@ -172,6 +188,38 @@ foreach ($registros as $registro) {
     } else {
         $cancelados++;
     }
+}
+
+$puedeMantenerUsuarios = function_exists('sg_has_permission_action')
+    ? sg_has_permission_action($conn, 'usuarios.usuarios', 'editar')
+    : (function_exists('sg_has_permission')
+        ? sg_has_permission($conn, 'usuarios.usuarios')
+        : (int) ($_SESSION['usuario_rol_id'] ?? 0) === 1);
+$detallesUsuariosModal = [];
+foreach ($registros as $registro) {
+    $detallesUsuariosModal[(string) $registro['registro_id']] = [
+        'usuario_id' => (int) $registro['usuario_id'],
+        'nombre' => trim((string) $registro['nombre'] . ' ' . (string) $registro['apellido']),
+        'usuario' => (string) $registro['user'],
+        'email' => (string) $registro['email'],
+        'telefono' => (string) $registro['telefono'],
+        'rango_edad' => (string) $registro['rango_edad'],
+        'identificacion' => (string) $registro['identificacion'],
+        'grupo_sanguineo' => (string) $registro['grupo_sanguineo'],
+        'es_alergico' => (int) $registro['es_alergico'] === 1 ? 'Si' : 'No',
+        'alergias_detalle' => (string) $registro['alergias_detalle'],
+        'enfermedad' => (string) $registro['enfermedad'],
+        'seguro_medico' => (string) $registro['seguro_medico'],
+        'experiencia_senderismo' => (string) $registro['experiencia_senderismo'],
+        'via_entero' => (string) $registro['via_entero'],
+        'referido_nombre' => (string) $registro['referido_nombre'],
+        'emergencia_nombre' => (string) $registro['emergencia_nombre'],
+        'emergencia_parentesco' => (string) $registro['emergencia_parentesco'],
+        'emergencia_telefono' => (string) $registro['emergencia_telefono'],
+        'inversion' => (string) ($registro['inversion_nombre'] ?: 'Sin inversion'),
+        'registro' => mus_fecha($registro['fecha_registro'], true),
+        'es_temporal' => (int) $registro['usuario_id'] <= 0,
+    ];
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -278,7 +326,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <?php $estaActivo = $registro['estado_registro'] === 'registrado'; ?>
                                     <tr>
                                         <td>
-                                            <strong><?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?></strong>
+                                            <button type="button" class="mus-user-link" data-user-detail-trigger="<?= (int) $registro['registro_id'] ?>">
+                                                <?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>
+                                            </button>
                                             <span>@<?= mus_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
                                         </td>
                                         <td>
@@ -311,7 +361,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 </form>
 
                                                 <?php if (!$estaActivo): ?>
-                                                    <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" onsubmit="return confirm('Eliminar permanentemente este registro cancelado?');">
+                                                    <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" data-delete-user-form data-user-name="<?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                                         <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
@@ -333,7 +383,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <article class="mus-user-card">
                                 <div class="mus-user-head">
                                     <div>
-                                        <strong><?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?></strong>
+                                        <button type="button" class="mus-user-link" data-user-detail-trigger="<?= (int) $registro['registro_id'] ?>">
+                                            <?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>
+                                        </button>
                                         <span>@<?= mus_h($registro['user']) ?></span>
                                     </div>
                                     <span class="mus-state <?= $estaActivo ? 'active' : 'cancelled' ?>">
@@ -354,7 +406,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         </button>
                                     </form>
                                     <?php if (!$estaActivo): ?>
-                                        <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php">
+                                        <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php" data-delete-user-form data-user-name="<?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="registro_id" value="<?= (int) $registro['registro_id'] ?>">
                                             <input type="hidden" name="sendero_id" value="<?= (int) $senderoId ?>">
@@ -461,93 +513,66 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </form>
             </dialog>
+
+            <dialog class="mus-modal mus-detail-dialog" data-user-detail-modal>
+                <section class="mus-modal-box">
+                    <div class="mus-modal-head">
+                        <div>
+                            <span>Ficha del participante</span>
+                            <h2 data-detail-name>Detalles del usuario</h2>
+                            <p class="mus-detail-subtitle" data-detail-account></p>
+                        </div>
+                        <button type="button" class="mus-modal-close" data-close-user-detail aria-label="Cerrar">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="mus-detail-sections">
+                        <section>
+                            <h3>Contacto y cuenta</h3>
+                            <div class="mus-detail-grid" data-detail-contact></div>
+                        </section>
+                        <section>
+                            <h3>Salud y experiencia</h3>
+                            <div class="mus-detail-grid" data-detail-health></div>
+                        </section>
+                        <section>
+                            <h3>Contacto de emergencia</h3>
+                            <div class="mus-detail-grid" data-detail-emergency></div>
+                        </section>
+                    </div>
+
+                    <div class="mus-modal-actions">
+                        <button type="button" class="secondary" data-close-user-detail>Cerrar</button>
+                        <?php if ($puedeMantenerUsuarios): ?>
+                            <a class="mus-maintenance-link" href="#" data-user-maintenance-link data-base-url="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios.php">
+                                <i data-feather="settings"></i>
+                                Mantenimiento
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            </dialog>
+
+            <dialog class="mus-modal mus-confirm-dialog" data-delete-user-modal>
+                <section class="mus-modal-box">
+                    <div class="mus-confirm-icon"><i data-feather="trash-2"></i></div>
+                    <div class="mus-confirm-copy">
+                        <span>Eliminar registro</span>
+                        <h2>Eliminar este usuario del sendero?</h2>
+                        <p>Estas a punto de eliminar a <strong data-delete-user-name></strong> de este sendero. Esta accion no se puede deshacer.</p>
+                    </div>
+                    <div class="mus-modal-actions">
+                        <button type="button" class="secondary" data-cancel-delete-user>Cancelar</button>
+                        <button type="button" class="danger-confirm" data-confirm-delete-user>Eliminar</button>
+                    </div>
+                </section>
+            </dialog>
+
+            <script type="application/json" id="musUserDetailsData"><?= json_encode($detallesUsuariosModal, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
         <?php endif; ?>
     </section>
 </main>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var modal = document.querySelector('[data-participante-modal]');
-    var openButton = document.querySelector('[data-open-participante]');
-    var closeButtons = document.querySelectorAll('[data-close-participante]');
-    var radios = document.querySelectorAll('input[name="tipo_participante"]');
-    var existingField = document.querySelector('.mus-existing-field');
-    var newFields = document.querySelector('.mus-new-fields');
-
-    function syncMode() {
-        var selected = document.querySelector('input[name="tipo_participante"]:checked');
-        var isNew = selected && selected.value === 'nuevo';
-        if (existingField) {
-            existingField.style.display = isNew ? 'none' : 'grid';
-        }
-        if (newFields) {
-            newFields.style.display = isNew ? 'grid' : 'none';
-        }
-    }
-
-    function initUserSearch() {
-        var rootSearch = document.querySelector('[data-user-search-root]');
-        if (!rootSearch) return;
-        var input = rootSearch.querySelector('[data-user-search-input]');
-        var hidden = rootSearch.querySelector('[data-user-id-input]');
-        var results = rootSearch.querySelector('[data-user-results]');
-        var empty = rootSearch.querySelector('[data-user-empty]');
-        var options = Array.prototype.slice.call(rootSearch.querySelectorAll('[data-user-option]'));
-        if (!input || !hidden || !results) return;
-
-        function render(clearSelection) {
-            var term = input.value.trim().toLowerCase();
-            var visible = 0;
-            if (clearSelection) {
-                hidden.value = '';
-            }
-            options.forEach(function (option) {
-                var matches = term === '' || (option.dataset.userSearch || '').indexOf(term) !== -1;
-                option.hidden = !matches;
-                if (matches) visible++;
-            });
-            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
-        }
-
-        options.forEach(function (option) {
-            option.addEventListener('click', function () {
-                hidden.value = option.dataset.userId || '';
-                input.value = option.dataset.userLabel || option.textContent.trim();
-                options.forEach(function (item) {
-                    item.hidden = item !== option;
-                });
-                if (empty) empty.style.display = 'none';
-            });
-        });
-
-        input.addEventListener('input', function () { render(true); });
-        input.addEventListener('focus', function () { render(false); });
-        render(false);
-    }
-
-    if (openButton && modal) {
-        openButton.addEventListener('click', function () {
-            if (typeof modal.showModal === 'function') {
-                modal.showModal();
-            } else {
-                modal.setAttribute('open', 'open');
-            }
-        });
-    }
-
-    closeButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            modal.close();
-        });
-    });
-
-    radios.forEach(function (radio) {
-        radio.addEventListener('change', syncMode);
-    });
-    syncMode();
-    initUserSearch();
-});
-</script>
 
 <?php
 mysqli_close($conn);

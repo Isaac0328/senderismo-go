@@ -211,6 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const requestedEditId = new URLSearchParams(window.location.search).get('edit');
+    if (requestedEditId) {
+        const requestedRow = rows.find((row) => row.getAttribute('data-id') === requestedEditId);
+        requestedRow?.querySelector('.edit-btn')?.click();
+    }
+
     // Limpiar
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {

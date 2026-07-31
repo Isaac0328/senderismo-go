@@ -8,14 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../componentes/recordar_sesion.php';
 sg_restaurar_sesion_recordada();
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
-if ((int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'operaciones.senderos';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 $pageTitle = "Mantenimiento Senderos | Senderismo Go!";
 
@@ -32,6 +26,8 @@ $jsFiles = [
 
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+require_once __DIR__ . '/../componentes/helpers.php';
+require_once __DIR__ . '/../componentes/senderos_admin_data.php';
 
 sg_actualizar_senderos_vencidos($conn);
 
@@ -39,114 +35,34 @@ function img_admin_src(?string $ruta): string
 {
     $ruta = trim((string) $ruta);
     if ($ruta !== '' && file_exists(__DIR__ . '/../' . $ruta)) {
-        return BASE_URL . htmlspecialchars($ruta);
+        return BASE_URL . sg_h($ruta);
     }
     return '';
 }
 
 function fecha_admin_visual(?string $fecha): string
 {
-    $fecha = trim((string) $fecha);
-    if ($fecha === '') {
-        return '';
-    }
-
-    $dt = DateTime::createFromFormat('Y-m-d', $fecha);
-    return $dt ? $dt->format('d/m/Y') : '';
+    return sg_fecha($fecha, false, '');
 }
 
 function minutos_horas(int|string|null $minutos): array
 {
-    $total = max(0, (int) ($minutos ?? 0));
-    return [intdiv($total, 60), $total % 60];
+    return sg_minutes_parts($minutos);
 }
 
 function tiempo_legible(int|string|null $minutos): string
 {
-    if ($minutos === null || $minutos === '') {
-        return 'Tiempo pendiente';
-    }
-
-    $total = max(0, (int) $minutos);
-    $horas = intdiv($total, 60);
-    $mins = $total % 60;
-
-    if ($horas > 0 && $mins > 0) {
-        return $horas . ' h ' . $mins . ' min';
-    }
-
-    if ($horas > 0) {
-        return $horas . ' h';
-    }
-
-    return $mins . ' min';
+    return sg_time_label($minutos);
 }
 
-$niveles = [];
-$resNiveles = mysqli_query($conn, "SELECT id, nombre, nivel_numero FROM niveles_dificultad WHERE activo = 1 ORDER BY nivel_numero ASC, id ASC");
-if ($resNiveles) {
-    while ($row = mysqli_fetch_assoc($resNiveles)) {
-        $niveles[] = $row;
-    }
-}
-
-$terrenos = [];
-$resTerrenos = mysqli_query($conn, "SELECT id, nombre FROM tipos_terreno WHERE activo = 1 ORDER BY nombre ASC");
-if ($resTerrenos) {
-    while ($row = mysqli_fetch_assoc($resTerrenos)) {
-        $terrenos[] = $row;
-    }
-}
-
-$caminosVehiculo = [];
-$resCaminos = mysqli_query($conn, "SELECT id, nombre FROM tipos_camino_vehiculo WHERE activo = 1 ORDER BY nombre ASC");
-if ($resCaminos) {
-    while ($row = mysqli_fetch_assoc($resCaminos)) {
-        $caminosVehiculo[] = $row;
-    }
-}
-
-$anotaciones = [];
-$resAnotaciones = mysqli_query($conn, "SELECT id, nombre, descripcion FROM anotaciones_importantes WHERE activo = 1 ORDER BY nombre ASC");
-if ($resAnotaciones) {
-    while ($row = mysqli_fetch_assoc($resAnotaciones)) {
-        $anotaciones[] = $row;
-    }
-}
-
-$incluyeItems = [];
-$resIncluye = mysqli_query($conn, "SELECT id, nombre, descripcion FROM elementos_incluidos WHERE activo = 1 ORDER BY nombre ASC");
-if ($resIncluye) {
-    while ($row = mysqli_fetch_assoc($resIncluye)) {
-        $incluyeItems[] = $row;
-    }
-}
-
-$puntosCatalogo = [];
-$resPuntosCatalogo = mysqli_query($conn, "SELECT id, nombre, direccion_referencia, url_mapa FROM puntos_encuentro WHERE activo = 1 ORDER BY nombre ASC");
-if ($resPuntosCatalogo) {
-    while ($row = mysqli_fetch_assoc($resPuntosCatalogo)) {
-        $puntosCatalogo[] = $row;
-    }
-}
-
-$senderos = [];
-$sqlSenderos = "
-    SELECT s.*, nd.nombre AS nivel_nombre,
-           tc.nombre AS camino_nombre,
-           (SELECT COUNT(*) FROM sendero_imagenes si WHERE si.sendero_id = s.id AND si.activo = 1) AS total_imagenes,
-           (SELECT COUNT(*) FROM sendero_puntos_encuentro sp WHERE sp.sendero_id = s.id AND sp.activo = 1) AS total_puntos
-    FROM senderos s
-    INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
-    LEFT JOIN tipos_camino_vehiculo tc ON tc.id = s.tipo_camino_vehiculo_id
-    ORDER BY s.fecha_sendero IS NULL ASC, s.fecha_sendero DESC, s.id DESC
-";
-$resSenderos = mysqli_query($conn, $sqlSenderos);
-if ($resSenderos) {
-    while ($row = mysqli_fetch_assoc($resSenderos)) {
-        $senderos[] = $row;
-    }
-}
+$catalogosSenderos = sg_senderos_catalogos_mantenimiento($conn);
+$niveles = $catalogosSenderos['niveles'];
+$terrenos = $catalogosSenderos['terrenos'];
+$caminosVehiculo = $catalogosSenderos['caminosVehiculo'];
+$anotaciones = $catalogosSenderos['anotaciones'];
+$incluyeItems = $catalogosSenderos['incluyeItems'];
+$puntosCatalogo = $catalogosSenderos['puntosCatalogo'];
+$senderos = sg_senderos_listado_mantenimiento($conn);
 
 $editId = (int) ($_GET['edit'] ?? 0);
 $edit = null;
@@ -223,6 +139,64 @@ if ($editId > 0) {
     }
 }
 
+$oldSenderoPayload = $_SESSION['senderos_old_input'] ?? null;
+unset($_SESSION['senderos_old_input']);
+$oldSenderoInput = [];
+if (is_array($oldSenderoPayload)
+    && (int) ($oldSenderoPayload['id'] ?? -1) === $editId
+    && is_array($oldSenderoPayload['data'] ?? null)) {
+    $oldSenderoInput = $oldSenderoPayload['data'];
+}
+
+if (!empty($oldSenderoInput)) {
+    $edit = is_array($edit) ? $edit : [];
+    $oldScalarFields = [
+        'nombre', 'fecha_sendero', 'lugar', 'provincia', 'descripcion_corta', 'descripcion',
+        'nivel_dificultad_id', 'tiempo_ida_vehiculo_min', 'tiempo_regreso_vehiculo_min',
+        'tipo_camino_vehiculo_id', 'tiempo_sendero_min', 'distancia_km', 'desnivel_mts',
+        'cobertura_senal_pct', 'estado',
+    ];
+    foreach ($oldScalarFields as $field) {
+        if (array_key_exists($field, $oldSenderoInput)) {
+            $edit[$field] = $oldSenderoInput[$field];
+        }
+    }
+    $edit['id'] = $editId;
+    $edit['activo'] = isset($oldSenderoInput['activo']) ? 1 : 0;
+
+    $editTerrenos = array_values(array_unique(array_filter(array_map('intval', (array) ($oldSenderoInput['tipos_terreno'] ?? [])))));
+    $editAnotaciones = array_values(array_unique(array_filter(array_map('intval', (array) ($oldSenderoInput['anotaciones'] ?? [])))));
+    $editAnotacionesOrden = [];
+    foreach ($editAnotaciones as $position => $anotacionId) {
+        $editAnotacionesOrden[$anotacionId] = $position + 1;
+    }
+
+    $editInversiones = [];
+    foreach ((array) ($oldSenderoInput['inversiones'] ?? []) as $index => $oldInvestment) {
+        if (!is_array($oldInvestment)) {
+            continue;
+        }
+        $oldIncludes = array_values(array_unique(array_filter(array_map('intval', (array) ($oldInvestment['incluye'] ?? [])))));
+        $editInversiones[] = [
+            'id' => (int) ($oldInvestment['id'] ?? 0),
+            'nombre' => (string) ($oldInvestment['nombre'] ?? ''),
+            'descripcion' => (string) ($oldInvestment['descripcion'] ?? ''),
+            'monto' => (string) ($oldInvestment['monto'] ?? ''),
+            'fecha_limite_pago' => (string) ($oldInvestment['fecha_limite_pago'] ?? ''),
+            'orden' => max(1, (int) ($oldInvestment['orden'] ?? ((int) $index + 1))),
+            'activo' => isset($oldInvestment['activo']) ? 1 : 0,
+            'incluye_ids_array' => $oldIncludes,
+        ];
+    }
+
+    $editPuntos = [];
+    foreach (array_slice((array) ($oldSenderoInput['puntos'] ?? []), 0, 2) as $oldPoint) {
+        if (is_array($oldPoint)) {
+            $editPuntos[] = $oldPoint;
+        }
+    }
+}
+
 [$idaHoras, $idaMinutos] = minutos_horas($edit['tiempo_ida_vehiculo_min'] ?? null);
 [$regresoHoras, $regresoMinutos] = minutos_horas($edit['tiempo_regreso_vehiculo_min'] ?? null);
 [$senderoHoras, $senderoMinutos] = minutos_horas($edit['tiempo_sendero_min'] ?? null);
@@ -268,6 +242,7 @@ function ordenar_items_modal(array $items, array $seleccionados): array
 }
 
 $anotacionesOrdenadas = ordenar_items_modal($anotaciones, $editAnotaciones);
+$isEditingSendero = $editId > 0;
 
 include_once __DIR__ . '/../componentes/encabezado.php';
 include_once __DIR__ . '/../componentes/barra_navegacion.php';
@@ -300,10 +275,10 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <section class="senderos-form-card">
             <div class="senderos-card-head">
                 <div>
-                    <h2 id="formTitle"><?= $edit ? 'Editar sendero' : 'Nuevo sendero' ?></h2>
+                    <h2 id="formTitle"><?= $isEditingSendero ? 'Editar sendero' : 'Nuevo sendero' ?></h2>
                     <p>Los campos con * son obligatorios. Las imagenes se guardan en <strong>imagenes/senderos</strong>.</p>
                 </div>
-                <?php if ($edit): ?>
+                <?php if ($isEditingSendero): ?>
                     <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_senderos.php" class="clear-edit-link">Nuevo sendero</a>
                 <?php endif; ?>
             </div>
@@ -715,7 +690,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </label>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary"><?= $edit ? 'Actualizar sendero' : 'Guardar sendero' ?></button>
+                        <button type="submit" class="btn-primary"><?= $isEditingSendero ? 'Actualizar sendero' : 'Guardar sendero' ?></button>
                         <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_senderos.php" class="btn-secondary">Limpiar</a>
                     </div>
                 </div>
@@ -836,7 +811,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </form>
         </section>
 
-        <?php if ($edit): ?>
+        <?php if ($isEditingSendero): ?>
             <?php
             $imagenesBase = [
                 [
@@ -884,27 +859,46 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </section>
         <?php endif; ?>
 
-        <?php if ($edit && !empty($editGaleria)): ?>
+        <?php if ($isEditingSendero && !empty($editGaleria)): ?>
             <section class="senderos-form-card gallery-admin-card">
                 <div class="senderos-card-head">
                     <div>
                         <h2>Galeria actual</h2>
-                        <p>Estas imagenes se muestran en el detalle del sendero.</p>
+                        <p>Arrastra las imagenes o usa las flechas para definir el orden en que se mostraran.</p>
                     </div>
                 </div>
-                <div class="admin-gallery">
-                    <?php foreach ($editGaleria as $img): ?>
-                        <div class="admin-gallery-item">
-                            <img src="<?= img_admin_src($img['ruta_imagen']) ?>" alt="<?= htmlspecialchars($img['titulo'] ?? 'Imagen del sendero') ?>">
-                            <form method="POST" action="<?= BASE_URL ?>procesos/proceso_senderos.php">
-                                <input type="hidden" name="action" value="delete_image">
-                                <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
-                                <input type="hidden" name="image_id" value="<?= (int) $img['id'] ?>">
-                                <button type="submit">Quitar</button>
-                            </form>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                <form method="POST" action="<?= BASE_URL ?>procesos/proceso_senderos.php" class="gallery-order-form" data-gallery-order-form>
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="reorder_images">
+                    <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
+                    <div class="admin-gallery" data-sortable-gallery>
+                        <?php foreach ($editGaleria as $index => $img): ?>
+                            <article class="admin-gallery-item" draggable="true" data-gallery-item data-image-id="<?= (int) $img['id'] ?>">
+                                <input type="hidden" name="gallery_order[]" value="<?= (int) $img['id'] ?>">
+                                <img src="<?= img_admin_src($img['ruta_imagen']) ?>" alt="<?= htmlspecialchars($img['titulo'] ?? 'Imagen del sendero') ?>">
+                                <span class="gallery-order-number" data-gallery-order-number><?= $index + 1 ?></span>
+                                <span class="gallery-drag-handle" title="Arrastrar para ordenar" aria-hidden="true"><i data-feather="move"></i></span>
+                                <div class="gallery-item-actions">
+                                    <button type="button" class="gallery-move-button" data-gallery-move="left" aria-label="Mover imagen a la izquierda"><i data-feather="arrow-left"></i></button>
+                                    <button type="button" class="gallery-move-button" data-gallery-move="right" aria-label="Mover imagen a la derecha"><i data-feather="arrow-right"></i></button>
+                                    <button type="button" class="gallery-remove-button" data-gallery-delete-form="deleteGalleryImage<?= (int) $img['id'] ?>">Quitar</button>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="gallery-order-toolbar">
+                        <span data-gallery-order-status>El orden actual esta guardado.</span>
+                        <button type="submit" class="btn-primary" data-gallery-save-order disabled>Guardar orden</button>
+                    </div>
+                </form>
+                <?php foreach ($editGaleria as $img): ?>
+                    <form id="deleteGalleryImage<?= (int) $img['id'] ?>" method="POST" action="<?= BASE_URL ?>procesos/proceso_senderos.php" class="gallery-delete-form">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete_image">
+                        <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
+                        <input type="hidden" name="image_id" value="<?= (int) $img['id'] ?>">
+                    </form>
+                <?php endforeach; ?>
             </section>
         <?php endif; ?>
 

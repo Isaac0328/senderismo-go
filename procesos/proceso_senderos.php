@@ -1,20 +1,26 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in']) || (int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'operaciones.senderos';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['senderos_error'] = "Metodo no permitido.";
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_senderos.php");
     exit;
+}
+
+if (($_POST['action'] ?? '') === 'save') {
+    $_SESSION['senderos_old_input'] = [
+        'id' => (int) ($_POST['id'] ?? 0),
+        'data' => $_POST,
+    ];
 }
 csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_senderos.php", 'senderos_error');
 
@@ -36,15 +42,7 @@ function redirect_senderos(mysqli $conn, ?int $editId = null): void
 
 function slugify_sendero(string $text): string
 {
-    $map = [
-        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
-        'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ñ' => 'n'
-    ];
-    $text = strtr($text, $map);
-    $text = strtolower($text);
-    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
-    $text = trim((string) $text, '-');
-    return $text !== '' ? $text : 'sendero';
+    return sg_slugify($text, 'sendero');
 }
 
 function unique_sendero_slug(mysqli $conn, string $nombre, int $id): string
@@ -72,88 +70,60 @@ function unique_sendero_slug(mysqli $conn, string $nombre, int $id): string
 
 function save_uploaded_image(array $file, string $slug, string $prefix): ?string
 {
-    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-        return null;
-    }
-
-    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-        throw new RuntimeException("No se pudo cargar una imagen.");
-    }
-
-    $tmp = $file['tmp_name'] ?? '';
-    if (!is_uploaded_file($tmp) || getimagesize($tmp) === false) {
-        throw new RuntimeException("El archivo cargado no es una imagen valida.");
-    }
-
-    $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
-    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-    if (!in_array($ext, $allowed, true)) {
-        throw new RuntimeException("Solo se permiten imagenes JPG, PNG o WEBP.");
-    }
-
-    $folder = __DIR__ . '/../imagenes/senderos/' . $slug;
-    if (!is_dir($folder) && !mkdir($folder, 0775, true)) {
-        throw new RuntimeException("No se pudo crear la carpeta del sendero.");
-    }
-
-    $filename = $prefix . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-    $dest = $folder . '/' . $filename;
-
-    if (!move_uploaded_file($tmp, $dest)) {
-        throw new RuntimeException("No se pudo guardar la imagen cargada.");
-    }
-
-    return 'imagenes/senderos/' . $slug . '/' . $filename;
+    return sg_save_uploaded_image($file, 'imagenes/senderos/' . $slug, $prefix);
 }
 
 function uploaded_files_array(string $field): array
 {
-    if (empty($_FILES[$field]) || !is_array($_FILES[$field]['name'])) {
-        return [];
-    }
-
-    $files = [];
-    $count = count($_FILES[$field]['name']);
-
-    for ($i = 0; $i < $count; $i++) {
-        $files[] = [
-            'name' => $_FILES[$field]['name'][$i],
-            'type' => $_FILES[$field]['type'][$i],
-            'tmp_name' => $_FILES[$field]['tmp_name'][$i],
-            'error' => $_FILES[$field]['error'][$i],
-            'size' => $_FILES[$field]['size'][$i],
-        ];
-    }
-
-    return $files;
+    return sg_uploaded_files_array($field);
 }
 
 function normalizar_fecha_sendero(string $fechaIso, string $fechaVisual = ''): string
 {
-    $fechaVisual = trim($fechaVisual);
-
-    if ($fechaVisual !== '') {
-        $dt = DateTime::createFromFormat('d/m/Y', $fechaVisual);
-        $errores = DateTime::getLastErrors();
-        $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
-        if ($dt && $sinErrores) {
-            return $dt->format('Y-m-d');
-        }
-        return '';
-    }
-
-    $fechaIso = trim($fechaIso);
-    $dt = DateTime::createFromFormat('Y-m-d', $fechaIso);
-    $errores = DateTime::getLastErrors();
-    $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
-    if ($dt && $sinErrores) {
-        return $dt->format('Y-m-d');
-    }
-
-    return '';
+    return sg_fecha_visual_a_sql($fechaIso, $fechaVisual);
 }
 
 try {
+    if ($action === 'reorder_images') {
+        $orderIds = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['gallery_order'] ?? [])))));
+        if ($id <= 0 || empty($orderIds)) {
+            $_SESSION['senderos_error'] = "No se recibio un orden de galeria valido.";
+            redirect_senderos($conn, $id);
+        }
+
+        $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_imagenes WHERE sendero_id = ? AND activo = 1 ORDER BY orden ASC, id ASC");
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $activeIds = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $activeIds[] = (int) $row['id'];
+        }
+        mysqli_stmt_close($stmt);
+
+        $received = $orderIds;
+        $expected = $activeIds;
+        sort($received);
+        sort($expected);
+        if ($received !== $expected) {
+            $_SESSION['senderos_error'] = "La galeria cambio mientras se organizaba. Recarga la pagina e intenta nuevamente.";
+            redirect_senderos($conn, $id);
+        }
+
+        mysqli_begin_transaction($conn);
+        $stmt = mysqli_prepare($conn, "UPDATE sendero_imagenes SET orden = ? WHERE id = ? AND sendero_id = ? AND activo = 1");
+        foreach ($orderIds as $index => $imageId) {
+            $order = $index + 1;
+            mysqli_stmt_bind_param($stmt, "iii", $order, $imageId, $id);
+            mysqli_stmt_execute($stmt);
+        }
+        mysqli_stmt_close($stmt);
+        mysqli_commit($conn);
+
+        $_SESSION['senderos_success'] = "Orden de la galeria actualizado.";
+        redirect_senderos($conn, $id);
+    }
+
     if ($action === 'delete_image') {
         $imageId = (int) ($_POST['image_id'] ?? 0);
         if ($imageId <= 0) {
@@ -500,6 +470,7 @@ try {
 
     mysqli_commit($conn);
 
+    unset($_SESSION['senderos_old_input']);
     $_SESSION['senderos_success'] = $id > 0 ? "Sendero actualizado correctamente." : "Sendero creado correctamente.";
     redirect_senderos($conn, $senderoId);
 } catch (Throwable $e) {

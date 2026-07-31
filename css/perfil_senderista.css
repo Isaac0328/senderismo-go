@@ -282,6 +282,219 @@
     margin: 0;
 }
 
+.perfil-passport-panel {
+    display: grid;
+    grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr);
+    gap: 14px;
+    margin: 0 0 20px;
+}
+
+.perfil-level-card,
+.perfil-metric-card,
+.perfil-next-step {
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .08);
+}
+
+.perfil-level-card {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: 18px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--passport-level-color, #0f7a3f), #000 38%), color-mix(in srgb, var(--passport-level-color, #0f7a3f), #000 8%)),
+        url("../imagenes/paisajes/hero.jpg") center/cover;
+    color: #fff;
+}
+
+.perfil-level-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.perfil-level-icon {
+    display: inline-grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+}
+
+.perfil-level-icon svg {
+    width: 21px;
+    height: 21px;
+    stroke-width: 2.5;
+}
+
+.perfil-level-kicker {
+    display: inline-flex;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-level-card h2 {
+    margin: 18px 0 8px;
+    color: #fff;
+    font-size: clamp(1.55rem, 3vw, 2.4rem);
+    line-height: 1;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-level-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, .86);
+    line-height: 1.45;
+}
+
+.perfil-progress-block {
+    margin-top: 20px;
+}
+
+.perfil-progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+}
+
+.perfil-progress-head strong {
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 950;
+}
+
+.perfil-progress-head span {
+    color: rgba(255, 255, 255, .82);
+    font-size: .78rem;
+    font-weight: 850;
+    line-height: 1.3;
+    text-align: right;
+}
+
+.perfil-progress-track {
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .22);
+}
+
+.perfil-progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #fff;
+}
+
+.perfil-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.perfil-metric-card {
+    padding: 14px;
+}
+
+.perfil-metric-card span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #656565;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-metric-card svg {
+    width: 15px;
+    height: 15px;
+    color: #e10600;
+    stroke-width: 2.4;
+}
+
+.perfil-metric-card strong {
+    display: block;
+    margin-top: 9px;
+    color: #111;
+    font-size: 1.3rem;
+    font-weight: 950;
+    line-height: 1.05;
+}
+
+.perfil-metric-card small {
+    display: block;
+    margin-top: 6px;
+    color: #666;
+    font-size: .76rem;
+    line-height: 1.3;
+}
+
+.perfil-next-step {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    background: #f8faf7;
+}
+
+.perfil-next-step span {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 5px;
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: rgba(225, 6, 0, .10);
+    color: #b90000;
+    font-size: .7rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-next-step strong {
+    display: block;
+    color: #111;
+    font-size: 1rem;
+    font-weight: 950;
+}
+
+.perfil-next-step p {
+    margin: 4px 0 0;
+    color: #666;
+    line-height: 1.35;
+}
+
+.perfil-next-step a {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border-radius: 999px;
+    padding: 0 16px;
+    background: #111;
+    color: #fff;
+    font-weight: 950;
+    text-decoration: none;
+}
+
 .perfil-user-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -816,6 +1029,23 @@
     .perfil-grid,
     .perfil-history-list {
         grid-template-columns: 1fr;
+    }
+
+    .perfil-passport-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .perfil-metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .perfil-next-step {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .perfil-next-step a {
+        width: 100%;
     }
 
     .perfil-actions {

@@ -20,6 +20,7 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
 
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+require_once __DIR__ . '/../componentes/configuracion_sitio.php';
 
 sg_actualizar_senderos_vencidos($conn);
 
@@ -192,6 +193,14 @@ while ($row = mysqli_fetch_assoc($resInversiones)) {
 }
 mysqli_stmt_close($stmt);
 
+$siteConfig = sg_site_config($conn);
+$montosInversion = array_map(static fn(array $item): float => (float) ($item['monto'] ?? 0), $inversiones);
+$montoMinimoInversion = $montosInversion ? min($montosInversion) : 0.0;
+$montoMaximoInversion = $montosInversion ? max($montosInversion) : 0.0;
+$mostrarAlertaInversion = (int) ($siteConfig['alerta_inversion_economica_activa'] ?? 1) === 1
+    && count($inversiones) > 1
+    && $montoMaximoInversion > $montoMinimoInversion;
+
 $pageTitle = "Registro de Sendero | Senderismo Go!";
 $cssFiles = [
     "css/global.css",
@@ -283,8 +292,9 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         $nombreOpcional = trim((string) ($inversion['nombre'] ?? ''));
                         $mostrarNombreOpcional = $nombreOpcional !== '' && strcasecmp($nombreOpcional, $tituloInversion) !== 0;
                         ?>
+                        <?php $esInversionEconomica = $mostrarAlertaInversion && (float) $inversion['monto'] === $montoMinimoInversion; ?>
                         <label class="investment-choice-card">
-                            <input type="radio" name="inversion_id" value="<?= (int) $inversion['id'] ?>" <?= $selectedInvestment ? 'checked' : '' ?> required>
+                            <input type="radio" name="inversion_id" value="<?= (int) $inversion['id'] ?>" <?= $esInversionEconomica ? 'data-low-investment="1"' : '' ?> <?= $selectedInvestment ? 'checked' : '' ?> required>
                             <span>
                                 <strong><?= h($tituloInversion) ?></strong>
                                 <b><?= h(dinero_registro($inversion['monto'])) ?></b>
@@ -408,6 +418,21 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             </footer>
         </section>
     </div>
+
+    <?php if ($mostrarAlertaInversion): ?>
+        <div class="investment-warning-modal" data-investment-warning hidden>
+            <div class="investment-warning-backdrop"></div>
+            <section class="investment-warning-panel" role="dialog" aria-modal="true" aria-labelledby="investmentWarningTitle">
+                <span class="investment-warning-icon"><i data-feather="alert-triangle"></i></span>
+                <div>
+                    <span class="registro-kicker">Antes de continuar</span>
+                    <h2 id="investmentWarningTitle">Revisa esta inversion</h2>
+                    <p><?= h($siteConfig['alerta_inversion_economica_texto'] ?? '') ?></p>
+                </div>
+                <button type="button" class="btn-primary" data-accept-investment-warning>Aceptar</button>
+            </section>
+        </div>
+    <?php endif; ?>
 
     <template id="minorFormTemplate">
         <article class="minor-form-card" data-minor-card>

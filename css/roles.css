@@ -29,6 +29,18 @@
     color: #555;
 }
 
+.roles-kicker {
+    display: inline-flex;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: rgba(232, 0, 0, .1);
+    color: #c40000;
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
 .roles-panel-link {
     display: inline-flex;
     align-items: center;
@@ -207,6 +219,200 @@
     display: inline;
 }
 
+.permissions-card {
+    margin-top: 14px;
+}
+
+.permissions-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.permissions-badge {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 7px 10px;
+    background: #111;
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+.roles-permissions-form {
+    padding: 14px 18px 18px;
+}
+
+.permission-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+
+.permission-toolbar label > span {
+    display: block;
+    margin-bottom: 6px;
+    color: #444;
+    font-size: .8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.permission-toolbar select {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, .12);
+    padding: 10px 12px;
+    background: #fff;
+    color: #111;
+    font-weight: 850;
+    outline: none;
+}
+
+.permission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.permission-actions button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.permission-group {
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 14px;
+    background: #fafafa;
+}
+
+.permission-group-head {
+    width: 100%;
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    background: #fff;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.permission-group-head svg {
+    width: 20px;
+    height: 20px;
+    color: #d80000;
+}
+
+.permission-group-title {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.permission-group-title > span {
+    min-width: 0;
+}
+
+.permission-group-chevron {
+    flex: 0 0 auto;
+    color: #555 !important;
+    transition: transform .18s ease;
+}
+
+.permission-group:not(.is-collapsed) .permission-group-chevron {
+    transform: rotate(180deg);
+}
+
+.permission-group.is-collapsed .permission-group-head {
+    border-bottom: 0;
+}
+
+.permission-group-head strong,
+.permission-group-head small {
+    display: block;
+}
+
+.permission-group-head strong {
+    color: #111;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.permission-group-head small {
+    margin-top: 2px;
+    color: #777;
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.permission-list {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+}
+
+.permission-list[hidden] {
+    display: none;
+}
+
+.permission-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 10px;
+    padding: 10px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.permission-item input {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: #127a43;
+}
+
+.permission-item span,
+.permission-item strong,
+.permission-item small {
+    min-width: 0;
+}
+
+.permission-item strong {
+    display: block;
+    color: #111;
+    font-size: .9rem;
+    font-weight: 950;
+    line-height: 1.2;
+}
+
+.permission-item small {
+    display: block;
+    margin-top: 3px;
+    color: #666;
+    font-size: .78rem;
+    line-height: 1.35;
+}
+
 .roles-alert {
     border-radius: 14px;
     padding: 12px 14px;
@@ -233,6 +439,22 @@
     .roles-table {
         min-width: 640px;
     }
+
+    .permissions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .permission-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .permission-actions {
+        justify-content: stretch;
+    }
+
+    .permission-actions button {
+        flex: 1 1 160px;
+    }
 }
 
 @media (max-width: 640px) {
@@ -258,6 +480,7 @@
 
     .roles-card-head,
     .roles-form,
+    .roles-permissions-form,
     .table-tools {
         padding-left: 12px;
         padding-right: 12px;
@@ -280,5 +503,19 @@
 
     .btn-mini {
         margin-bottom: 6px;
+    }
+
+    .permissions-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .permissions-badge,
+    .permission-actions button {
+        width: 100%;
+    }
+
+    .permission-item {
+        padding: 9px;
     }
 }

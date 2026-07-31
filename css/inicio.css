@@ -1,4 +1,23 @@
 /* ================= HERO ================= */
+.inicio-page {
+    width: 100%;
+    background: #111;
+}
+
+#hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    min-height: 620px;
+    overflow: hidden;
+    background: #111;
+}
+
+#hero > img:first-child {
+    display: block;
+}
+
 #hero h1,
 #hero p {
     color: var(--color-blanco);

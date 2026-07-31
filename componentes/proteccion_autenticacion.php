@@ -3,11 +3,11 @@ require_once __DIR__ . '/../configuracion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-    $_SESSION['redirect_after_login'] = $returnUrl;
 }
 
 require_once __DIR__ . '/recordar_sesion.php';
 sg_restaurar_sesion_recordada();
+require_once __DIR__ . '/permisos.php';
 
 /**
  * Timeout por inactividad (segundos)
@@ -96,8 +96,22 @@ if ($last > 0 && ($now - $last) > $INACTIVITY_LIMIT) {
 // 3) Actualizar última actividad
 $_SESSION['last_activity'] = $now;
 
-// 4) Roles permitidos (si el archivo que lo incluye define $ROLES_PERMITIDOS)
-if (isset($ROLES_PERMITIDOS)) {
+// 4) Permisos por ruta o por variable explicita.
+$permissionCodes = [];
+if (isset($PERMISO_REQUERIDO)) {
+    $permissionCodes = array_values(array_filter((array) $PERMISO_REQUERIDO));
+} else {
+    $permissionCodes = sg_permission_codes_for_current_route();
+}
+
+if (!empty($permissionCodes)) {
+    require_once __DIR__ . '/../bd/conexion.php';
+    sg_seed_permission_catalog($conn);
+    sg_require_permission($conn, $permissionCodes);
+}
+
+// 5) Roles permitidos (fallback para archivos sin permiso mapeado).
+if (empty($permissionCodes) && isset($ROLES_PERMITIDOS)) {
     $rol = (int)($_SESSION['usuario_rol_id'] ?? 0);
 
     if ($rol <= 0 || !in_array($rol, $ROLES_PERMITIDOS, true)) {

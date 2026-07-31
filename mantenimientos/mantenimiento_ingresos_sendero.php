@@ -8,10 +8,12 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 require_once __DIR__ . '/../componentes/contabilidad_bootstrap.php';
 require_once __DIR__ . '/../componentes/filtro_senderos.php';
+require_once __DIR__ . '/../componentes/senderos_admin_data.php';
 
 sg_actualizar_senderos_vencidos($conn);
 contabilidad_bootstrap($conn);
@@ -28,18 +30,17 @@ $jsFiles = [
 
 function fis_h($value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    return sg_h($value);
 }
 
 function fis_fecha(?string $fecha, bool $conHora = false): string
 {
-    $time = $fecha ? strtotime($fecha) : false;
-    return $time ? date($conHora ? 'd/m/Y h:i A' : 'd/m/Y', $time) : 'Sin fecha';
+    return sg_fecha($fecha, $conHora);
 }
 
 function fis_money($value): string
 {
-    return 'RD$ ' . number_format((float) $value, 2);
+    return sg_money($value);
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
@@ -47,48 +48,9 @@ $senderoFiltros = sgf_params();
 $nivelesDificultad = sgf_niveles_dificultad($conn);
 [$senderoWhere, $senderoTypes, $senderoValues] = sgf_where($senderoFiltros, 's');
 
-$metodosPago = [];
-$resMetodos = mysqli_query($conn, "SELECT id, nombre FROM contabilidad_metodo_pago WHERE activo = 1 ORDER BY nombre ASC");
-while ($resMetodos && $row = mysqli_fetch_assoc($resMetodos)) {
-    $metodosPago[] = $row;
-}
-
-$senderos = [];
-$resSenderos = sgf_execute_query($conn, "
-    SELECT
-        s.id,
-        s.nombre,
-        s.fecha_sendero,
-        s.estado,
-        s.distancia_km,
-        nd.nombre AS dificultad_nombre,
-        COALESCE(SUM(1 + COALESCE(m.total_menores, 0)), 0) AS inscritos,
-        COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN 1 + COALESCE(m.total_menores, 0) ELSE 0 END), 0) AS pagados,
-        COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END), 0) AS ingresos
-    FROM senderos s
-    LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
-    LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id AND rs.estado = 'registrado'
-    LEFT JOIN (
-        SELECT registro_id, COUNT(*) AS total_menores
-        FROM registro_sendero_menores
-        GROUP BY registro_id
-    ) m ON m.registro_id = rs.id
-    LEFT JOIN contabilidad_registro_pagos crp ON crp.registro_id = rs.id
-    {$senderoWhere}
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
-    ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
-", $senderoTypes, $senderoValues);
-while ($resSenderos && $row = mysqli_fetch_assoc($resSenderos)) {
-    $senderos[] = $row;
-}
-
-$senderoSeleccionado = null;
-foreach ($senderos as $sendero) {
-    if ((int) $sendero['id'] === $senderoId) {
-        $senderoSeleccionado = $sendero;
-        break;
-    }
-}
+$metodosPago = sg_admin_metodos_pago($conn);
+$senderos = sg_admin_senderos_para_ingresos($conn, $senderoWhere, $senderoTypes, $senderoValues);
+$senderoSeleccionado = sg_admin_find_row_by_id($senderos, $senderoId);
 
 $registros = [];
 $totales = [
@@ -169,7 +131,7 @@ if ($senderoSeleccionado) {
         $row['monto_retenido'] = max(0, (float) ($row['monto_retenido'] ?? 0));
         $asistioRow = (int) ($row['asistio'] ?? 0) === 1;
         $pagadoRow = (int) ($row['pagado'] ?? 0) === 1;
-        $row['estado_financiero'] = $row['estado_financiero'] ?: ($pagadoRow ? 'pagado' : ($asistioRow ? 'deuda' : 'no_asistio_sin_pago'));
+        $row['estado_financiero'] = $row['estado_financiero'] ?: sg_financial_status_default($pagadoRow, $asistioRow);
         if (!$asistioRow && $pagadoRow && $row['credito_generado'] <= 0 && $row['monto_retenido'] <= 0) {
             $row['monto_retenido'] = (float) $row['monto_pagado'];
         }
@@ -364,13 +326,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <td>
                                                 <select name="estado_financiero[<?= $rid ?>]" data-fin-status>
                                                     <option value="">Automatico</option>
-                                                    <option value="pendiente" <?= $estadoFinanciero === 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
-                                                    <option value="pagado" <?= $estadoFinanciero === 'pagado' ? 'selected' : '' ?>>Pagado</option>
-                                                    <option value="parcial" <?= $estadoFinanciero === 'parcial' ? 'selected' : '' ?>>Parcial</option>
-                                                    <option value="credito_aplicado" <?= $estadoFinanciero === 'credito_aplicado' ? 'selected' : '' ?>>Credito aplicado</option>
-                                                    <option value="deuda" <?= $estadoFinanciero === 'deuda' ? 'selected' : '' ?>>Deuda</option>
-                                                    <option value="cortesia" <?= $estadoFinanciero === 'cortesia' ? 'selected' : '' ?>>Cortesia</option>
-                                                    <option value="no_asistio_sin_pago" <?= $estadoFinanciero === 'no_asistio_sin_pago' ? 'selected' : '' ?>>No asistio / sin pago</option>
+                                                    <?php foreach (sg_financial_statuses() as $estadoCodigo => $estadoNombre): ?>
+                                                        <option value="<?= fis_h($estadoCodigo) ?>" <?= $estadoFinanciero === $estadoCodigo ? 'selected' : '' ?>>
+                                                            <?= fis_h($estadoNombre) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
                                                 </select>
                                             </td>
                                             <td><strong><?= fis_h(fis_money($registro['monto_esperado'])) ?></strong></td>
@@ -431,6 +391,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const paidChecks = () => form.querySelectorAll('input[type="checkbox"][name="pagado[]"]');
     const attendedChecks = () => form.querySelectorAll('input[type="checkbox"][name="asistio[]"]');
     const today = new Date().toISOString().slice(0, 10);
+    const keepScrollPosition = (callback) => {
+        const pageX = window.scrollX;
+        const pageY = window.scrollY;
+        const tableWrap = form.querySelector('.fin-table-wrap');
+        const tableLeft = tableWrap ? tableWrap.scrollLeft : 0;
+        const tableTop = tableWrap ? tableWrap.scrollTop : 0;
+
+        callback();
+
+        requestAnimationFrame(() => {
+            if (tableWrap) {
+                tableWrap.scrollLeft = tableLeft;
+                tableWrap.scrollTop = tableTop;
+            }
+            window.scrollTo(pageX, pageY);
+        });
+    };
 
     const setPaymentStatus = (check, fillAmounts) => {
         const row = check.closest('tr');
@@ -588,34 +565,39 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('change', (event) => {
         const paidCheck = event.target.closest('input[type="checkbox"][name="pagado[]"]');
         if (paidCheck) {
-            setPaymentStatus(paidCheck, true);
-            recalc();
+            keepScrollPosition(() => {
+                setPaymentStatus(paidCheck, true);
+                recalc();
+            });
             return;
         }
 
         const attendedCheck = event.target.closest('input[type="checkbox"][name="asistio[]"]');
         if (attendedCheck) {
-            const paidCheckInRow = attendedCheck.closest('tr')?.querySelector('input[type="checkbox"][name="pagado[]"]');
-            if (paidCheckInRow && !paidCheckInRow.checked) {
-                setPaymentStatus(paidCheckInRow, false);
-            }
-            recalc();
+            keepScrollPosition(() => {
+                const paidCheckInRow = attendedCheck.closest('tr')?.querySelector('input[type="checkbox"][name="pagado[]"]');
+                if (paidCheckInRow && !paidCheckInRow.checked) {
+                    setPaymentStatus(paidCheckInRow, false);
+                }
+                recalc();
+            });
             return;
         }
 
         const generateCreditCheck = event.target.closest('input[type="checkbox"][name="generar_credito[]"]');
         if (generateCreditCheck) {
-            const row = generateCreditCheck.closest('tr');
-            const generatedCreditInput = row?.querySelector('[data-generated-credit]');
-            const amount = Math.max(0, parseFloat(row?.querySelector('[data-paid-amount]')?.value || '0'));
-            if (generateCreditCheck.checked && generatedCreditInput && parseFloat(generatedCreditInput.value || '0') <= 0) {
-                generatedCreditInput.value = amount.toFixed(2);
-            }
-            recalc();
+            keepScrollPosition(() => {
+                const row = generateCreditCheck.closest('tr');
+                const generatedCreditInput = row?.querySelector('[data-generated-credit]');
+                const amount = Math.max(0, parseFloat(row?.querySelector('[data-paid-amount]')?.value || '0'));
+                if (generateCreditCheck.checked && generatedCreditInput && parseFloat(generatedCreditInput.value || '0') <= 0) {
+                    generatedCreditInput.value = amount.toFixed(2);
+                }
+                recalc();
+            });
         }
     });
     form.addEventListener('input', recalc);
-    form.addEventListener('change', recalc);
     recalc();
 });
 </script>

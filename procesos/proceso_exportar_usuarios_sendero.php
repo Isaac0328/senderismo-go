@@ -7,34 +7,23 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
+require_once __DIR__ . '/../componentes/helpers.php';
+require_once __DIR__ . '/../componentes/reporte_usuarios_sendero_data.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
 function export_hrs($value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    return sg_h($value);
 }
 
 function export_fecha(?string $fecha, bool $conHora = false): string
 {
-    if (!$fecha) {
-        return 'Sin fecha';
-    }
-
-    $timestamp = strtotime($fecha);
-    if (!$timestamp) {
-        return 'Sin fecha';
-    }
-
-    return date($conHora ? 'd/m/Y h:i A' : 'd/m/Y', $timestamp);
+    return sg_fecha($fecha, $conHora);
 }
 
 function export_dinero($monto): string
 {
-    if ($monto === null || $monto === '') {
-        return 'Sin monto';
-    }
-
-    return 'RD$ ' . number_format((float) $monto, 2);
+    return sg_money($monto, 'Sin monto');
 }
 
 $senderoId = (int) ($_GET['sendero_id'] ?? 0);
@@ -45,94 +34,15 @@ if ($senderoId <= 0 || !in_array($formato, ['excel', 'pdf'], true)) {
     die('Solicitud invalida.');
 }
 
-$stmtSendero = mysqli_prepare($conn, "
-    SELECT id, nombre, fecha_sendero, estado
-    FROM senderos
-    WHERE id = ?
-    LIMIT 1
-");
-mysqli_stmt_bind_param($stmtSendero, 'i', $senderoId);
-mysqli_stmt_execute($stmtSendero);
-$sendero = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSendero));
-mysqli_stmt_close($stmtSendero);
+$sendero = sg_reporte_sendero_basico($conn, $senderoId);
 
 if (!$sendero) {
     http_response_code(404);
     die('Sendero no encontrado.');
 }
 
-$sql = "
-    SELECT
-        rs.id AS registro_id,
-        rs.estado AS estado_registro,
-        rs.fecha_registro,
-        si.nombre AS inversion_nombre,
-        si.monto AS inversion_monto,
-        COALESCE(u.id, 0) AS usuario_id,
-        COALESCE(u.nombre, rs.manual_nombre, 'Asistente') AS nombre,
-        COALESCE(u.apellido, rs.manual_apellido, 'manual') AS apellido,
-        COALESCE(u.user, CONCAT('manual-', rs.id)) AS user,
-        COALESCE(u.email, rs.manual_email, '') AS email,
-        COALESCE(u.estado, 1) AS usuario_estado,
-        COALESCE(du.telefono, rs.manual_telefono, '') AS telefono,
-        COALESCE(du.rango_edad, '') AS rango_edad,
-        COALESCE(du.identificacion, '') AS identificacion,
-        COALESCE(du.es_alergico, 0) AS es_alergico,
-        COALESCE(du.alergias_detalle, '') AS alergias_detalle,
-        COALESCE(du.grupo_sanguineo, '') AS grupo_sanguineo,
-        COALESCE(du.enfermedad, '') AS enfermedad,
-        COALESCE(du.seguro_medico, '') AS seguro_medico,
-        COALESCE(du.experiencia_senderismo, '') AS experiencia_senderismo,
-        COALESCE(du.via_entero, '') AS via_entero,
-        COALESCE(du.referido_nombre, '') AS referido_nombre,
-        COALESCE(du.emergencia_nombre, '') AS emergencia_nombre,
-        COALESCE(du.emergencia_parentesco, '') AS emergencia_parentesco,
-        COALESCE(du.emergencia_telefono, '') AS emergencia_telefono
-    FROM registros_senderos rs
-    LEFT JOIN usuarios u ON u.id = rs.usuario_id
-    LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
-    LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
-    WHERE rs.sendero_id = ? AND rs.estado = 'registrado'
-    ORDER BY rs.fecha_registro DESC, COALESCE(u.nombre, rs.manual_nombre) ASC, COALESCE(u.apellido, rs.manual_apellido) ASC
-";
-$stmt = mysqli_prepare($conn, $sql);
-mysqli_stmt_bind_param($stmt, 'i', $senderoId);
-mysqli_stmt_execute($stmt);
-$res = mysqli_stmt_get_result($stmt);
-$participantes = [];
-while ($row = mysqli_fetch_assoc($res)) {
-    $participantes[] = $row;
-}
-mysqli_stmt_close($stmt);
-
-$menoresPorRegistro = [];
-$menoresExport = [];
-$registroIds = array_map(static function ($row) {
-    return (int) $row['registro_id'];
-}, $participantes);
-if (!empty($registroIds)) {
-    $idsSql = implode(',', array_unique(array_filter($registroIds)));
-    if ($idsSql !== '') {
-        $resMenores = mysqli_query($conn, "
-            SELECT
-                rm.*,
-                si.nombre AS inversion_nombre,
-                si.monto AS inversion_monto
-            FROM registro_sendero_menores rm
-            LEFT JOIN sendero_inversiones si ON si.id = rm.inversion_id
-            WHERE rm.registro_id IN ($idsSql)
-            ORDER BY rm.registro_id ASC, rm.id ASC
-        ");
-
-        if ($resMenores) {
-            while ($menor = mysqli_fetch_assoc($resMenores)) {
-                $registroId = (int) $menor['registro_id'];
-                $menoresPorRegistro[$registroId][] = $menor;
-                $menoresExport[] = $menor;
-            }
-        }
-    }
-}
+$participantes = sg_reporte_participantes_sendero($conn, $senderoId);
+[$menoresPorRegistro, $menoresExport] = sg_reporte_menores_por_registro($conn, $participantes);
 mysqli_close($conn);
 
 $filenameBase = 'usuarios_sendero_' . $senderoId . '_' . date('Ymd_His');

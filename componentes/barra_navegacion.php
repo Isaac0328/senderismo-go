@@ -6,27 +6,44 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/recordar_sesion.php';
 sg_restaurar_sesion_recordada();
+require_once __DIR__ . '/permisos.php';
+require_once __DIR__ . '/configuracion_sitio.php';
 
 $isLoggedIn = isset($_SESSION['usuario_id']);
 $userName = $_SESSION['usuario_nombre'] ?? '';
 $userRole = $_SESSION['usuario_rol'] ?? '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 $userAvatar = '';
+$canAccessAdmin = false;
+$navConnection = $conn ?? null;
+$navOwnConnection = false;
+
+if (!$navConnection instanceof mysqli) {
+    $navConnection = sg_site_open_connection();
+    $navOwnConnection = $navConnection instanceof mysqli;
+}
+
+$navSiteConfig = sg_site_config($navConnection);
+$navMenuItems = sg_site_menu($navConnection, true);
+$navTopItems = [];
+$navChildren = [];
+foreach ($navMenuItems as $navItem) {
+    $parentCode = trim((string) ($navItem['parent_codigo'] ?? ''));
+    if ($parentCode === '') {
+        $navTopItems[] = $navItem;
+    } else {
+        $navChildren[$parentCode][] = $navItem;
+    }
+}
+
+$navLogo = sg_site_asset((string) ($navSiteConfig['logo_header'] ?? 'imagenes/logo/logo_sg.png'));
+$navSiteName = trim((string) ($navSiteConfig['nombre_sitio'] ?? 'Senderismo Go!')) ?: 'Senderismo Go!';
+$navLoginText = trim((string) ($navSiteConfig['login_texto'] ?? 'Iniciar sesion')) ?: 'Iniciar sesion';
 
 if ($isLoggedIn && !empty($_SESSION['usuario_id'])) {
-    $connAvatar = $conn ?? null;
-
-    if (!$connAvatar instanceof mysqli) {
-        $conexionPath = __DIR__ . '/../bd/conexion.php';
-        if (is_file($conexionPath)) {
-            require $conexionPath;
-            $connAvatar = $conn ?? null;
-        }
-    }
-
-    if ($connAvatar instanceof mysqli) {
+    if ($navConnection instanceof mysqli) {
         $uidAvatar = (int) $_SESSION['usuario_id'];
-        $stmtAvatar = mysqli_prepare($connAvatar, "SELECT imagen_perfil FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
+        $stmtAvatar = mysqli_prepare($navConnection, "SELECT imagen_perfil FROM detalles_usuarios WHERE usuario_id = ? LIMIT 1");
         if ($stmtAvatar) {
             mysqli_stmt_bind_param($stmtAvatar, 'i', $uidAvatar);
             mysqli_stmt_execute($stmtAvatar);
@@ -39,7 +56,14 @@ if ($isLoggedIn && !empty($_SESSION['usuario_id'])) {
                     : BASE_URL . ltrim($avatarPath, '/');
             }
         }
+
+        $roleId = (int) ($_SESSION['usuario_rol_id'] ?? 0);
+        $canAccessAdmin = sg_is_admin_role($roleId) || count(sg_role_permissions($navConnection, $roleId)) > 0;
     }
+}
+
+if ($navOwnConnection && $navConnection instanceof mysqli) {
+    mysqli_close($navConnection);
 }
 
 if (!function_exists('nav_avatar_html')) {
@@ -61,7 +85,7 @@ if (!function_exists('nav_avatar_html')) {
             <!-- Logo -->
             <div class="flex items-center">
                 <a href="<?= BASE_URL ?>pantallas/inicio.php" class="flex items-center gap-3">
-                    <img src="<?= BASE_URL ?>imagenes/logo/logo_sg.png" alt="Senderismo Go!"
+                    <img src="<?= htmlspecialchars($navLogo, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($navSiteName, ENT_QUOTES, 'UTF-8') ?>"
                         class="h-12 sm:h-14 md:h-16 w-auto">
                 </a>
             </div>
@@ -69,25 +93,32 @@ if (!function_exists('nav_avatar_html')) {
             <!-- Desktop Menu -->
             <div class="hidden md:flex absolute left-1/2 -translate-x-1/2">
                 <ul class="flex items-center space-x-8">
-                    <li><a href="<?= BASE_URL ?>pantallas/inicio.php" class="nav-link">Inicio</a></li>
-                    <li><a href="<?= BASE_URL ?>pantallas/nosotros.php" class="nav-link">Nosotros</a></li>
-                    <li class="nav-dropdown">
-                        <a href="<?= BASE_URL ?>pantallas/senderos.php" class="nav-link nav-dropdown-toggle">
-                            Senderos
-                            <i data-feather="chevron-down"></i>
-                        </a>
-                        <div class="nav-dropdown-menu">
-                            <a href="<?= BASE_URL ?>pantallas/senderos.php">
-                                <i data-feather="calendar"></i>
-                                <span>Proximos</span>
-                            </a>
-                            <a href="<?= BASE_URL ?>pantallas/senderos_visitados.php">
-                                <i data-feather="check-circle"></i>
-                                <span>Visitados</span>
-                            </a>
-                        </div>
-                    </li>
-                    <li><a href="<?= BASE_URL ?>pantallas/contacto.php" class="nav-link">Contacto</a></li>
+                    <?php foreach ($navTopItems as $navItem): ?>
+                        <?php
+                        $navCode = (string) ($navItem['codigo'] ?? '');
+                        $navLabel = (string) ($navItem['etiqueta'] ?? '');
+                        $navRoute = BASE_URL . ltrim((string) ($navItem['ruta'] ?? ''), '/');
+                        $children = $navChildren[$navCode] ?? [];
+                        ?>
+                        <?php if (!empty($children)): ?>
+                            <li class="nav-dropdown">
+                                <a href="<?= htmlspecialchars($navRoute, ENT_QUOTES, 'UTF-8') ?>" class="nav-link nav-dropdown-toggle">
+                                    <?= htmlspecialchars($navLabel) ?>
+                                    <i data-feather="chevron-down"></i>
+                                </a>
+                                <div class="nav-dropdown-menu">
+                                    <?php foreach ($children as $child): ?>
+                                        <a href="<?= htmlspecialchars(BASE_URL . ltrim((string) $child['ruta'], '/'), ENT_QUOTES, 'UTF-8') ?>">
+                                            <i data-feather="<?= htmlspecialchars((string) ($child['icono'] ?: 'circle'), ENT_QUOTES, 'UTF-8') ?>"></i>
+                                            <span><?= htmlspecialchars((string) $child['etiqueta']) ?></span>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            </li>
+                        <?php else: ?>
+                            <li><a href="<?= htmlspecialchars($navRoute, ENT_QUOTES, 'UTF-8') ?>" class="nav-link"><?= htmlspecialchars($navLabel) ?></a></li>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 </ul>
             </div>
 
@@ -121,7 +152,7 @@ if (!function_exists('nav_avatar_html')) {
                                     <span>Mi perfil</span>
                                 </a>
 
-                                <?php if (($_SESSION['usuario_rol_id'] ?? 0) == 1): ?>
+                                <?php if ($canAccessAdmin): ?>
                                     <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="dropdown-item">
                                         <i data-feather="settings"></i>
                                         <span>Administración</span>
@@ -142,7 +173,7 @@ if (!function_exists('nav_avatar_html')) {
                     <!-- Login desktop -->
                     <div class="hidden md:block">
                         <a href="<?= BASE_URL ?>pantallas/inicio_sesion.php" class="btn">
-                            Iniciar Sesión
+                            <?= htmlspecialchars($navLoginText) ?>
                         </a>
                     </div>
 
@@ -171,16 +202,19 @@ if (!function_exists('nav_avatar_html')) {
                 </div>
             <?php endif; ?>
 
-            <a href="<?= BASE_URL ?>pantallas/inicio.php" class="mobile-nav-link"><i
-                    data-feather="home"></i><span>Inicio</span></a>
-            <a href="<?= BASE_URL ?>pantallas/nosotros.php" class="mobile-nav-link"><i
-                    data-feather="users"></i><span>Nosotros</span></a>
-            <a href="<?= BASE_URL ?>pantallas/senderos.php" class="mobile-nav-link"><i
-                    data-feather="map"></i><span>Proximos senderos</span></a>
-            <a href="<?= BASE_URL ?>pantallas/senderos_visitados.php" class="mobile-nav-link"><i
-                    data-feather="check-circle"></i><span>Senderos visitados</span></a>
-            <a href="<?= BASE_URL ?>pantallas/contacto.php" class="mobile-nav-link"><i
-                    data-feather="mail"></i><span>Contacto</span></a>
+            <?php foreach ($navTopItems as $navItem): ?>
+                <?php
+                $navCode = (string) ($navItem['codigo'] ?? '');
+                $children = $navChildren[$navCode] ?? [];
+                $mobileItems = !empty($children) ? $children : [$navItem];
+                ?>
+                <?php foreach ($mobileItems as $mobileItem): ?>
+                    <a href="<?= htmlspecialchars(BASE_URL . ltrim((string) $mobileItem['ruta'], '/'), ENT_QUOTES, 'UTF-8') ?>" class="mobile-nav-link">
+                        <i data-feather="<?= htmlspecialchars((string) ($mobileItem['icono'] ?: 'circle'), ENT_QUOTES, 'UTF-8') ?>"></i>
+                        <span><?= htmlspecialchars((string) $mobileItem['etiqueta']) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            <?php endforeach; ?>
 
             <?php if ($isLoggedIn): ?>
                 <div class="border-t pt-2 mt-2">
@@ -188,7 +222,7 @@ if (!function_exists('nav_avatar_html')) {
                         <i data-feather="user"></i><span>Mi perfil</span>
                     </a>
 
-                    <?php if (($_SESSION['usuario_rol_id'] ?? 0) == 1): ?>
+                    <?php if ($canAccessAdmin): ?>
                         <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="mobile-nav-link">
                             <i data-feather="settings"></i><span>Administración</span>
                         </a>
@@ -201,7 +235,7 @@ if (!function_exists('nav_avatar_html')) {
             <?php else: ?>
                 <div class="border-t pt-2 mt-2">
                     <a href="<?= BASE_URL ?>pantallas/inicio_sesion.php" class="mobile-nav-link justify-center">
-                        <i data-feather="log-in"></i><span>Iniciar Sesión</span>
+                        <i data-feather="log-in"></i><span><?= htmlspecialchars($navLoginText) ?></span>
                     </a>
                 </div>
             <?php endif; ?>

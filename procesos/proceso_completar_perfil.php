@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -29,14 +30,12 @@ $origen = trim((string) ($_POST['origen'] ?? ''));
 
 function perfil_clean_text(string $value, int $max = 255): string
 {
-    $value = trim($value);
-    $value = preg_replace('/\s+/', ' ', $value);
-    return substr((string) $value, 0, $max);
+    return sg_clean_text($value, $max);
 }
 
 function perfil_only_digits(string $value): string
 {
-    return preg_replace('/\D+/', '', $value);
+    return sg_only_digits($value);
 }
 
 function perfil_redirect(mysqli $conn, int $senderoId): void
@@ -58,40 +57,9 @@ function perfil_save_image(string $campo, string $actual, int $usuarioId): strin
     if (empty($_FILES[$campo]['name']) || !is_uploaded_file($_FILES[$campo]['tmp_name'])) {
         return $actual;
     }
-
-    if ((int) ($_FILES[$campo]['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-        throw new RuntimeException("No se pudo cargar la imagen seleccionada.");
-    }
-
-    if ((int) ($_FILES[$campo]['size'] ?? 0) > 4 * 1024 * 1024) {
-        throw new RuntimeException("Cada imagen debe pesar maximo 4 MB.");
-    }
-
-    $mime = mime_content_type($_FILES[$campo]['tmp_name']);
-    $extensiones = [
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/webp' => 'webp',
-    ];
-
-    if (!isset($extensiones[$mime])) {
-        throw new RuntimeException("Las imagenes deben ser JPG, PNG o WEBP.");
-    }
-
-    $directorio = __DIR__ . '/../imagenes/perfiles';
-    if (!is_dir($directorio)) {
-        mkdir($directorio, 0775, true);
-    }
-
     $prefijo = $campo === 'imagen_cabecera' ? 'cabecera' : 'perfil';
-    $nombre = $prefijo . '_u' . $usuarioId . '_' . bin2hex(random_bytes(6)) . '.' . $extensiones[$mime];
-    $destino = $directorio . '/' . $nombre;
-
-    if (!move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)) {
-        throw new RuntimeException("No se pudo guardar la imagen seleccionada.");
-    }
-
-    return 'imagenes/perfiles/' . $nombre;
+    $ruta = sg_save_uploaded_image($_FILES[$campo], 'imagenes/perfiles', $prefijo . '_u' . $usuarioId);
+    return $ruta ?: $actual;
 }
 
 $telefono = perfil_only_digits((string) ($_POST['telefono'] ?? ''));

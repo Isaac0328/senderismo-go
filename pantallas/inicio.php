@@ -83,7 +83,7 @@ include_once "../componentes/encabezado.php";
 include_once "../componentes/barra_navegacion.php";
 ?>
 
-<div class="w-full pt-16 md:pt-20">
+<main class="inicio-page">
     <section id="hero" class="relative w-full h-screen">
         <img src="<?= inicio_h(inicio_url($inicio['hero_imagen'])) ?>" alt="<?= inicio_h($inicio['hero_titulo']) ?>" class="absolute inset-0 w-full h-full object-cover">
         <div class="absolute inset-0 bg-black/40"></div>
@@ -179,7 +179,7 @@ include_once "../componentes/barra_navegacion.php";
             </a>
         </div>
     </section>
-</div>
+</main>
 
 <div id="galleryModal" class="fixed inset-0 hidden z-50">
     <div class="absolute inset-0 bg-black/80"></div>

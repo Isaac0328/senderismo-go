@@ -3,6 +3,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const alergiaDetalle = document.querySelector('input[name="alergias_detalle"]');
     const viaSelect = document.querySelector('select[name="via_entero"]');
     const referidoInput = document.querySelector('input[name="referido_nombre"]');
+    const investmentWarning = document.querySelector('[data-investment-warning]');
+    const acceptInvestmentWarning = document.querySelector('[data-accept-investment-warning]');
+    const lowInvestmentInputs = document.querySelectorAll('[data-low-investment="1"]');
+
+    const openInvestmentWarning = () => {
+        if (!investmentWarning) return;
+        investmentWarning.hidden = false;
+        document.body.classList.add('modal-open');
+        acceptInvestmentWarning?.focus();
+    };
+
+    const closeInvestmentWarning = () => {
+        if (!investmentWarning) return;
+        investmentWarning.hidden = true;
+        document.body.classList.remove('modal-open');
+    };
+
+    lowInvestmentInputs.forEach((input) => input.addEventListener('change', openInvestmentWarning));
+    acceptInvestmentWarning?.addEventListener('click', closeInvestmentWarning);
 
     const syncAlergia = () => {
         if (!alergiaDetalle) return;

@@ -797,6 +797,72 @@ body.modal-open {
     overflow: hidden;
 }
 
+.investment-warning-modal[hidden] {
+    display: none;
+}
+
+.investment-warning-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.investment-warning-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .58);
+    backdrop-filter: blur(3px);
+}
+
+.investment-warning-panel {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    width: min(470px, 100%);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, .32);
+    padding: 20px;
+}
+
+.investment-warning-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9px;
+    background: #fff3d0;
+    color: #9a6400;
+}
+
+.investment-warning-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.investment-warning-panel h2 {
+    margin: 7px 0 6px;
+    color: #111;
+    font-size: 1.2rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.investment-warning-panel p {
+    margin: 0;
+    color: #555;
+    line-height: 1.55;
+}
+
+.investment-warning-panel .btn-primary {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
 @media (max-width: 860px) {
     .registro-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
