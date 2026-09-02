@@ -21,6 +21,7 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
 require_once __DIR__ . '/../bd/conexion.php';
 require_once __DIR__ . '/../componentes/helpers.php';
 require_once __DIR__ . '/../componentes/pasaporte_bootstrap.php';
+require_once __DIR__ . '/../componentes/encuestas_usuario.php';
 
 pasaporte_bootstrap($conn);
 
@@ -226,6 +227,10 @@ $detalle = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
 mysqli_stmt_close($stmt);
 
 $historialAsistencia = [];
+$encuestasPendientes = [];
+$encuestasPendientesTotal = 0;
+$sgEncuestasUsuarioResumen = ['total' => 0, 'items' => []];
+$sgEncuestasUsuarioResumenCargado = false;
 
 if ($esMiPerfil) {
     $stmt = mysqli_prepare(
@@ -252,6 +257,11 @@ if ($esMiPerfil) {
         $historialAsistencia[] = $row;
     }
     mysqli_stmt_close($stmt);
+
+    $sgEncuestasUsuarioResumen = sg_encuestas_usuario_resumen($conn, $usuarioId, 100);
+    $sgEncuestasUsuarioResumenCargado = true;
+    $encuestasPendientes = $sgEncuestasUsuarioResumen['items'];
+    $encuestasPendientesTotal = (int) $sgEncuestasUsuarioResumen['total'];
 }
 
 $old = $_SESSION['perfil_senderista_old'] ?? [];
@@ -396,6 +406,38 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
         <?php if (!empty($_SESSION['perfil_senderista_error'])): ?>
             <div class="perfil-alert error"><?= perfil_h($_SESSION['perfil_senderista_error']) ?></div>
             <?php unset($_SESSION['perfil_senderista_error']); ?>
+        <?php endif; ?>
+
+        <?php if ($esMiPerfil && !empty($encuestasPendientes)): ?>
+            <section class="perfil-survey-panel" id="encuestas-pendientes" aria-label="Encuestas pendientes">
+                <div class="perfil-survey-head">
+                    <div>
+                        <span>Encuestas pendientes</span>
+                        <h2>Queremos conocer tu experiencia</h2>
+                    </div>
+                    <strong><?= $encuestasPendientesTotal ?></strong>
+                </div>
+                <div class="perfil-survey-list">
+                    <?php foreach ($encuestasPendientes as $encuestaPendiente): ?>
+                        <article class="perfil-survey-item">
+                            <div>
+                                <strong><?= perfil_h($encuestaPendiente['titulo']) ?></strong>
+                                <?php if (!empty($encuestaPendiente['sendero_nombre'])): ?>
+                                    <p><?= perfil_h($encuestaPendiente['sendero_nombre']) ?></p>
+                                <?php elseif (trim((string) $encuestaPendiente['descripcion']) !== ''): ?>
+                                    <p><?= perfil_h(sg_clean_text((string) $encuestaPendiente['descripcion'], 120)) ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($encuestaPendiente['fecha_cierre'])): ?>
+                                    <small>Cierra el <?= perfil_h(sg_fecha($encuestaPendiente['fecha_cierre'])) ?></small>
+                                <?php endif; ?>
+                            </div>
+                            <a href="<?= BASE_URL ?>pantallas/encuesta.php?envio_id=<?= (int) $encuestaPendiente['envio_id'] ?>">
+                                Responder
+                            </a>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         <?php endif; ?>
 
         <form id="perfil-form" class="perfil-card" method="POST" action="<?= BASE_URL ?>procesos/proceso_completar_perfil.php" enctype="multipart/form-data" novalidate>
@@ -547,7 +589,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <?php else: ?>
                         <div class="perfil-history-list">
                             <?php foreach ($historialAsistencia as $ruta): ?>
-                                <a class="perfil-history-card" href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $ruta['id'] ?>">
+                                <a class="perfil-history-card" href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $ruta['id'] ?>&desde=perfil">
                                     <span><?= perfil_h(perfil_fecha_historial($ruta['fecha_asistencia'] ?: $ruta['fecha_sendero'])) ?></span>
                                     <strong><?= perfil_h($ruta['nombre']) ?></strong>
                                     <p><?= perfil_h(trim(($ruta['lugar'] ?? '') . ', ' . ($ruta['provincia'] ?? ''), ', ')) ?></p>
@@ -575,7 +617,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <div class="perfil-grid">
                         <div class="perfil-field">
                             <label for="telefono">Telefono *</label>
-                            <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['telefono'] ?? '') ?>">
+                            <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" placeholder="8090000000" value="<?= perfil_h($detalle['telefono'] ?? '') ?>" oninput="this.value=this.value.replace(/\D/g,'')">
                         </div>
                         <div class="perfil-field">
                             <label for="rango_edad">Edad *</label>
@@ -648,7 +690,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                     <div class="perfil-field">
                         <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
-                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" value="<?= perfil_h($detalle['referido_nombre'] ?? '') ?>">
+                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" pattern="[^0-9]*" value="<?= perfil_h($detalle['referido_nombre'] ?? '') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
                 </div>
             </details>
@@ -666,7 +708,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <div class="perfil-grid">
                         <div class="perfil-field">
                             <label for="emergencia_nombre">Nombre *</label>
-                            <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" value="<?= perfil_h($detalle['emergencia_nombre'] ?? '') ?>">
+                            <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" pattern="[^0-9]*" value="<?= perfil_h($detalle['emergencia_nombre'] ?? '') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
                         <div class="perfil-field">
                             <label for="emergencia_parentesco">Parentesco *</label>
@@ -676,7 +718,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                     <div class="perfil-field">
                         <label for="emergencia_telefono">Telefono de emergencia *</label>
-                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= perfil_h($detalle['emergencia_telefono'] ?? '') ?>">
+                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" placeholder="8090000000" value="<?= perfil_h($detalle['emergencia_telefono'] ?? '') ?>" oninput="this.value=this.value.replace(/\D/g,'')">
                     </div>
                 </div>
             </details>

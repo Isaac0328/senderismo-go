@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ================= MENÃš DESPLEGABLE DE SENDEROS =================
+  // ================= MENÚ DESPLEGABLE DE SENDEROS =================
   const senderosDropdown = document.querySelector('.nav-dropdown');
   const senderosToggle = document.querySelector('.nav-dropdown-toggle');
 

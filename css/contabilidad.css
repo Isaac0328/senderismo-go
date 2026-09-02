@@ -402,7 +402,7 @@
 }
 
 .fin-income-form .fin-table-wrap table {
-    min-width: 1760px;
+    min-width: 1900px;
 }
 
 .fin-table-wrap th,
@@ -448,6 +448,11 @@
     background: #f4fff7;
 }
 
+.fin-table-wrap tr.is-exempt {
+    background: #f3f6f4;
+    box-shadow: inset 4px 0 0 #087b4d;
+}
+
 .fin-income-form .fin-table-wrap tbody tr {
     transition: background .15s ease, box-shadow .15s ease;
 }
@@ -476,6 +481,45 @@
 
 .fin-number {
     max-width: 120px;
+}
+
+.fin-table-wrap td .fin-credit-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 150px;
+    margin-top: 0;
+    color: inherit;
+}
+
+.fin-table-wrap td .fin-credit-field .fin-number {
+    flex: 0 0 112px;
+}
+
+.fin-table-wrap td .fin-credit-field .fin-credit-warning {
+    display: none;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 999px;
+    background: #fff4dc;
+    color: #b35b00;
+    border: 1px solid rgba(179, 91, 0, .24);
+    margin-top: 0;
+}
+
+.fin-table-wrap td .fin-credit-field .fin-credit-warning svg {
+    width: 15px;
+    height: 15px;
+}
+
+.fin-table-wrap td .fin-credit-field.has-credit-warning .fin-credit-warning {
+    display: inline-grid;
+}
+
+.fin-table-wrap td .fin-credit-field.has-credit-warning .fin-number {
+    border-color: rgba(179, 91, 0, .65);
+    box-shadow: 0 0 0 3px rgba(179, 91, 0, .12);
 }
 
 .fin-income-form input,
@@ -718,7 +762,7 @@
 }
 
 .fin-report-section:last-of-type .fin-table-wrap table {
-    min-width: 1380px;
+    min-width: 1480px;
 }
 
 .fin-date-profit-table table {

@@ -26,6 +26,7 @@ require_once __DIR__ . '/../bd/conexion.php';
 $usuarioId = (int) $_SESSION['usuario_id'];
 $senderoId = (int) ($_POST['sendero_id'] ?? 0);
 $inversionId = (int) ($_POST['inversion_id'] ?? 0);
+$chalecoTallaId = (int) ($_POST['chaleco_talla_id'] ?? 0);
 
 function registro_redirect(mysqli $conn, int $senderoId): void
 {
@@ -44,6 +45,93 @@ function clean_text(string $value, int $max = 255): string
 function only_digits(string $value): string
 {
     return preg_replace('/\D+/', '', $value);
+}
+
+function guardar_comprobante_pago(array $file, int $usuarioId, int $senderoId): ?array
+{
+    $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($error === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ($error !== UPLOAD_ERR_OK) {
+        $mensaje = in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+            ? 'El comprobante supera el limite de carga del servidor.'
+            : 'No se pudo cargar el comprobante de pago.';
+        throw new RuntimeException($mensaje);
+    }
+
+    $maxBytes = 8 * 1024 * 1024;
+    if ((int) ($file['size'] ?? 0) <= 0 || (int) $file['size'] > $maxBytes) {
+        throw new RuntimeException('El comprobante debe pesar menos de 8 MB.');
+    }
+
+    $tmp = (string) ($file['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) {
+        throw new RuntimeException('El archivo del comprobante no es valido.');
+    }
+
+    $mime = function_exists('mime_content_type') ? (string) mime_content_type($tmp) : '';
+    $permitidos = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'application/pdf' => 'pdf',
+    ];
+    if (!isset($permitidos[$mime])) {
+        throw new RuntimeException('Solo se permiten comprobantes JPG, PNG, WEBP o PDF.');
+    }
+
+    if (str_starts_with($mime, 'image/') && getimagesize($tmp) === false) {
+        throw new RuntimeException('La imagen del comprobante no es valida.');
+    }
+    if ($mime === 'application/pdf') {
+        $handle = fopen($tmp, 'rb');
+        $firma = $handle ? fread($handle, 5) : false;
+        if ($handle) {
+            fclose($handle);
+        }
+        if ($firma !== '%PDF-') {
+            throw new RuntimeException('El PDF del comprobante no es valido.');
+        }
+    }
+
+    $relativeFolder = 'archivos/comprobantes_pago/' . $senderoId;
+    $folder = dirname(__DIR__) . '/' . $relativeFolder;
+    if (!is_dir($folder) && !mkdir($folder, 0775, true)) {
+        throw new RuntimeException('No se pudo crear la carpeta para comprobantes.');
+    }
+
+    $filename = 'comprobante-u' . $usuarioId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(5)) . '.' . $permitidos[$mime];
+    $destination = $folder . '/' . $filename;
+    if (!move_uploaded_file($tmp, $destination)) {
+        throw new RuntimeException('No se pudo guardar el comprobante de pago.');
+    }
+
+    $originalName = trim((string) ($file['name'] ?? 'comprobante.' . $permitidos[$mime]));
+    $originalName = preg_replace('/[\x00-\x1F\x7F]+/', '', basename($originalName)) ?? '';
+    $originalName = substr($originalName !== '' ? $originalName : 'comprobante.' . $permitidos[$mime], 0, 180);
+
+    return [
+        'ruta' => $relativeFolder . '/' . $filename,
+        'nombre' => $originalName,
+        'mime' => $mime,
+        'fecha' => date('Y-m-d H:i:s'),
+    ];
+}
+
+function eliminar_comprobante_nuevo(?array $comprobante): void
+{
+    $ruta = trim((string) ($comprobante['ruta'] ?? ''));
+    if ($ruta === '' || !str_starts_with(str_replace('\\', '/', $ruta), 'archivos/comprobantes_pago/')) {
+        return;
+    }
+
+    $raiz = realpath(dirname(__DIR__) . '/archivos/comprobantes_pago');
+    $archivo = realpath(dirname(__DIR__) . '/' . str_replace('\\', '/', $ruta));
+    if ($raiz !== false && $archivo !== false && is_file($archivo) && str_starts_with($archivo, $raiz . DIRECTORY_SEPARATOR)) {
+        @unlink($archivo);
+    }
 }
 
 function guardar_formulario_anterior(int $senderoId, array $data): void
@@ -259,15 +347,28 @@ if ($senderoId <= 0) {
 crear_tabla_menores_registro($conn);
 $menores = obtener_menores_post();
 
-$stmt = mysqli_prepare($conn, "SELECT id FROM senderos WHERE id = ? AND activo = 1 AND estado = 'pendiente' AND fecha_sendero >= CURDATE() LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT id, incluye_chaleco_salvavidas FROM senderos WHERE id = ? AND activo = 1 AND estado = 'pendiente' AND fecha_sendero >= CURDATE() LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $senderoId);
 mysqli_stmt_execute($stmt);
-$senderoExiste = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$senderoRegistro = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$senderoExiste = (bool) $senderoRegistro;
 mysqli_stmt_close($stmt);
 
 if (!$senderoExiste) {
     $_SESSION['registro_sendero_error'] = "Este sendero ya no esta disponible para registro.";
     registro_sendero_redirect_detalle($conn, $senderoId);
+}
+
+$incluyeChalecoSalvavidas = (int) ($senderoRegistro['incluye_chaleco_salvavidas'] ?? 0) === 1;
+if ($incluyeChalecoSalvavidas) {
+    $stmt = mysqli_prepare($conn, "SELECT id FROM tallas_chalecos_salvavidas WHERE id = ? AND activo = 1 LIMIT 1");
+    mysqli_stmt_bind_param($stmt, "i", $chalecoTallaId);
+    mysqli_stmt_execute($stmt);
+    $tallaChalecoValida = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+} else {
+    $tallaChalecoValida = true;
+    $chalecoTallaId = null;
 }
 
 $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_inversiones WHERE id = ? AND sendero_id = ? AND activo = 1 LIMIT 1");
@@ -299,6 +400,7 @@ $detalleId = (int) ($detalle['id'] ?? 0);
 if ($detalleId <= 0 || !perfil_senderista_completo_registro($detalle ?: [])) {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
+        'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -313,6 +415,9 @@ $errores = [];
 if (!$inversionExiste) {
     $errores[] = "Selecciona un tipo de inversion valido.";
 }
+if (!$tallaChalecoValida) {
+    $errores[] = "Selecciona una talla de chaleco salvavidas valida.";
+}
 if (!$consentimiento || !$rgpd) {
     $errores[] = "Debes aceptar el consentimiento y el acuerdo RGPD.";
 }
@@ -321,6 +426,7 @@ $errores = array_merge($errores, validar_menores($menores, $inversionesValidas))
 if (!empty($errores)) {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
+        'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -328,6 +434,38 @@ if (!empty($errores)) {
     $_SESSION['registro_sendero_error'] = implode(' ', $errores);
     registro_redirect($conn, $senderoId);
 }
+
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT comprobante_pago_ruta, comprobante_pago_nombre, comprobante_pago_mime, comprobante_pago_fecha
+     FROM registros_senderos
+     WHERE usuario_id = ? AND sendero_id = ?
+     LIMIT 1"
+);
+mysqli_stmt_bind_param($stmt, "ii", $usuarioId, $senderoId);
+mysqli_stmt_execute($stmt);
+$comprobanteAnterior = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+mysqli_stmt_close($stmt);
+
+$nuevoComprobante = null;
+try {
+    $nuevoComprobante = guardar_comprobante_pago($_FILES['comprobante_pago'] ?? [], $usuarioId, $senderoId);
+} catch (Throwable $e) {
+    guardar_formulario_anterior($senderoId, [
+        'inversion_id' => (string) $inversionId,
+        'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
+        'consentimiento' => $consentimiento ? '1' : '',
+        'rgpd' => $rgpd ? '1' : '',
+        'menores' => $menores,
+    ]);
+    $_SESSION['registro_sendero_error'] = $e->getMessage();
+    registro_redirect($conn, $senderoId);
+}
+
+$comprobanteRuta = $nuevoComprobante['ruta'] ?? null;
+$comprobanteNombre = $nuevoComprobante['nombre'] ?? null;
+$comprobanteMime = $nuevoComprobante['mime'] ?? null;
+$comprobanteFecha = $nuevoComprobante['fecha'] ?? null;
 
 $consentimientoTexto = "Estoy de acuerdo que: Yo, siendo mayor de edad, en pleno uso de mis facultades y con total capacidad para comprender el contenido de este documento, declaro que he leido y entiendo completamente la informacion proporcionada en esta pagina sobre la actividad en la que participare. Reconozco que se trata de una actividad fisicamente exigente y que conlleva riesgos inherentes a su naturaleza. Estoy consciente de los posibles desafios y riesgos involucrados, incluyendo aquellos relacionados con el esfuerzo fisico, las condiciones del terreno y cualquier otro factor mencionado en la informacion suministrada. Asimismo, acepto que, en caso de emergencia medica, el acceso a asistencia puede estar sujeto a condiciones y tiempos de respuesta variables. Acepto y doy mi consentimiento a recibir asistencia de primeros auxilios por el personal de la directiva de ser necesario. Comprendo que la organizacion y su personal no son responsables de los riesgos que pudiera enfrentar debido a mi participacion o al incumplimiento de las recomendaciones y medidas de seguridad indicadas. Declaro que participo de manera voluntaria, asumiendo plena responsabilidad por mi bienestar y cualquier consecuencia derivada de mi participacion. Finalmente, autorizo el uso y publicacion de imagenes en las que pueda aparecer durante la actividad, siempre que se respete mi integridad y dignidad.";
 $rgpdTexto = "Doy mi consentimiento para que esta web almacene la informacion que envio para que puedan responder a mi peticion. Politica de Privacidad.";
@@ -339,18 +477,38 @@ try {
         $conn,
         "INSERT INTO registros_senderos (
             sendero_id, usuario_id, detalle_usuario_id, estado, consentimiento_aceptado,
-            rgpd_aceptado, consentimiento_texto, rgpd_texto, inversion_id
-        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?, ?)
+            rgpd_aceptado, consentimiento_texto, rgpd_texto, inversion_id, chaleco_talla_id,
+            comprobante_pago_ruta, comprobante_pago_nombre, comprobante_pago_mime, comprobante_pago_fecha
+        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             detalle_usuario_id = VALUES(detalle_usuario_id),
             inversion_id = VALUES(inversion_id),
+            chaleco_talla_id = VALUES(chaleco_talla_id),
+            comprobante_pago_ruta = COALESCE(VALUES(comprobante_pago_ruta), comprobante_pago_ruta),
+            comprobante_pago_nombre = COALESCE(VALUES(comprobante_pago_nombre), comprobante_pago_nombre),
+            comprobante_pago_mime = COALESCE(VALUES(comprobante_pago_mime), comprobante_pago_mime),
+            comprobante_pago_fecha = COALESCE(VALUES(comprobante_pago_fecha), comprobante_pago_fecha),
             estado = 'registrado',
             consentimiento_aceptado = 1,
             rgpd_aceptado = 1,
             consentimiento_texto = VALUES(consentimiento_texto),
             rgpd_texto = VALUES(rgpd_texto)"
     );
-    mysqli_stmt_bind_param($stmt, "iiissi", $senderoId, $usuarioId, $detalleId, $consentimientoTexto, $rgpdTexto, $inversionId);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "iiissiissss",
+        $senderoId,
+        $usuarioId,
+        $detalleId,
+        $consentimientoTexto,
+        $rgpdTexto,
+        $inversionId,
+        $chalecoTallaId,
+        $comprobanteRuta,
+        $comprobanteNombre,
+        $comprobanteMime,
+        $comprobanteFecha
+    );
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 
@@ -420,10 +578,15 @@ try {
     }
 
     mysqli_commit($conn);
+    if ($nuevoComprobante && !empty($comprobanteAnterior['comprobante_pago_ruta']) && $comprobanteAnterior['comprobante_pago_ruta'] !== $nuevoComprobante['ruta']) {
+        eliminar_comprobante_nuevo(['ruta' => $comprobanteAnterior['comprobante_pago_ruta']]);
+    }
 } catch (Throwable $e) {
     mysqli_rollback($conn);
+    eliminar_comprobante_nuevo($nuevoComprobante);
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
+        'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -438,4 +601,3 @@ mysqli_close($conn);
 
 header("Location: " . BASE_URL . "pantallas/senderos_detalle.php?id=" . $senderoId);
 exit;
-

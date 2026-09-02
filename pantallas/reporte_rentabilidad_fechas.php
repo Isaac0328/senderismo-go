@@ -59,6 +59,7 @@ $totales = [
     'esperado' => 0.0,
     'cobrado_bruto' => 0.0,
     'credito_aplicado' => 0.0,
+    'descuento_autorizado' => 0.0,
     'credito_generado' => 0.0,
     'monto_retenido' => 0.0,
     'por_cobrar' => 0.0,
@@ -87,6 +88,7 @@ if ($desdeValida && $hastaValida) {
             COALESCE(r.esperado, 0) AS esperado,
             COALESCE(r.cobrado_bruto, 0) AS cobrado_bruto,
             COALESCE(r.credito_aplicado, 0) AS credito_aplicado,
+            COALESCE(r.descuento_autorizado, 0) AS descuento_autorizado,
             COALESCE(r.credito_generado, 0) AS credito_generado,
             COALESCE(r.monto_retenido, 0) AS monto_retenido,
             COALESCE(r.por_cobrar, 0) AS por_cobrar,
@@ -99,21 +101,22 @@ if ($desdeValida && $hastaValida) {
                 COALESCE(SUM(1 + COALESCE(m.menores, 0)), 0) AS inscritos,
                 COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron,
                 COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS pagados,
-                SUM(CASE WHEN COALESCE(crp.estado_financiero, '') <> 'cortesia' THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END) AS esperado,
+                SUM(CASE WHEN COALESCE(crp.estado_financiero, '') NOT IN ('cortesia', 'exento') THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END) AS esperado,
                 SUM(CASE WHEN crp.pagado = 1 THEN COALESCE(crp.monto_pagado, 0) ELSE 0 END) AS cobrado_bruto,
                 SUM(COALESCE(crp.credito_aplicado, 0)) AS credito_aplicado,
+                SUM(COALESCE(crp.descuento_autorizado, 0)) AS descuento_autorizado,
                 SUM(COALESCE(crp.credito_generado, 0)) AS credito_generado,
                 SUM(COALESCE(crp.monto_retenido, 0)) AS monto_retenido,
                 SUM(
                     CASE
-                        WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'no_asistio_sin_pago') THEN 0
+                        WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'exento', 'no_asistio_sin_pago') THEN 0
                         ELSE COALESCE(crp.saldo_pendiente, 0)
                     END
                 ) AS por_cobrar,
                 SUM(
                     CASE
-                        WHEN COALESCE(crp.estado_financiero, '') = 'cortesia' THEN 0
-                        ELSE GREATEST(COALESCE(crp.monto_pagado, 0) + COALESCE(crp.credito_aplicado, 0) - COALESCE(crp.credito_generado, 0), 0)
+                        WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'exento') THEN 0
+                        ELSE GREATEST(COALESCE(crp.monto_pagado, 0) + COALESCE(crp.credito_aplicado, 0) - COALESCE(crp.descuento_autorizado, 0) - COALESCE(crp.credito_generado, 0), 0)
                     END
                 ) AS ingreso_neto
             FROM registros_senderos rs
@@ -141,6 +144,7 @@ if ($desdeValida && $hastaValida) {
         $row['esperado'] = (float) $row['esperado'];
         $row['cobrado_bruto'] = (float) $row['cobrado_bruto'];
         $row['credito_aplicado'] = (float) $row['credito_aplicado'];
+        $row['descuento_autorizado'] = (float) $row['descuento_autorizado'];
         $row['credito_generado'] = (float) $row['credito_generado'];
         $row['monto_retenido'] = (float) $row['monto_retenido'];
         $row['por_cobrar'] = (float) $row['por_cobrar'];
@@ -158,6 +162,7 @@ if ($desdeValida && $hastaValida) {
         $totales['esperado'] += $row['esperado'];
         $totales['cobrado_bruto'] += $row['cobrado_bruto'];
         $totales['credito_aplicado'] += $row['credito_aplicado'];
+        $totales['descuento_autorizado'] += $row['descuento_autorizado'];
         $totales['credito_generado'] += $row['credito_generado'];
         $totales['monto_retenido'] += $row['monto_retenido'];
         $totales['por_cobrar'] += $row['por_cobrar'];
@@ -222,6 +227,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article class="money"><span>Ingreso neto</span><strong><?= rrf_h(rrf_money($totales['ingreso_neto'])) ?></strong></article>
                     <article><span>Cobrado bruto</span><strong><?= rrf_h(rrf_money($totales['cobrado_bruto'])) ?></strong></article>
                     <article><span>Credito aplicado</span><strong><?= rrf_h(rrf_money($totales['credito_aplicado'])) ?></strong></article>
+                    <article><span>Descuento</span><strong><?= rrf_h(rrf_money($totales['descuento_autorizado'])) ?></strong></article>
                     <article class="warn"><span>Credito abonado</span><strong><?= rrf_h(rrf_money($totales['credito_generado'])) ?></strong></article>
                     <article class="warn"><span>Gastos</span><strong><?= rrf_h(rrf_money($totales['gastos'])) ?></strong></article>
                     <article class="<?= $totales['utilidad'] >= 0 ? 'ok' : 'warn' ?>"><span>Utilidad</span><strong><?= rrf_h(rrf_money($totales['utilidad'])) ?></strong></article>
@@ -249,6 +255,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <article><span>Pagados</span><strong><?= (int) $totales['pagados'] ?></strong></article>
                         <article><span>Asistieron</span><strong><?= (int) $totales['asistieron'] ?></strong></article>
                         <article><span>Esperado</span><strong><?= rrf_h(rrf_money($totales['esperado'])) ?></strong></article>
+                        <article><span>Ajuste autorizado</span><strong><?= rrf_h(rrf_money($totales['descuento_autorizado'])) ?></strong></article>
                         <article><span>Retenido</span><strong><?= rrf_h(rrf_money($totales['monto_retenido'])) ?></strong></article>
                         <article><span>Por cobrar</span><strong><?= rrf_h(rrf_money($totales['por_cobrar'])) ?></strong></article>
                     </div>
@@ -265,6 +272,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Ingreso neto</th>
                                     <th>Cobrado bruto</th>
                                     <th>Credito aplicado</th>
+                                    <th>Descuento</th>
                                     <th>Credito abonado</th>
                                     <th>Por cobrar</th>
                                     <th>Gastos</th>
@@ -286,6 +294,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <td><strong><?= rrf_h(rrf_money($row['ingreso_neto'])) ?></strong></td>
                                         <td><?= rrf_h(rrf_money($row['cobrado_bruto'])) ?></td>
                                         <td><?= rrf_h(rrf_money($row['credito_aplicado'])) ?></td>
+                                        <td><?= rrf_h(rrf_money($row['descuento_autorizado'])) ?></td>
                                         <td><?= rrf_h(rrf_money($row['credito_generado'])) ?></td>
                                         <td><?= rrf_h(rrf_money($row['por_cobrar'])) ?></td>
                                         <td><?= rrf_h(rrf_money($row['gastos'])) ?></td>

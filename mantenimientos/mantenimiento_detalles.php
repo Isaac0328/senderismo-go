@@ -26,13 +26,17 @@ $jsFiles = [
 
 require_once __DIR__ . '/../bd/conexion.php';
 
-function fetch_catalog(mysqli $conn, string $table, bool $withLevel = false): array
+function fetch_catalog(mysqli $conn, string $table, bool $withLevel = false, bool $withOrder = false): array
 {
     $items = [];
     $fields = $withLevel
         ? "id, nombre, descripcion, nivel_numero, activo, created_at"
-        : "id, nombre, descripcion, activo, created_at";
-    $order = $withLevel ? "activo DESC, nivel_numero ASC, nombre ASC" : "activo DESC, nombre ASC";
+        : ($withOrder
+            ? "id, nombre, descripcion, orden, activo, created_at"
+            : "id, nombre, descripcion, activo, created_at");
+    $order = $withLevel
+        ? "activo DESC, nivel_numero ASC, nombre ASC"
+        : ($withOrder ? "activo DESC, orden ASC, nombre ASC" : "activo DESC, nombre ASC");
     $res = mysqli_query($conn, "SELECT {$fields} FROM {$table} ORDER BY {$order}");
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
@@ -74,10 +78,22 @@ $catalogs = [
         'table' => 'elementos_incluidos',
         'placeholder' => 'Ej: Staff y guias certificados',
     ],
+    'tallas_chalecos' => [
+        'title' => 'Tallas de chalecos',
+        'subtitle' => 'Tallas disponibles para los chalecos salvavidas.',
+        'table' => 'tallas_chalecos_salvavidas',
+        'placeholder' => 'Ej: S, M, L o Infantil',
+        'with_order' => true,
+    ],
 ];
 
 foreach ($catalogs as $key => $config) {
-    $catalogs[$key]['items'] = fetch_catalog($conn, $config['table'], !empty($config['with_level']));
+    $catalogs[$key]['items'] = fetch_catalog(
+        $conn,
+        $config['table'],
+        !empty($config['with_level']),
+        !empty($config['with_order'])
+    );
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -151,6 +167,14 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 </div>
                             <?php endif; ?>
 
+                            <?php if (!empty($config['with_order'])): ?>
+                                <div class="field">
+                                    <label>Orden *</label>
+                                    <input type="number" name="orden" min="0" max="999" required value="0" data-order-field="<?= $key ?>">
+                                    <small class="field-note">Define la posicion de la talla en la lista desplegable.</small>
+                                </div>
+                            <?php endif; ?>
+
                             <label class="active-row">
                                 <input type="checkbox" name="activo" value="1" checked data-active-field="<?= $key ?>">
                                 <span>Activo</span>
@@ -179,6 +203,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <?php if (!empty($config['with_level'])): ?>
                                                 <span class="pill level">Nivel <?= (int) ($item['nivel_numero'] ?? 50) ?>/100</span>
                                             <?php endif; ?>
+                                            <?php if (!empty($config['with_order'])): ?>
+                                                <span class="pill level">Orden <?= (int) ($item['orden'] ?? 0) ?></span>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="catalog-item-actions">
                                             <button type="button"
@@ -188,6 +215,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 data-nombre="<?= htmlspecialchars($item['nombre']) ?>"
                                                 data-descripcion="<?= htmlspecialchars($item['descripcion'] ?? '') ?>"
                                                 data-nivel="<?= (int) ($item['nivel_numero'] ?? 50) ?>"
+                                                data-orden="<?= (int) ($item['orden'] ?? 0) ?>"
                                                 data-activo="<?= (int) $item['activo'] ?>">
                                                 Editar
                                             </button>
@@ -200,6 +228,17 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                     <?= (int) $item['activo'] === 1 ? 'Inactivar' : 'Activar' ?>
                                                 </button>
                                             </form>
+                                            <?php if ((int) $item['activo'] === 0): ?>
+                                                <form method="POST"
+                                                      action="<?= BASE_URL ?>procesos/proceso_detalles.php"
+                                                      class="inline-form"
+                                                      onsubmit="return confirm('¿Seguro que deseas eliminar este registro? Esta accion no se puede deshacer.');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="catalog" value="<?= $key ?>">
+                                                    <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+                                                    <button type="submit" class="btn-mini danger">Eliminar</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </div>
                                     </article>
                                 <?php endforeach; ?>

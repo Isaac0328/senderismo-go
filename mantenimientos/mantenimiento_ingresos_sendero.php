@@ -60,6 +60,7 @@ $totales = [
     'esperado' => 0.0,
     'cobrado' => 0.0,
     'credito_aplicado' => 0.0,
+    'descuento_autorizado' => 0.0,
     'credito_generado' => 0.0,
     'monto_retenido' => 0.0,
     'ingreso_neto' => 0.0,
@@ -90,6 +91,7 @@ if ($senderoSeleccionado) {
             crp.monto_esperado AS pago_monto_esperado,
             crp.monto_pagado,
             crp.credito_aplicado,
+            COALESCE(crp.descuento_autorizado, 0) AS descuento_autorizado,
             crp.saldo_pendiente,
             crp.credito_id,
             COALESCE(crp.credito_generado, 0) AS credito_generado,
@@ -123,19 +125,25 @@ if ($senderoSeleccionado) {
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($res)) {
-        $esperado = (float) ($row['inversion_monto'] ?? 0) + (float) ($row['total_menores_monto'] ?? 0);
+        $estadoGuardado = (string) ($row['estado_financiero'] ?? '');
+        $esperadoBase = (float) ($row['inversion_monto'] ?? 0) + (float) ($row['total_menores_monto'] ?? 0);
+        $esperado = $estadoGuardado === 'exento' ? 0.0 : $esperadoBase;
+        $row['monto_esperado_base'] = $esperadoBase;
         $row['monto_esperado'] = $esperado;
         $row['monto_pagado'] = $row['monto_pagado'] !== null ? (float) $row['monto_pagado'] : $esperado;
         $row['credito_aplicado'] = $row['credito_aplicado'] !== null ? (float) $row['credito_aplicado'] : 0.0;
+        $row['descuento_autorizado'] = max(0, (float) ($row['descuento_autorizado'] ?? 0));
         $row['credito_generado'] = max(0, (float) ($row['credito_generado'] ?? 0));
         $row['monto_retenido'] = max(0, (float) ($row['monto_retenido'] ?? 0));
         $asistioRow = (int) ($row['asistio'] ?? 0) === 1;
         $pagadoRow = (int) ($row['pagado'] ?? 0) === 1;
-        $row['estado_financiero'] = $row['estado_financiero'] ?: sg_financial_status_default($pagadoRow, $asistioRow);
+        $row['estado_financiero'] = $estadoGuardado !== '' ? $estadoGuardado : sg_financial_status_default($pagadoRow, $asistioRow);
         if (!$asistioRow && $pagadoRow && $row['credito_generado'] <= 0 && $row['monto_retenido'] <= 0) {
             $row['monto_retenido'] = (float) $row['monto_pagado'];
         }
-        $row['saldo_pendiente'] = $row['saldo_pendiente'] !== null ? (float) $row['saldo_pendiente'] : max(0, $esperado - ((int) ($row['pagado'] ?? 0) === 1 ? (float) $row['monto_pagado'] : 0));
+        $row['saldo_pendiente'] = $row['saldo_pendiente'] !== null
+            ? (float) $row['saldo_pendiente']
+            : max(0, $esperado - ((int) ($row['pagado'] ?? 0) === 1 ? (float) $row['monto_pagado'] : 0) - (float) $row['credito_aplicado'] - (float) $row['descuento_autorizado']);
         if (
             !$pagadoRow
             && (float) $row['credito_aplicado'] <= 0
@@ -152,23 +160,24 @@ if ($senderoSeleccionado) {
         $totales['inscritos'] += $participantesRegistro;
         $totales['pagados'] += $pagadoRow ? $participantesRegistro : 0;
         $totales['asistieron'] += $asistioRow ? $participantesRegistro : 0;
-        if ($row['estado_financiero'] !== 'cortesia') {
+        if (!in_array($row['estado_financiero'], ['cortesia', 'exento'], true)) {
             $totales['esperado'] += $esperado;
         }
         $totales['cobrado'] += $pagadoRow ? (float) $row['monto_pagado'] : 0;
         $totales['credito_aplicado'] += (float) $row['credito_aplicado'];
+        $totales['descuento_autorizado'] += (float) $row['descuento_autorizado'];
         $totales['credito_generado'] += (float) $row['credito_generado'];
         $totales['monto_retenido'] += (float) $row['monto_retenido'];
         if ($row['estado_financiero'] === 'no_asistio_sin_pago') {
             $totales['no_asistio_sin_pago']++;
-        } elseif ($row['estado_financiero'] !== 'cortesia') {
+        } elseif (!in_array($row['estado_financiero'], ['cortesia', 'exento'], true)) {
             $totales['por_cobrar'] += (float) $row['saldo_pendiente'];
         }
         $registros[] = $row;
     }
     mysqli_stmt_close($stmt);
-    $totales['diferencia'] = max(0, (float) $totales['esperado'] - (float) $totales['cobrado']);
-    $totales['ingreso_neto'] = max(0, (float) $totales['cobrado'] + (float) $totales['credito_aplicado'] - (float) $totales['credito_generado']);
+    $totales['diferencia'] = max(0, (float) $totales['esperado'] - (float) $totales['cobrado'] - (float) $totales['credito_aplicado'] - (float) $totales['descuento_autorizado']);
+    $totales['ingreso_neto'] = max(0, (float) $totales['cobrado'] + (float) $totales['credito_aplicado'] - (float) $totales['descuento_autorizado'] - (float) $totales['credito_generado']);
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -235,6 +244,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article><span>Asistieron</span><strong><?= (int) $totales['asistieron'] ?></strong></article>
                     <article class="money"><span>Cobrado</span><strong><?= fis_h(fis_money($totales['cobrado'])) ?></strong></article>
                     <article class="money"><span>Credito aplicado</span><strong><?= fis_h(fis_money($totales['credito_aplicado'])) ?></strong></article>
+                    <article><span>Descuento</span><strong><?= fis_h(fis_money($totales['descuento_autorizado'])) ?></strong></article>
                     <article class="warn"><span>Credito generado</span><strong><?= fis_h(fis_money($totales['credito_generado'])) ?></strong></article>
                     <article><span>Retenido</span><strong><?= fis_h(fis_money($totales['monto_retenido'])) ?></strong></article>
                     <article class="money"><span>Ingreso neto</span><strong><?= fis_h(fis_money($totales['ingreso_neto'])) ?></strong></article>
@@ -284,6 +294,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <th>Monto pagado</th>
                                         <th>Credito disp.</th>
                                         <th>Credito aplicado</th>
+                                        <th>Descuento</th>
                                         <th>Saldo</th>
                                         <th>Fecha pago</th>
                                         <th>Metodo</th>
@@ -301,7 +312,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         $asistio = (int) ($registro['asistio'] ?? 0) === 1;
                                         $estadoFinanciero = (string) ($registro['estado_financiero'] ?? 'pendiente');
                                         ?>
-                                        <tr class="<?= $pagado ? 'is-paid' : '' ?>" data-expected="<?= fis_h($registro['monto_esperado']) ?>">
+                                        <tr class="<?= $pagado ? 'is-paid' : '' ?><?= $estadoFinanciero === 'exento' ? ' is-exempt' : '' ?>" data-expected="<?= fis_h($registro['monto_esperado']) ?>" data-expected-base="<?= fis_h($registro['monto_esperado_base']) ?>">
                                             <td>
                                                 <input type="hidden" name="registro_ids[]" value="<?= $rid ?>">
                                                 <label class="fin-mini-check">
@@ -333,12 +344,30 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
-                                            <td><strong><?= fis_h(fis_money($registro['monto_esperado'])) ?></strong></td>
+                                            <td><strong data-expected-display><?= fis_h(fis_money($registro['monto_esperado'])) ?></strong></td>
                                             <td><input class="fin-number" type="number" name="monto_pagado[<?= $rid ?>]" min="0" step="0.01" value="<?= fis_h($registro['monto_pagado']) ?>" data-paid-amount></td>
                                             <td>
                                                 <strong><?= fis_h(fis_money($registro['credito_disponible'])) ?></strong>
                                             </td>
-                                            <td><input class="fin-number" type="number" name="credito_aplicado[<?= $rid ?>]" min="0" step="0.01" max="<?= fis_h($registro['credito_disponible'] + $registro['credito_aplicado']) ?>" value="<?= fis_h($registro['credito_aplicado']) ?>" data-credit-amount></td>
+                                            <td>
+                                                <span class="fin-credit-field" data-credit-field>
+                                                    <input
+                                                        class="fin-number"
+                                                        type="number"
+                                                        name="credito_aplicado[<?= $rid ?>]"
+                                                        min="0"
+                                                        step="0.01"
+                                                        max="<?= fis_h($registro['credito_disponible'] + $registro['credito_aplicado']) ?>"
+                                                        value="<?= fis_h($registro['credito_aplicado']) ?>"
+                                                        data-credit-amount
+                                                        data-credit-available="<?= fis_h($registro['credito_disponible']) ?>"
+                                                    >
+                                                    <span class="fin-credit-warning" data-credit-warning title="El monto aplicado supera el credito disponible.">
+                                                        <i data-feather="alert-triangle"></i>
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td><input class="fin-number" type="number" name="descuento_autorizado[<?= $rid ?>]" min="0" step="0.01" value="<?= fis_h($registro['descuento_autorizado']) ?>" data-discount-amount title="Descuento o ajuste autorizado para cerrar saldo sin dejar deuda."></td>
                                             <td><strong data-row-balance><?= fis_h(fis_money($registro['saldo_pendiente'])) ?></strong></td>
                                             <td><input type="date" name="fecha_pago[<?= $rid ?>]" value="<?= fis_h($registro['fecha_pago'] ?? '') ?>" data-payment-date></td>
                                             <td>
@@ -369,6 +398,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <div class="fin-sticky-save">
                             <strong>Cobrado: <span data-income-total><?= fis_h(fis_money($totales['cobrado'])) ?></span></strong>
                             <strong>Aplicado: <span data-credit-total><?= fis_h(fis_money($totales['credito_aplicado'])) ?></span></strong>
+                            <strong>Descuento: <span data-discount-total><?= fis_h(fis_money($totales['descuento_autorizado'])) ?></span></strong>
                             <strong>Generado: <span data-generated-total><?= fis_h(fis_money($totales['credito_generado'])) ?></span></strong>
                             <strong>Retenido: <span data-retained-total><?= fis_h(fis_money($totales['monto_retenido'])) ?></span></strong>
                             <strong>Neto: <span data-net-total><?= fis_h(fis_money($totales['ingreso_neto'])) ?></span></strong>
@@ -424,14 +454,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const attended = row.querySelector('input[type="checkbox"][name="asistio[]"]')?.checked || false;
         const amount = Math.max(0, parseFloat(amountInput?.value || '0'));
         const credit = Math.max(0, parseFloat(creditInput?.value || '0'));
+        const discount = Math.max(0, parseFloat(row.querySelector('[data-discount-amount]')?.value || '0'));
 
         if (check.checked) {
-            const amountAfterFill = amount <= 0 && credit < expected ? Math.max(0, expected - credit) : amount;
-            if (fillAmounts && amountInput && amount <= 0 && credit < expected) {
+            const amountAfterFill = amount <= 0 && credit + discount < expected ? Math.max(0, expected - credit - discount) : amount;
+            if (fillAmounts && amountInput && amount <= 0 && credit + discount < expected) {
                 amountInput.value = amountAfterFill.toFixed(2);
             }
             if (statusSelect) {
-                statusSelect.value = credit >= expected && expected > 0 ? 'credito_aplicado' : 'pagado';
+                statusSelect.value = discount > 0 ? 'descuento' : (credit >= expected && expected > 0 ? 'credito_aplicado' : 'pagado');
             }
             if (dateInput && !dateInput.value) {
                 dateInput.value = today;
@@ -458,6 +489,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (credit > 0) {
             statusSelect.value = credit >= expected ? 'credito_aplicado' : 'parcial';
+            return;
+        }
+        if (discount > 0) {
+            statusSelect.value = attended ? 'parcial' : 'no_asistio_sin_pago';
             return;
         }
 
@@ -489,38 +524,87 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    const syncCreditWarning = (row) => {
+        const creditInput = row?.querySelector('[data-credit-amount]');
+        const creditField = row?.querySelector('[data-credit-field]');
+        if (!creditInput || !creditField) return;
+
+        const applied = Math.max(0, parseFloat(creditInput.value || '0'));
+        const available = Math.max(0, parseFloat(creditInput.dataset.creditAvailable || '0'));
+        const hasWarning = applied > available && applied > 0;
+        creditField.classList.toggle('has-credit-warning', hasWarning);
+        creditInput.setAttribute(
+            'aria-invalid',
+            hasWarning ? 'true' : 'false'
+        );
+    };
+
+    const syncExemptState = (row) => {
+        if (!row) return false;
+
+        const statusSelect = row.querySelector('[data-fin-status]');
+        const isExempt = statusSelect?.value === 'exento';
+        const expected = isExempt ? 0 : Math.max(0, parseFloat(row.dataset.expectedBase || '0'));
+        row.dataset.expected = expected.toString();
+        row.classList.toggle('is-exempt', isExempt);
+
+        const expectedDisplay = row.querySelector('[data-expected-display]');
+        if (expectedDisplay) expectedDisplay.textContent = money.format(expected);
+        if (!isExempt) return false;
+
+        const paidCheck = row.querySelector('input[type="checkbox"][name="pagado[]"]');
+        const generateCreditCheck = row.querySelector('input[type="checkbox"][name="generar_credito[]"]');
+        if (paidCheck) paidCheck.checked = false;
+        if (generateCreditCheck) generateCreditCheck.checked = false;
+
+        ['[data-paid-amount]', '[data-credit-amount]', '[data-discount-amount]', '[data-generated-credit]', '[data-retained-amount]'].forEach((selector) => {
+            const input = row.querySelector(selector);
+            if (input) input.value = '0';
+        });
+        const dateInput = row.querySelector('[data-payment-date]');
+        const methodSelect = row.querySelector('select[name^="metodo_pago_id["]');
+        if (dateInput) dateInput.value = '';
+        if (methodSelect) methodSelect.value = '';
+        return true;
+    };
+
     const recalc = () => {
         let total = 0;
         let totalCredit = 0;
+        let totalDiscount = 0;
         let totalGenerated = 0;
         let totalRetained = 0;
         let totalDebt = 0;
         let expectedTotal = 0;
         paidChecks().forEach((check) => {
             const row = check.closest('tr');
+            syncExemptState(row);
             syncCreditGeneration(row);
+            syncCreditWarning(row);
             row?.classList.toggle('is-paid', check.checked);
             const expected = parseFloat(row?.dataset.expected || '0');
             const amount = parseFloat(row?.querySelector('[data-paid-amount]')?.value || '0');
             const credit = parseFloat(row?.querySelector('[data-credit-amount]')?.value || '0');
+            const discount = parseFloat(row?.querySelector('[data-discount-amount]')?.value || '0');
             const generated = parseFloat(row?.querySelector('[data-generated-credit]')?.value || '0');
             const retained = parseFloat(row?.querySelector('[data-retained-amount]')?.value || '0');
             const status = row?.querySelector('[data-fin-status]')?.value || '';
             const attended = row?.querySelector('input[type="checkbox"][name="asistio[]"]')?.checked || false;
-            if (status !== 'cortesia') {
+            if (status !== 'cortesia' && status !== 'exento') {
                 expectedTotal += Math.max(0, expected);
             }
-            let balance = Math.max(0, expected - (Math.max(0, amount) + Math.max(0, credit)));
-            if (status === 'cortesia' || status === 'no_asistio_sin_pago' || (!attended && !check.checked && amount <= 0 && credit <= 0 && status !== 'deuda')) {
+            let balance = Math.max(0, expected - (Math.max(0, amount) + Math.max(0, credit) + Math.max(0, discount)));
+            if (status === 'cortesia' || status === 'exento' || status === 'no_asistio_sin_pago' || (!attended && !check.checked && amount <= 0 && credit <= 0 && status !== 'deuda')) {
                 balance = 0;
             }
             const balanceTarget = row?.querySelector('[data-row-balance]');
             if (balanceTarget) balanceTarget.textContent = money.format(balance);
             if (check.checked) total += Math.max(0, amount);
             totalCredit += Math.max(0, credit);
+            totalDiscount += Math.max(0, discount);
             totalGenerated += Math.max(0, generated);
             totalRetained += Math.max(0, retained);
-            if (status !== 'cortesia' && status !== 'no_asistio_sin_pago' && (attended || status === 'deuda' || status === 'parcial')) {
+            if (status !== 'cortesia' && status !== 'exento' && status !== 'no_asistio_sin_pago' && (attended || status === 'deuda' || status === 'parcial')) {
                 totalDebt += balance;
             }
         });
@@ -528,19 +612,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (target) target.textContent = money.format(total);
         const creditTarget = form.querySelector('[data-credit-total]');
         if (creditTarget) creditTarget.textContent = money.format(totalCredit);
+        const discountTarget = form.querySelector('[data-discount-total]');
+        if (discountTarget) discountTarget.textContent = money.format(totalDiscount);
         const generatedTarget = form.querySelector('[data-generated-total]');
         if (generatedTarget) generatedTarget.textContent = money.format(totalGenerated);
         const retainedTarget = form.querySelector('[data-retained-total]');
         if (retainedTarget) retainedTarget.textContent = money.format(totalRetained);
         const netTarget = form.querySelector('[data-net-total]');
-        if (netTarget) netTarget.textContent = money.format(Math.max(0, total + totalCredit - totalGenerated));
+        if (netTarget) netTarget.textContent = money.format(Math.max(0, total + totalCredit - totalDiscount - totalGenerated));
         const diffTarget = form.querySelector('[data-diff-total]');
-        if (diffTarget) diffTarget.textContent = money.format(Math.max(0, expectedTotal - total));
+        if (diffTarget) diffTarget.textContent = money.format(Math.max(0, expectedTotal - total - totalCredit - totalDiscount));
         const debtTarget = form.querySelector('[data-debt-total]');
         if (debtTarget) debtTarget.textContent = money.format(totalDebt);
     };
     form.querySelector('[data-paid-all]')?.addEventListener('click', () => {
         paidChecks().forEach(check => {
+            if (check.closest('tr')?.querySelector('[data-fin-status]')?.value === 'exento') return;
             check.checked = true;
             setPaymentStatus(check, true);
         });
@@ -548,6 +635,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     form.querySelector('[data-paid-none]')?.addEventListener('click', () => {
         paidChecks().forEach(check => {
+            if (check.closest('tr')?.querySelector('[data-fin-status]')?.value === 'exento') return;
             check.checked = false;
             setPaymentStatus(check, true);
         });
@@ -556,13 +644,22 @@ document.addEventListener('DOMContentLoaded', function () {
     form.querySelector('[data-attended-all]')?.addEventListener('click', () => {
         attendedChecks().forEach(check => check.checked = true);
         paidChecks().forEach(check => {
-            if (!check.checked) {
+            if (!check.checked && check.closest('tr')?.querySelector('[data-fin-status]')?.value !== 'exento') {
                 setPaymentStatus(check, false);
             }
         });
         recalc();
     });
     form.addEventListener('change', (event) => {
+        const statusSelect = event.target.closest('[data-fin-status]');
+        if (statusSelect) {
+            keepScrollPosition(() => {
+                syncExemptState(statusSelect.closest('tr'));
+                recalc();
+            });
+            return;
+        }
+
         const paidCheck = event.target.closest('input[type="checkbox"][name="pagado[]"]');
         if (paidCheck) {
             keepScrollPosition(() => {
@@ -576,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (attendedCheck) {
             keepScrollPosition(() => {
                 const paidCheckInRow = attendedCheck.closest('tr')?.querySelector('input[type="checkbox"][name="pagado[]"]');
-                if (paidCheckInRow && !paidCheckInRow.checked) {
+                if (paidCheckInRow && !paidCheckInRow.checked && attendedCheck.closest('tr')?.querySelector('[data-fin-status]')?.value !== 'exento') {
                     setPaymentStatus(paidCheckInRow, false);
                 }
                 recalc();
@@ -597,7 +694,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-    form.addEventListener('input', recalc);
+    form.addEventListener('input', (event) => {
+        const row = event.target.closest('tr');
+        if (row && (event.target.matches('[data-paid-amount]') || event.target.matches('[data-credit-amount]') || event.target.matches('[data-discount-amount]'))) {
+            const paidCheck = row.querySelector('input[type="checkbox"][name="pagado[]"]');
+            if (paidCheck) {
+                setPaymentStatus(paidCheck, false);
+            }
+        }
+        recalc();
+    });
     recalc();
 });
 </script>

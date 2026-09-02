@@ -148,6 +148,7 @@ $moduleGroups = [
             ['Senderos', 'Rutas, fechas, inversiones, imagenes y detalle', 'map', BASE_URL . 'mantenimientos/mantenimiento_senderos.php', $stats['senderos'], 'permission' => 'operaciones.senderos'],
             ['Usuarios por sendero', 'Acciones sobre reservas y participantes', 'users', BASE_URL . 'mantenimientos/mantenimiento_usuarios_senderos.php', 'permission' => 'operaciones.usuarios_senderos'],
             ['Asistencia', 'Marcar quienes fueron realmente', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php', 'permission' => 'operaciones.asistencia'],
+            ['Encuestas', 'Formularios, envios y satisfaccion por ruta', 'message-square', BASE_URL . 'mantenimientos/mantenimiento_encuestas.php', 'permission' => 'operaciones.encuestas'],
             ['Puntos de encuentro', 'Ubicaciones reutilizables para salidas', 'map', BASE_URL . 'mantenimientos/mantenimiento_puntos_encuentro.php', 'permission' => 'operaciones.puntos_encuentro'],
             ['Detalles', 'Terrenos, anotaciones, incluye y dificultad', 'file-text', BASE_URL . 'mantenimientos/mantenimiento_detalles.php', 'permission' => 'operaciones.detalles'],
         ],
@@ -163,7 +164,7 @@ $moduleGroups = [
             ['Gastos catalogo', 'Costos frecuentes por alimento, equipo o servicio', 'tag', BASE_URL . 'mantenimientos/mantenimiento_gastos.php', 'permission' => 'finanzas.gastos_catalogo'],
             ['Gastos por sendero', 'Costos reales por ruta', 'shopping-bag', BASE_URL . 'mantenimientos/mantenimiento_gastos_sendero.php', 'permission' => 'finanzas.gastos_sendero'],
             ['Metodos de pago', 'Formas de cobro para los ingresos', 'briefcase', BASE_URL . 'mantenimientos/mantenimiento_metodo_pago.php', 'permission' => 'finanzas.metodos_pago'],
-            ['Ingresos por sendero', 'Pagos, creditos, cortesias y asistencia financiera', 'trending-up', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
+            ['Ingresos por sendero', 'Pagos, creditos, cortesias, exentos y asistencia financiera', 'trending-up', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
         ],
     ],
     [
@@ -174,7 +175,7 @@ $moduleGroups = [
             [
                 'label' => 'General',
                 'items' => [
-                    ['Reporte de Usuarios', 'Altas, roles, estado y datos generales', 'users', BASE_URL . 'pantallas/reportes.php#usuarios', 'permission' => 'reportes.usuarios'],
+                    ['Reporte de Usuarios', 'Ranking, kilometraje y perfil de usuarios', 'users', BASE_URL . 'pantallas/reporte_estadisticas_usuarios.php', 'permission' => 'reportes.usuarios'],
                     ['Reporte de Actividad', 'Movimiento reciente de la plataforma', 'activity', BASE_URL . 'pantallas/reportes.php#actividad', 'permission' => 'reportes.actividad'],
                     ['Contactos Recibidos', 'Solicitudes enviadas desde la web', 'mail', BASE_URL . 'pantallas/reporte_contacto.php', $stats['mensajesNuevos'], 'permission' => 'reportes.contactos'],
                 ],
@@ -189,6 +190,7 @@ $moduleGroups = [
             [
                 'label' => 'Finanzas',
                 'items' => [
+                    ['Panel financiero', 'Indicadores, tendencias, alertas y rentabilidad', 'bar-chart-2', BASE_URL . 'pantallas/panel_financiero.php', 'permission' => 'finanzas.panel'],
                     ['Rentabilidad por Sendero', 'Ingresos, gastos, utilidad y margen', 'trending-up', BASE_URL . 'pantallas/reporte_rentabilidad_sendero.php', 'permission' => 'reportes.rentabilidad_sendero'],
                     ['Rentabilidad por Fechas', 'Resumen financiero por periodo', 'calendar', BASE_URL . 'pantallas/reporte_rentabilidad_fechas.php', 'permission' => 'reportes.rentabilidad_fechas'],
                 ],
@@ -203,7 +205,7 @@ $quickActions = admin_filter_items($conn, [
     ['Nuevo sendero', 'Crear una salida o ruta de catalogo', 'plus-circle', BASE_URL . 'mantenimientos/mantenimiento_senderos.php', 'permission' => 'operaciones.senderos'],
     ['Registrar usuario', 'Agregar o completar un participante', 'user-plus', BASE_URL . 'mantenimientos/mantenimiento_usuarios.php', 'permission' => 'usuarios.usuarios'],
     ['Marcar asistencia', 'Confirmar quienes fueron al sendero', 'check-square', BASE_URL . 'mantenimientos/mantenimiento_asistencia_senderos.php', 'permission' => 'operaciones.asistencia'],
-    ['Registrar ingresos', 'Pagos, creditos y cortesias', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
+    ['Registrar ingresos', 'Pagos, creditos, cortesias y exentos', 'credit-card', BASE_URL . 'mantenimientos/mantenimiento_ingresos_sendero.php', 'permission' => 'finanzas.ingresos_sendero'],
 ]);
 
 $balanceTotal = (float) $stats['ingresosTotales'] - (float) $stats['gastosTotales'];

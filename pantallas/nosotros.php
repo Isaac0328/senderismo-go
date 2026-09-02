@@ -163,7 +163,16 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <div class="team-grid">
                 <?php foreach ($equipo as $persona): ?>
                     <article class="team-card">
-                        <img src="<?= $url($persona['imagen']) ?>" alt="<?= h($persona['nombre']) ?>">
+                        <button type="button"
+                                class="team-image-button"
+                                data-team-image
+                                data-image-src="<?= h($url($persona['imagen'])) ?>"
+                                data-image-title="<?= h($persona['nombre']) ?>"
+                                data-image-subtitle="<?= h($persona['rol']) ?>"
+                                aria-label="Ampliar imagen de <?= h($persona['nombre']) ?>">
+                            <img src="<?= $url($persona['imagen']) ?>" alt="<?= h($persona['nombre']) ?>">
+                            <span class="team-image-zoom" aria-hidden="true"><i data-feather="maximize-2"></i></span>
+                        </button>
                         <div>
                             <h3><?= h($persona['nombre']) ?></h3>
                             <p><?= h($persona['rol']) ?></p>
@@ -173,6 +182,21 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             </div>
         </div>
     </section>
+
+    <dialog class="team-lightbox" data-team-lightbox aria-labelledby="teamLightboxTitle">
+        <section class="team-lightbox-panel">
+            <button type="button" class="team-lightbox-close" data-team-lightbox-close aria-label="Cerrar imagen ampliada">
+                <i data-feather="x"></i>
+            </button>
+            <div class="team-lightbox-media">
+                <img src="" alt="" data-team-lightbox-image>
+            </div>
+            <div class="team-lightbox-caption">
+                <strong id="teamLightboxTitle" data-team-lightbox-title></strong>
+                <span data-team-lightbox-subtitle></span>
+            </div>
+        </section>
+    </dialog>
 
     <section class="about-section about-cta">
         <div class="about-container cta-inner">
@@ -190,4 +214,3 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 </main>
 
 <?php include_once __DIR__ . "/../componentes/pie_pagina.php"; ?>
-

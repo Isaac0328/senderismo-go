@@ -301,6 +301,9 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
 $fechaVencida = sendero_fecha_vencida($sendero['fecha_sendero']);
 $esVisitado = ($sendero['estado'] ?? '') === 'visitado' || $fechaVencida;
+$vieneDesdePerfil = isset($_GET['desde']) && $_GET['desde'] === 'perfil';
+$volverUrl = $vieneDesdePerfil ? BASE_URL . 'pantallas/mi_perfil.php' : BASE_URL . 'pantallas/' . ($esVisitado ? 'senderos_visitados.php' : 'senderos.php');
+$volverTexto = $vieneDesdePerfil ? 'Volver al perfil' : 'Volver a senderos';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = null;
 for ($i = count($puntosEncuentro) - 1; $i >= 0; $i--) {
@@ -310,6 +313,10 @@ for ($i = count($puntosEncuentro) - 1; $i >= 0; $i--) {
     }
 }
 $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
+$mostrarVerInscritos = !empty($_SESSION['logged_in'])
+    && $_SESSION['logged_in'] === true
+    && (int) ($_SESSION['usuario_rol_id'] ?? 0) === 1
+    && $tieneFecha;
 $nivelNumero = min(100, max(0, (int) ($sendero['nivel_numero'] ?? 50)));
 $dificultadClase = dificultad_color_detalle($nivelNumero);
 ?>
@@ -327,10 +334,20 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
         <div class="detalle-hero-overlay"></div>
 
         <div class="detalle-hero-content container-detalle">
-            <a href="<?= BASE_URL ?>pantallas/<?= $esVisitado ? 'senderos_visitados.php' : 'senderos.php' ?>" class="back-link">
-                <i data-feather="arrow-left"></i>
-                Volver a senderos
-            </a>
+            <div class="detalle-hero-actions">
+                <a href="<?= htmlspecialchars($volverUrl) ?>" class="back-link">
+                    <i data-feather="arrow-left"></i>
+                    <?= htmlspecialchars($volverTexto) ?>
+                </a>
+
+                <?php if ($mostrarVerInscritos): ?>
+                    <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios_senderos.php?sendero_id=<?= (int) $sendero['id'] ?>"
+                       class="admin-inscritos-link">
+                        <i data-feather="users"></i>
+                        Ver inscritos
+                    </a>
+                <?php endif; ?>
+            </div>
 
             <span class="status-badge"><?= htmlspecialchars($esVisitado ? 'visitado' : $sendero['estado']) ?></span>
             <h1><?= htmlspecialchars($sendero['nombre']) ?></h1>

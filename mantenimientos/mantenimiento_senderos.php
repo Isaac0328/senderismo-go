@@ -163,6 +163,7 @@ if (!empty($oldSenderoInput)) {
     }
     $edit['id'] = $editId;
     $edit['activo'] = isset($oldSenderoInput['activo']) ? 1 : 0;
+    $edit['incluye_chaleco_salvavidas'] = isset($oldSenderoInput['incluye_chaleco_salvavidas']) ? 1 : 0;
 
     $editTerrenos = array_values(array_unique(array_filter(array_map('intval', (array) ($oldSenderoInput['tipos_terreno'] ?? [])))));
     $editAnotaciones = array_values(array_unique(array_filter(array_map('intval', (array) ($oldSenderoInput['anotaciones'] ?? [])))));
@@ -343,6 +344,17 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <div class="field span-3">
                         <label for="descripcion_corta">Descripcion corta</label>
                         <input type="text" id="descripcion_corta" name="descripcion_corta" maxlength="255" value="<?= htmlspecialchars($edit['descripcion_corta'] ?? '') ?>" placeholder="Texto breve para las tarjetas publicas">
+                    </div>
+
+                    <div class="field span-3">
+                        <label>Equipamiento incluido</label>
+                        <div class="checks-grid compact">
+                            <label class="check-pill">
+                                <input type="checkbox" name="incluye_chaleco_salvavidas" value="1" <?= (int) ($edit['incluye_chaleco_salvavidas'] ?? 0) === 1 ? 'checked' : '' ?>>
+                                <span>Incluye chalecos salvavidas</span>
+                            </label>
+                        </div>
+                        <small>Al activarlo, cada participante debera elegir una talla al registrarse.</small>
                     </div>
 
                         </div>

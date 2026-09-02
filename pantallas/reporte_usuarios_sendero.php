@@ -20,7 +20,8 @@ $cssFiles = [
     "css/reportes.css"
 ];
 $jsFiles = [
-    "js/barra_navegacion.js"
+    "js/barra_navegacion.js",
+    "js/reporte_usuarios_sendero.js"
 ];
 
 function hrs($value): string
@@ -100,6 +101,7 @@ if ($senderoSeleccionado) {
             rs.estado AS estado_registro,
             rs.fecha_registro,
             rs.updated_at,
+            rs.inversion_id,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
             COALESCE(u.id, 0) AS usuario_id,
@@ -171,7 +173,25 @@ $totalGeneral = $totalParticipantes + $totalMenores;
 $totalAlergicos = 0;
 $totalSeguros = 0;
 $grupos = [];
+$resumenInversiones = [];
+$totalInversionPersonas = 0;
+$totalInversionMonto = 0.0;
 foreach ($participantes as $participante) {
+    $inversionId = (int) ($participante['inversion_id'] ?? 0);
+    $inversionKey = $inversionId > 0 ? 'inv_' . $inversionId : 'sin_inversion';
+    if (!isset($resumenInversiones[$inversionKey])) {
+        $resumenInversiones[$inversionKey] = [
+            'nombre' => trim((string) ($participante['inversion_nombre'] ?? '')) ?: 'Sin inversion',
+            'monto' => (float) ($participante['inversion_monto'] ?? 0),
+            'personas' => 0,
+            'total' => 0.0,
+        ];
+    }
+    $resumenInversiones[$inversionKey]['personas']++;
+    $resumenInversiones[$inversionKey]['total'] += (float) ($participante['inversion_monto'] ?? 0);
+    $totalInversionPersonas++;
+    $totalInversionMonto += (float) ($participante['inversion_monto'] ?? 0);
+
     if ((int) $participante['es_alergico'] === 1) {
         $totalAlergicos++;
     }
@@ -185,6 +205,21 @@ foreach ($participantes as $participante) {
 }
 foreach ($menoresPorRegistro as $menores) {
     foreach ($menores as $menor) {
+        $inversionId = (int) ($menor['inversion_id'] ?? 0);
+        $inversionKey = $inversionId > 0 ? 'inv_' . $inversionId : 'sin_inversion';
+        if (!isset($resumenInversiones[$inversionKey])) {
+            $resumenInversiones[$inversionKey] = [
+                'nombre' => trim((string) ($menor['inversion_nombre'] ?? '')) ?: 'Sin inversion',
+                'monto' => (float) ($menor['inversion_monto'] ?? 0),
+                'personas' => 0,
+                'total' => 0.0,
+            ];
+        }
+        $resumenInversiones[$inversionKey]['personas']++;
+        $resumenInversiones[$inversionKey]['total'] += (float) ($menor['inversion_monto'] ?? 0);
+        $totalInversionPersonas++;
+        $totalInversionMonto += (float) ($menor['inversion_monto'] ?? 0);
+
         if ((int) $menor['es_alergico'] === 1) {
             $totalAlergicos++;
         }
@@ -196,6 +231,51 @@ foreach ($menoresPorRegistro as $menores) {
             $grupos[$grupo] = ($grupos[$grupo] ?? 0) + 1;
         }
     }
+}
+uasort($resumenInversiones, static function (array $a, array $b): int {
+    return strnatcasecmp($a['nombre'], $b['nombre']);
+});
+
+$detalleParticipantes = [];
+foreach ($participantes as $participante) {
+    $registroId = (int) $participante['registro_id'];
+    $menoresDetalle = [];
+    foreach ($menoresPorRegistro[$registroId] ?? [] as $menor) {
+        $menoresDetalle[] = [
+            'nombre' => trim((string) ($menor['nombre'] . ' ' . $menor['apellido'])),
+            'edad' => (string) ($menor['rango_edad'] ?? ''),
+            'telefono' => (string) ($menor['telefono'] ?? ''),
+            'grupo_sanguineo' => (string) ($menor['grupo_sanguineo'] ?? ''),
+            'alergias' => (int) ($menor['es_alergico'] ?? 0) === 1 ? ((string) ($menor['alergias_detalle'] ?? '') ?: 'No especificado') : 'No alergico',
+            'enfermedad' => (string) ($menor['enfermedad'] ?? ''),
+            'seguro' => (string) ($menor['seguro_medico'] ?? ''),
+            'emergencia' => trim((string) (($menor['emergencia_nombre'] ?? '') . ' / ' . ($menor['emergencia_parentesco'] ?? '') . ' / ' . ($menor['emergencia_telefono'] ?? '')), ' /'),
+            'inversion' => trim((string) ($menor['inversion_nombre'] ?? '')) ?: 'Sin inversion',
+            'monto' => dinero_reporte_sendero($menor['inversion_monto'] ?? null),
+        ];
+    }
+
+    $detalleParticipantes[(string) $registroId] = [
+        'nombre' => trim((string) ($participante['nombre'] . ' ' . $participante['apellido'])),
+        'usuario' => (string) $participante['user'],
+        'usuario_id' => (int) $participante['usuario_id'],
+        'telefono' => (string) $participante['telefono'],
+        'email' => (string) $participante['email'],
+        'edad' => (string) $participante['rango_edad'],
+        'identificacion' => (string) $participante['identificacion'],
+        'grupo_sanguineo' => (string) $participante['grupo_sanguineo'],
+        'alergias' => (int) $participante['es_alergico'] === 1 ? ((string) $participante['alergias_detalle'] ?: 'No especificado') : 'No alergico',
+        'enfermedad' => (string) $participante['enfermedad'],
+        'seguro' => (string) $participante['seguro_medico'],
+        'experiencia' => (string) $participante['experiencia_senderismo'],
+        'via' => (string) $participante['via_entero'],
+        'referido' => (string) $participante['referido_nombre'],
+        'emergencia' => trim((string) ($participante['emergencia_nombre'] . ' / ' . $participante['emergencia_parentesco'] . ' / ' . $participante['emergencia_telefono']), ' /'),
+        'inversion' => trim((string) $participante['inversion_nombre']) ?: 'Sin inversion',
+        'monto' => dinero_reporte_sendero($participante['inversion_monto']),
+        'registro' => fecha_reporte_sendero($participante['fecha_registro'], true),
+        'menores' => $menoresDetalle,
+    ];
 }
 
 $exportExcelUrl = BASE_URL . 'procesos/proceso_exportar_usuarios_sendero.php?' . http_build_query([
@@ -303,6 +383,33 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 </article>
             </section>
 
+            <section class="report-table-card investment-summary-card">
+                <div class="report-head">
+                    <div>
+                        <span>Inversiones</span>
+                        <h2>Resumen por opcion elegida</h2>
+                    </div>
+                    <i data-feather="credit-card"></i>
+                </div>
+
+                <div class="investment-summary-grid">
+                    <?php foreach ($resumenInversiones as $resumen): ?>
+                        <article>
+                            <span><?= hrs($resumen['nombre']) ?></span>
+                            <strong><?= (int) $resumen['personas'] ?></strong>
+                            <small>Personas</small>
+                            <b><?= hrs(dinero_reporte_sendero($resumen['total'])) ?></b>
+                        </article>
+                    <?php endforeach; ?>
+                    <article class="investment-summary-total">
+                        <span>Total general</span>
+                        <strong><?= (int) $totalInversionPersonas ?></strong>
+                        <small>Adultos y menores</small>
+                        <b><?= hrs(dinero_reporte_sendero($totalInversionMonto)) ?></b>
+                    </article>
+                </div>
+            </section>
+
             <section class="report-table-card">
                 <div class="report-head">
                     <div>
@@ -338,7 +445,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <?php $menores = $menoresPorRegistro[(int) $row['registro_id']] ?? []; ?>
                                     <tr>
                                         <td>
-                                            <strong><?= hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?></strong>
+                                            <button type="button" class="report-user-link" data-report-user="<?= (int) $row['registro_id'] ?>">
+                                                <?= hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?>
+                                            </button>
                                             <span>@<?= hrs($row['user']) ?> / ID <?= (int) $row['usuario_id'] ?></span>
                                             <span><?= hrs($row['rango_edad']) ?> / <?= hrs($row['identificacion']) ?></span>
                                         </td>
@@ -397,7 +506,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <article class="sendero-user-card">
                                 <div class="sendero-user-card-head">
                                     <div>
-                                        <strong><?= hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?></strong>
+                                        <button type="button" class="report-user-link" data-report-user="<?= (int) $row['registro_id'] ?>">
+                                            <?= hrs(trim($row['nombre'] . ' ' . $row['apellido'])) ?>
+                                        </button>
                                         <span>@<?= hrs($row['user']) ?> / <?= hrs($row['rango_edad']) ?></span>
                                     </div>
                                     <b><?= hrs($row['grupo_sanguineo']) ?></b>
@@ -461,6 +572,33 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 <?php endif; ?>
             </section>
+
+            <dialog class="report-user-modal" data-report-user-modal>
+                <section class="report-user-modal-box">
+                    <div class="report-user-modal-head">
+                        <div>
+                            <span>Detalle del participante</span>
+                            <h2 data-report-user-name>Participante</h2>
+                            <p data-report-user-account></p>
+                        </div>
+                        <button type="button" data-report-user-close aria-label="Cerrar">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="report-user-detail-grid" data-report-user-grid></div>
+
+                    <section class="report-user-minors" data-report-user-minors-wrap hidden>
+                        <h3>Menores acompanantes</h3>
+                        <div data-report-user-minors></div>
+                    </section>
+
+                    <div class="report-user-modal-actions">
+                        <button type="button" data-report-user-close>Cerrar</button>
+                    </div>
+                </section>
+            </dialog>
+            <script id="reportUserDetailsData" type="application/json"><?= json_encode($detalleParticipantes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?></script>
         <?php endif; ?>
     </div>
 </main>

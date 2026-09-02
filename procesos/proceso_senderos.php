@@ -173,6 +173,7 @@ try {
     $inversionesInput = is_array($_POST['inversiones'] ?? null) ? $_POST['inversiones'] : [];
     $estado = $_POST['estado'] ?? 'pendiente';
     $activo = isset($_POST['activo']) ? 1 : 0;
+    $incluyeChalecoSalvavidas = isset($_POST['incluye_chaleco_salvavidas']) ? 1 : 0;
     $terrenos = array_map('intval', $_POST['tipos_terreno'] ?? []);
     $anotaciones = array_map('intval', $_POST['anotaciones'] ?? []);
     $inversiones = [];
@@ -273,10 +274,10 @@ try {
                  tiempo_ida_vehiculo_min = ?, tiempo_regreso_vehiculo_min = ?, tipo_camino_vehiculo_id = ?,
                  tiempo_sendero_min = ?, distancia_km = ?, desnivel_mts = ?, cobertura_senal_pct = ?,
                  inversion_total = ?, fecha_limite_pago = ?,
-                 estado = ?, activo = ?
+                 estado = ?, activo = ?, incluye_chaleco_salvavidas = ?
              WHERE id = ?"
         );
-        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $id);
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssiii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $incluyeChalecoSalvavidas, $id);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         $senderoId = $id;
@@ -296,10 +297,11 @@ try {
             "INSERT INTO senderos
              (nombre, slug, fecha_sendero, lugar, provincia, descripcion_corta, descripcion, imagen_principal, imagen_flyer, imagen_catalogo,
               nivel_dificultad_id, tiempo_ida_vehiculo_min, tiempo_regreso_vehiculo_min, tipo_camino_vehiculo_id,
-              tiempo_sendero_min, distancia_km, desnivel_mts, cobertura_senal_pct, inversion_total, fecha_limite_pago, estado, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              tiempo_sendero_min, distancia_km, desnivel_mts, cobertura_senal_pct, inversion_total, fecha_limite_pago, estado, activo,
+              incluye_chaleco_salvavidas)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
-        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssi", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo);
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $incluyeChalecoSalvavidas);
         mysqli_stmt_execute($stmt);
         $senderoId = mysqli_insert_id($conn);
         mysqli_stmt_close($stmt);

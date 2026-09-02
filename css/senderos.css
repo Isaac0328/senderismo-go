@@ -291,6 +291,12 @@
     gap: 16px;
 }
 
+.visited-section .senderos-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 14px;
+}
+
 .sendero-card {
     background: #fff;
     border-radius: 8px;
@@ -434,6 +440,28 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+.visited-card .sendero-image-wrap {
+    height: clamp(145px, 13vw, 185px);
+}
+
+.visited-card .sendero-card-body {
+    padding: 11px 12px 12px;
+}
+
+.visited-card .sendero-nombre {
+    font-size: .93rem;
+    line-height: 1.18;
+}
+
+.visited-card .sendero-card-desc {
+    font-size: .76rem;
+}
+
+.visited-card .sendero-info-row span {
+    padding: 4px 6px;
+    font-size: .66rem;
 }
 
 .sendero-info-row {
@@ -600,6 +628,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .visited-section .senderos-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .featured-sendero {
         grid-template-columns: 1fr;
         width: min(100%, 720px);
@@ -649,6 +681,60 @@
         grid-template-columns: 1fr;
     }
 
+    .visited-section .senderos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .visited-card .sendero-image-wrap {
+        height: 120px;
+    }
+
+    .visited-card .sendero-card-body {
+        padding: 9px;
+    }
+
+    .visited-card .sendero-card-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 7px;
+    }
+
+    .visited-card .sendero-fecha {
+        font-size: .66rem;
+    }
+
+    .visited-card .sendero-days {
+        padding: 4px 6px;
+        font-size: .62rem;
+    }
+
+    .visited-card .sendero-nombre {
+        font-size: .78rem;
+        line-height: 1.12;
+        -webkit-line-clamp: 3;
+    }
+
+    .visited-card .sendero-lugar,
+    .visited-card .sendero-card-desc {
+        font-size: .68rem;
+        line-height: 1.28;
+    }
+
+    .visited-card .sendero-card-desc {
+        -webkit-line-clamp: 2;
+    }
+
+    .visited-card .sendero-info-row {
+        gap: 4px;
+    }
+
+    .visited-card .sendero-info-row span {
+        font-size: .58rem;
+        padding: 4px 5px;
+    }
+
     .calendar-card {
         overflow-x: auto;
     }
@@ -693,6 +779,37 @@
     .sendero-card-top {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .visited-section .section-heading-row {
+        margin-bottom: 14px;
+    }
+
+    .visited-section .section-title {
+        font-size: 1.15rem;
+        line-height: 1.05;
+    }
+
+    .visited-section .section-description {
+        font-size: .82rem;
+        line-height: 1.4;
+    }
+
+    .visited-card .sendero-image-wrap {
+        height: 108px;
+    }
+
+    .visited-card .sendero-level {
+        left: 8px;
+        bottom: 8px;
+        padding: 5px 7px;
+        font-size: .6rem;
+    }
+
+    .visited-card .sendero-lugar svg,
+    .visited-card .sendero-info-row svg {
+        width: 11px;
+        height: 11px;
     }
 
     .calendar-weekdays,

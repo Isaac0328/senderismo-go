@@ -2,6 +2,14 @@
 require_once __DIR__ . '/../configuracion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+require_once __DIR__ . '/../componentes/encuestas_usuario.php';
+sg_restaurar_sesion_recordada();
+
 $pageTitle = "Inicio | Senderismo Go!";
 
 $cssFiles = [
@@ -34,6 +42,14 @@ function inicio_url(?string $ruta): string
     }
     return BASE_URL . ltrim($ruta, '/');
 }
+
+$sgEncuestasUsuarioResumen = ['total' => 0, 'items' => []];
+$sgEncuestasUsuarioResumenCargado = false;
+if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
+    $sgEncuestasUsuarioResumen = sg_encuestas_usuario_resumen($conn, (int) $_SESSION['usuario_id'], 1);
+    $sgEncuestasUsuarioResumenCargado = true;
+}
+$inicioEncuestaPrincipal = $sgEncuestasUsuarioResumen['items'][0] ?? null;
 
 $inicio = [
     'hero_imagen' => 'imagenes/paisajes/hero.jpg',
@@ -84,6 +100,33 @@ include_once "../componentes/barra_navegacion.php";
 ?>
 
 <main class="inicio-page">
+    <?php if ($inicioEncuestaPrincipal && (int) $sgEncuestasUsuarioResumen['total'] > 0): ?>
+        <?php $inicioEncuestasTotal = (int) $sgEncuestasUsuarioResumen['total']; ?>
+        <aside class="inicio-survey-notice" aria-label="Encuestas pendientes" aria-live="polite">
+            <span class="inicio-survey-icon" aria-hidden="true"><i data-feather="clipboard"></i></span>
+            <div class="inicio-survey-copy">
+                <span>Tu opinion cuenta</span>
+                <strong>
+                    <?= $inicioEncuestasTotal === 1
+                        ? 'Tienes una encuesta pendiente'
+                        : 'Tienes ' . $inicioEncuestasTotal . ' encuestas pendientes' ?>
+                </strong>
+                <small>
+                    <?= inicio_h($inicioEncuestaPrincipal['titulo']) ?>
+                    <?php if (!empty($inicioEncuestaPrincipal['sendero_nombre'])): ?>
+                        · <?= inicio_h($inicioEncuestaPrincipal['sendero_nombre']) ?>
+                    <?php endif; ?>
+                </small>
+            </div>
+            <div class="inicio-survey-actions">
+                <a class="inicio-survey-secondary" href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes">Ver todas</a>
+                <a class="inicio-survey-primary" href="<?= BASE_URL ?>pantallas/encuesta.php?envio_id=<?= (int) $inicioEncuestaPrincipal['envio_id'] ?>">
+                    Responder ahora <i data-feather="arrow-right"></i>
+                </a>
+            </div>
+        </aside>
+    <?php endif; ?>
+
     <section id="hero" class="relative w-full h-screen">
         <img src="<?= inicio_h(inicio_url($inicio['hero_imagen'])) ?>" alt="<?= inicio_h($inicio['hero_titulo']) ?>" class="absolute inset-0 w-full h-full object-cover">
         <div class="absolute inset-0 bg-black/40"></div>

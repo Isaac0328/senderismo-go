@@ -979,6 +979,95 @@
     color: #111;
 }
 
+.perfil-survey-panel {
+    scroll-margin-top: 105px;
+    margin-bottom: 18px;
+    padding: 18px;
+    border: 1px solid rgba(13, 51, 32, .12);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0d3320, #14562f);
+    color: #fff;
+    box-shadow: 0 18px 44px rgba(13, 51, 32, .18);
+}
+
+.perfil-survey-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.perfil-survey-head span {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.perfil-survey-head h2 {
+    margin: 8px 0 0;
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
+    text-transform: uppercase;
+}
+
+.perfil-survey-head > strong {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #fff;
+    color: #0d3320;
+    font-size: 1.35rem;
+}
+
+.perfil-survey-list {
+    display: grid;
+    max-height: 500px;
+    padding-right: 4px;
+    overflow-y: auto;
+    gap: 10px;
+}
+
+.perfil-survey-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 13px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .95);
+    color: #111;
+}
+
+.perfil-survey-item strong {
+    display: block;
+    font-size: 1rem;
+}
+
+.perfil-survey-item p,
+.perfil-survey-item small {
+    margin: 4px 0 0;
+    color: #52605a;
+}
+
+.perfil-survey-item a {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 13px;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    font-weight: 950;
+    text-decoration: none;
+}
+
 @media (max-width: 720px) {
     .perfil-page {
         padding: 104px 10px 28px;
@@ -1045,6 +1134,15 @@
     }
 
     .perfil-next-step a {
+        width: 100%;
+    }
+
+    .perfil-survey-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .perfil-survey-item a {
         width: 100%;
     }
 

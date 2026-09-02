@@ -26,6 +26,9 @@ if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
     exit;
 }
 
+$showRegisterPrompt = !empty($_SESSION['show_register_prompt']);
+unset($_SESSION['show_register_prompt']);
+
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 ?>
@@ -127,5 +130,26 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
     </div>
 </div>
+
+<?php if ($showRegisterPrompt): ?>
+    <dialog class="login-register-dialog" data-register-prompt aria-labelledby="register-prompt-title" aria-describedby="register-prompt-description">
+        <button class="login-register-dialog-close" type="button" aria-label="Cerrar mensaje" title="Cerrar" data-close-register-prompt>
+            <i data-feather="x"></i>
+        </button>
+        <span class="login-register-dialog-icon" aria-hidden="true">
+            <i data-feather="user-plus"></i>
+        </span>
+        <span class="login-register-dialog-kicker">Crea tu acceso</span>
+        <h2 id="register-prompt-title">¿Aún no tienes usuario?</h2>
+        <p id="register-prompt-description">Si no tienes un usuario, haz clic aquí para crear tu cuenta.</p>
+        <div class="login-register-dialog-actions">
+            <button class="login-register-dialog-secondary" type="button" data-close-register-prompt>Seguir intentando</button>
+            <a class="login-register-dialog-primary btn" href="<?= BASE_URL ?>pantallas/registro.php">
+                <i data-feather="user-plus"></i>
+                Crear usuario
+            </a>
+        </div>
+    </dialog>
+<?php endif; ?>
 
 <?php include_once __DIR__ . "/../componentes/pie_pagina.php"; ?>

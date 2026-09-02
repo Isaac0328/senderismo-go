@@ -60,7 +60,16 @@
     color: #fff;
 }
 
-.back-link {
+.detalle-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+}
+
+.back-link,
+.admin-inscritos-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -76,13 +85,24 @@
     backdrop-filter: blur(8px);
 }
 
+.admin-inscritos-link {
+    background: #08783f;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, .22);
+}
+
+.admin-inscritos-link:hover {
+    background: #0a8c4a;
+}
+
 .back-link svg,
+.admin-inscritos-link svg,
 .hero-meta svg {
     width: 16px;
     height: 16px;
 }
 
-.back-link svg {
+.back-link svg,
+.admin-inscritos-link svg {
     stroke: #fff;
 }
 
@@ -1295,6 +1315,18 @@
 
     .detalle-hero-content {
         padding: 112px 0 58px;
+    }
+
+    .detalle-hero-actions {
+        gap: 7px;
+        margin-bottom: 12px;
+    }
+
+    .back-link,
+    .admin-inscritos-link {
+        min-height: 36px;
+        padding: 7px 10px;
+        font-size: .78rem;
     }
 
     .detalle-hero h1 {

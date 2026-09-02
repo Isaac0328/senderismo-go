@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -25,7 +26,8 @@ $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm = $_POST['confirm_password'] ?? '';
 $terms = (string) ($_POST['terms'] ?? '');
-$telefono = preg_replace('/\D+/', '', (string) ($_POST['telefono'] ?? ''));
+$telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
+$telefono = sg_only_digits($telefonoRaw);
 $rangoEdad = trim((string) ($_POST['rango_edad'] ?? ''));
 $identificacion = trim((string) ($_POST['identificacion'] ?? ''));
 $esAlergico = (int) ($_POST['es_alergico'] ?? 0);
@@ -38,7 +40,8 @@ $viaEntero = trim((string) ($_POST['via_entero'] ?? ''));
 $referidoNombre = trim((string) ($_POST['referido_nombre'] ?? ''));
 $emergenciaNombre = trim((string) ($_POST['emergencia_nombre'] ?? ''));
 $emergenciaParentesco = trim((string) ($_POST['emergencia_parentesco'] ?? ''));
-$emergenciaTelefono = preg_replace('/\D+/', '', (string) ($_POST['emergencia_telefono'] ?? ''));
+$emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
+$emergenciaTelefono = sg_only_digits($emergenciaTelefonoRaw);
 
 // Para repoblar el form si falla
 $_SESSION['reg_old'] = [
@@ -69,6 +72,12 @@ if ($nombre === '' || $apellido === '' || $user === '' || $email === '' || $pass
     exit;
 }
 
+if (sg_contains_digits($nombre) || sg_contains_digits($apellido)) {
+    $_SESSION['error_message'] = "El nombre y apellido no pueden contener numeros.";
+    header("Location: " . BASE_URL . "pantallas/registro.php");
+    exit;
+}
+
 if ($terms !== '1') {
     $_SESSION['error_message'] = "Debes aceptar los terminos y condiciones para registrarte.";
     header("Location: " . BASE_URL . "pantallas/registro.php");
@@ -81,8 +90,8 @@ $experienciasPermitidas = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzad
 $viasPermitidas = ['Instagram', 'Facebook', 'TikTok', 'WhatsApp', 'Google', 'Amigos', 'Otro'];
 
 $erroresDetalle = [];
-if (strlen($telefono) < 10 || strlen($telefono) > 15) {
-    $erroresDetalle[] = "El telefono debe contener entre 10 y 15 digitos.";
+if (!sg_is_digits_between($telefonoRaw, 10, 15)) {
+    $erroresDetalle[] = "El telefono debe contener solo numeros, entre 10 y 15 digitos.";
 }
 if (!in_array($rangoEdad, $rangosPermitidos, true)) {
     $erroresDetalle[] = "Selecciona un rango de edad valido.";
@@ -105,7 +114,13 @@ if (!in_array($experiencia, $experienciasPermitidas, true)) {
 if (!in_array($viaEntero, $viasPermitidas, true)) {
     $erroresDetalle[] = "Selecciona por cual via te enteraste.";
 }
-if ($emergenciaNombre === '' || $emergenciaParentesco === '' || strlen($emergenciaTelefono) < 10 || strlen($emergenciaTelefono) > 15) {
+if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
+    $erroresDetalle[] = "El nombre de referido no puede contener numeros.";
+}
+if ($emergenciaNombre !== '' && sg_contains_digits($emergenciaNombre)) {
+    $erroresDetalle[] = "El nombre del contacto de emergencia no puede contener numeros.";
+}
+if ($emergenciaNombre === '' || $emergenciaParentesco === '' || !sg_is_digits_between($emergenciaTelefonoRaw, 10, 15)) {
     $erroresDetalle[] = "Completa correctamente el contacto de emergencia.";
 }
 if (!empty($erroresDetalle)) {

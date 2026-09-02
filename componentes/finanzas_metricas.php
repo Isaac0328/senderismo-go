@@ -21,6 +21,7 @@ if (!function_exists('sg_finanzas_resumen_periodo')) {
                 COALESCE(p.esperado, 0) AS esperado,
                 COALESCE(p.cobrado_bruto, 0) AS cobrado_bruto,
                 COALESCE(p.credito_aplicado, 0) AS credito_aplicado,
+                COALESCE(p.descuento_autorizado, 0) AS descuento_autorizado,
                 COALESCE(p.credito_generado, 0) AS credito_generado,
                 COALESCE(p.monto_retenido, 0) AS monto_retenido,
                 COALESCE(p.por_cobrar, 0) AS por_cobrar,
@@ -32,19 +33,20 @@ if (!function_exists('sg_finanzas_resumen_periodo')) {
             LEFT JOIN (
                 SELECT
                     sendero_id,
-                    SUM(CASE WHEN estado_financiero <> 'cortesia' THEN monto_esperado ELSE 0 END) AS esperado,
-                    SUM(CASE WHEN estado_financiero <> 'cortesia' THEN monto_pagado ELSE 0 END) AS cobrado_bruto,
-                    SUM(CASE WHEN estado_financiero <> 'cortesia' THEN credito_aplicado ELSE 0 END) AS credito_aplicado,
-                    SUM(CASE WHEN estado_financiero <> 'cortesia' THEN credito_generado ELSE 0 END) AS credito_generado,
-                    SUM(CASE WHEN estado_financiero <> 'cortesia' THEN monto_retenido ELSE 0 END) AS monto_retenido,
-                    SUM(CASE WHEN estado_financiero IN ('cortesia', 'no_asistio_sin_pago') THEN 0 ELSE saldo_pendiente END) AS por_cobrar,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN monto_esperado ELSE 0 END) AS esperado,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN monto_pagado ELSE 0 END) AS cobrado_bruto,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN credito_aplicado ELSE 0 END) AS credito_aplicado,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN descuento_autorizado ELSE 0 END) AS descuento_autorizado,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN credito_generado ELSE 0 END) AS credito_generado,
+                    SUM(CASE WHEN estado_financiero NOT IN ('cortesia', 'exento') THEN monto_retenido ELSE 0 END) AS monto_retenido,
+                    SUM(CASE WHEN estado_financiero IN ('cortesia', 'exento', 'no_asistio_sin_pago') THEN 0 ELSE saldo_pendiente END) AS por_cobrar,
                     SUM(CASE
-                        WHEN estado_financiero = 'cortesia' THEN 0
-                        ELSE GREATEST(monto_pagado + credito_aplicado - credito_generado, 0)
+                        WHEN estado_financiero IN ('cortesia', 'exento') THEN 0
+                        ELSE GREATEST(monto_pagado + credito_aplicado - descuento_autorizado - credito_generado, 0)
                     END) AS ingreso_reconocido,
                     SUM(CASE WHEN monto_pagado > 0 OR credito_aplicado > 0 THEN 1 ELSE 0 END) AS pagos_registrados,
                     SUM(CASE
-                        WHEN estado_financiero NOT IN ('cortesia', 'no_asistio_sin_pago') AND saldo_pendiente > 0 THEN 1
+                        WHEN estado_financiero NOT IN ('cortesia', 'exento', 'no_asistio_sin_pago') AND saldo_pendiente > 0 THEN 1
                         ELSE 0
                     END) AS cuentas_pendientes
                 FROM contabilidad_registro_pagos
@@ -64,7 +66,7 @@ if (!function_exists('sg_finanzas_resumen_periodo')) {
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
             while ($row = mysqli_fetch_assoc($result)) {
-                foreach (['esperado', 'cobrado_bruto', 'credito_aplicado', 'credito_generado', 'monto_retenido', 'por_cobrar', 'ingreso_reconocido', 'gastos'] as $field) {
+                foreach (['esperado', 'cobrado_bruto', 'credito_aplicado', 'descuento_autorizado', 'credito_generado', 'monto_retenido', 'por_cobrar', 'ingreso_reconocido', 'gastos'] as $field) {
                     $row[$field] = (float) ($row[$field] ?? 0);
                 }
                 $row['pagos_registrados'] = (int) ($row['pagos_registrados'] ?? 0);
@@ -81,6 +83,7 @@ if (!function_exists('sg_finanzas_resumen_periodo')) {
             'esperado' => 0.0,
             'cobrado_bruto' => 0.0,
             'credito_aplicado' => 0.0,
+            'descuento_autorizado' => 0.0,
             'credito_generado' => 0.0,
             'monto_retenido' => 0.0,
             'por_cobrar' => 0.0,
@@ -95,7 +98,7 @@ if (!function_exists('sg_finanzas_resumen_periodo')) {
 
         $months = [];
         foreach ($rows as $row) {
-            foreach (['esperado', 'cobrado_bruto', 'credito_aplicado', 'credito_generado', 'monto_retenido', 'por_cobrar', 'ingreso_reconocido', 'gastos', 'utilidad'] as $field) {
+            foreach (['esperado', 'cobrado_bruto', 'credito_aplicado', 'descuento_autorizado', 'credito_generado', 'monto_retenido', 'por_cobrar', 'ingreso_reconocido', 'gastos', 'utilidad'] as $field) {
                 $totals[$field] += $row[$field];
             }
             $totals['pagos_registrados'] += $row['pagos_registrados'];
@@ -139,7 +142,7 @@ if (!function_exists('sg_finanzas_metodos_periodo')) {
             INNER JOIN senderos s ON s.id = crp.sendero_id
             LEFT JOIN contabilidad_metodo_pago cmp ON cmp.id = crp.metodo_pago_id
             WHERE s.fecha_sendero BETWEEN ? AND ?
-              AND crp.estado_financiero <> 'cortesia'
+              AND crp.estado_financiero NOT IN ('cortesia', 'exento')
               AND crp.monto_pagado > 0
             GROUP BY COALESCE(cmp.nombre, NULLIF(TRIM(crp.metodo_pago), ''), 'Sin especificar')
             ORDER BY total DESC

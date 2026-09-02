@@ -15,6 +15,7 @@ $userRole = $_SESSION['usuario_rol'] ?? '';
 $userInitial = $userName ? strtoupper(substr($userName, 0, 1)) : '';
 $userAvatar = '';
 $canAccessAdmin = false;
+$navPendingSurveysCount = 0;
 $navConnection = $conn ?? null;
 $navOwnConnection = false;
 
@@ -59,6 +60,14 @@ if ($isLoggedIn && !empty($_SESSION['usuario_id'])) {
 
         $roleId = (int) ($_SESSION['usuario_rol_id'] ?? 0);
         $canAccessAdmin = sg_is_admin_role($roleId) || count(sg_role_permissions($navConnection, $roleId)) > 0;
+
+        require_once __DIR__ . '/encuestas_usuario.php';
+        if (!empty($sgEncuestasUsuarioResumenCargado) && isset($sgEncuestasUsuarioResumen) && is_array($sgEncuestasUsuarioResumen)) {
+            $navPendingSurveysCount = (int) ($sgEncuestasUsuarioResumen['total'] ?? 0);
+        } else {
+            $navSurveySummary = sg_encuestas_usuario_resumen($navConnection, $uidAvatar, 1);
+            $navPendingSurveysCount = (int) ($navSurveySummary['total'] ?? 0);
+        }
     }
 }
 
@@ -126,6 +135,18 @@ if (!function_exists('nav_avatar_html')) {
             <div class="flex items-center gap-3 md:gap-4">
 
                 <?php if ($isLoggedIn): ?>
+                    <?php if ($navPendingSurveysCount > 0): ?>
+                        <a
+                            class="nav-survey-alert"
+                            href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes"
+                            aria-label="<?= $navPendingSurveysCount ?> encuestas pendientes"
+                            title="Encuestas pendientes"
+                        >
+                            <i data-feather="bell"></i>
+                            <span><?= $navPendingSurveysCount > 99 ? '99+' : $navPendingSurveysCount ?></span>
+                        </a>
+                    <?php endif; ?>
+
                     <!-- Usuario logueado (desktop) -->
                     <div class="hidden md:block relative">
                         <button class="user-dropdown-btn flex items-center gap-2 px-4 py-2 rounded-full">
@@ -218,6 +239,14 @@ if (!function_exists('nav_avatar_html')) {
 
             <?php if ($isLoggedIn): ?>
                 <div class="border-t pt-2 mt-2">
+                    <?php if ($navPendingSurveysCount > 0): ?>
+                        <a href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes" class="mobile-nav-link nav-mobile-survey-link">
+                            <i data-feather="bell"></i>
+                            <span>Encuestas pendientes</span>
+                            <strong><?= $navPendingSurveysCount > 99 ? '99+' : $navPendingSurveysCount ?></strong>
+                        </a>
+                    <?php endif; ?>
+
                     <a href="<?= BASE_URL ?>pantallas/mi_perfil.php" class="mobile-nav-link">
                         <i data-feather="user"></i><span>Mi perfil</span>
                     </a>

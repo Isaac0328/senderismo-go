@@ -48,8 +48,6 @@ if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
     mysqli_stmt_close($stmt);
 }
 
-mysqli_close($conn);
-
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 ?>
@@ -122,4 +120,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     </div>
 </div>
 
-<?php include_once __DIR__ . "/../componentes/pie_pagina.php"; ?>
+<?php
+include_once __DIR__ . "/../componentes/pie_pagina.php";
+mysqli_close($conn);
+?>

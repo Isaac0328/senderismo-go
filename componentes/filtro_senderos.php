@@ -311,6 +311,24 @@ if (!function_exists('sgf_render')) {
                     });
                     event.target.closest('.sg-sendero-row')?.classList.add('is-selected');
                 });
+                document.addEventListener('dblclick', function (event) {
+                    var row = event.target.closest('.sg-sendero-row:not(.sg-sendero-row-head)');
+                    if (!row) {
+                        return;
+                    }
+                    var radio = row.querySelector('input[name="sendero_id"]');
+                    var form = row.closest('form');
+                    if (!radio || !form) {
+                        return;
+                    }
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                });
                 </script>
             </fieldset>
         </section>

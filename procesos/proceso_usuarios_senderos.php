@@ -197,6 +197,196 @@ function usuarios_senderos_fecha_asistencia(mysqli $conn, int $senderoId): strin
     return $fechaSendero !== '' ? $fechaSendero . ' 00:00:00' : date('Y-m-d H:i:s');
 }
 
+function usuarios_senderos_menores_post(): array
+{
+    $items = $_POST['menores'] ?? [];
+    if (!is_array($items)) {
+        return [];
+    }
+
+    $menores = [];
+    foreach ($items as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $nombre = usuarios_senderos_text((string) ($item['nombre'] ?? ''), 100);
+        $apellido = usuarios_senderos_text((string) ($item['apellido'] ?? ''), 100);
+        if ($nombre === '' && $apellido === '') {
+            continue;
+        }
+
+        $menores[] = [
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'telefono' => usuarios_senderos_text((string) ($item['telefono'] ?? ''), 30),
+            'inversion_id' => (int) ($item['inversion_id'] ?? 0),
+            'rango_edad' => usuarios_senderos_text((string) ($item['rango_edad'] ?? ''), 20),
+            'es_alergico' => (string) ($item['es_alergico'] ?? '0') === '1' ? 1 : 0,
+            'alergias_detalle' => usuarios_senderos_text((string) ($item['alergias_detalle'] ?? ''), 255),
+            'grupo_sanguineo' => usuarios_senderos_text((string) ($item['grupo_sanguineo'] ?? ''), 10),
+            'enfermedad' => usuarios_senderos_text((string) ($item['enfermedad'] ?? ''), 255),
+            'seguro_medico' => usuarios_senderos_text((string) ($item['seguro_medico'] ?? ''), 255),
+            'experiencia_senderismo' => usuarios_senderos_text((string) ($item['experiencia_senderismo'] ?? ''), 80),
+            'emergencia_nombre' => usuarios_senderos_text((string) ($item['emergencia_nombre'] ?? ''), 150),
+            'emergencia_parentesco' => usuarios_senderos_text((string) ($item['emergencia_parentesco'] ?? ''), 80),
+            'emergencia_telefono' => usuarios_senderos_digits((string) ($item['emergencia_telefono'] ?? '')),
+        ];
+    }
+
+    return $menores;
+}
+
+function usuarios_senderos_validar_menores(array $menores, array $inversionesValidas): array
+{
+    $errores = [];
+    $rangosPermitidos = ['8-12', '13-17'];
+    $gruposPermitidos = ['O+', 'O-', 'A+', 'A-', 'AB+', 'AB-', 'B+', 'B-'];
+    $experienciasPermitidas = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzado'];
+
+    foreach ($menores as $idx => $menor) {
+        $numero = $idx + 1;
+        foreach (['nombre', 'apellido', 'rango_edad', 'grupo_sanguineo', 'enfermedad', 'seguro_medico', 'experiencia_senderismo', 'emergencia_nombre', 'emergencia_parentesco', 'emergencia_telefono'] as $campo) {
+            if (trim((string) ($menor[$campo] ?? '')) === '') {
+                $errores[] = "Completa los datos obligatorios del menor {$numero}.";
+                break;
+            }
+        }
+        if (!in_array((int) $menor['inversion_id'], $inversionesValidas, true)) {
+            $errores[] = "Selecciona una inversion valida para el menor {$numero}.";
+        }
+        if (!in_array((string) $menor['rango_edad'], $rangosPermitidos, true)) {
+            $errores[] = "Selecciona un rango de edad valido para el menor {$numero}.";
+        }
+        if (!in_array((string) $menor['grupo_sanguineo'], $gruposPermitidos, true)) {
+            $errores[] = "Selecciona un grupo sanguineo valido para el menor {$numero}.";
+        }
+        if (!in_array((string) $menor['experiencia_senderismo'], $experienciasPermitidas, true)) {
+            $errores[] = "Selecciona la experiencia del menor {$numero}.";
+        }
+        if ((int) $menor['es_alergico'] === 1 && trim((string) $menor['alergias_detalle']) === '') {
+            $errores[] = "Especifica la alergia del menor {$numero}.";
+        }
+    }
+
+    return array_values(array_unique($errores));
+}
+
+function usuarios_senderos_guardar_menor_frecuente(mysqli $conn, int $usuarioId, array $menor): void
+{
+    if ($usuarioId <= 0) {
+        return;
+    }
+
+    $nombre = $menor['nombre'];
+    $apellido = $menor['apellido'];
+    $telefono = $menor['telefono'];
+    $rangoEdad = $menor['rango_edad'];
+    $esAlergico = (int) $menor['es_alergico'];
+    $alergiasDetalle = $menor['alergias_detalle'];
+    $grupoSanguineo = $menor['grupo_sanguineo'];
+    $enfermedad = $menor['enfermedad'];
+    $seguroMedico = $menor['seguro_medico'];
+    $experiencia = $menor['experiencia_senderismo'];
+    $emergenciaNombre = $menor['emergencia_nombre'];
+    $emergenciaParentesco = $menor['emergencia_parentesco'];
+    $emergenciaTelefono = $menor['emergencia_telefono'];
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO menores_usuarios (
+            usuario_id, nombre, apellido, telefono, rango_edad, es_alergico, alergias_detalle,
+            grupo_sanguineo, enfermedad, seguro_medico, experiencia_senderismo,
+            emergencia_nombre, emergencia_parentesco, emergencia_telefono, activo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)"
+    );
+    mysqli_stmt_bind_param(
+        $stmt,
+        'issssissssssss',
+        $usuarioId,
+        $nombre,
+        $apellido,
+        $telefono,
+        $rangoEdad,
+        $esAlergico,
+        $alergiasDetalle,
+        $grupoSanguineo,
+        $enfermedad,
+        $seguroMedico,
+        $experiencia,
+        $emergenciaNombre,
+        $emergenciaParentesco,
+        $emergenciaTelefono
+    );
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+}
+
+function usuarios_senderos_guardar_menores_registro(mysqli $conn, int $registroId, ?int $usuarioId, array $menores): void
+{
+    $stmt = mysqli_prepare($conn, "DELETE FROM registro_sendero_menores WHERE registro_id = ?");
+    mysqli_stmt_bind_param($stmt, 'i', $registroId);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    if (empty($menores)) {
+        return;
+    }
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO registro_sendero_menores (
+            registro_id, inversion_id, nombre, apellido, telefono, rango_edad, es_alergico, alergias_detalle,
+            grupo_sanguineo, enfermedad, seguro_medico, experiencia_senderismo,
+            emergencia_nombre, emergencia_parentesco, emergencia_telefono
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+
+    foreach ($menores as $menor) {
+        if ($usuarioId !== null && $usuarioId > 0) {
+            usuarios_senderos_guardar_menor_frecuente($conn, $usuarioId, $menor);
+        }
+
+        $menorInversionId = (int) $menor['inversion_id'];
+        $menorNombre = $menor['nombre'];
+        $menorApellido = $menor['apellido'];
+        $menorTelefono = $menor['telefono'];
+        $menorRangoEdad = $menor['rango_edad'];
+        $menorEsAlergico = (int) $menor['es_alergico'];
+        $menorAlergiasDetalle = $menor['alergias_detalle'];
+        $menorGrupoSanguineo = $menor['grupo_sanguineo'];
+        $menorEnfermedad = $menor['enfermedad'];
+        $menorSeguroMedico = $menor['seguro_medico'];
+        $menorExperiencia = $menor['experiencia_senderismo'];
+        $menorEmergenciaNombre = $menor['emergencia_nombre'];
+        $menorEmergenciaParentesco = $menor['emergencia_parentesco'];
+        $menorEmergenciaTelefono = $menor['emergencia_telefono'];
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'iissssissssssss',
+            $registroId,
+            $menorInversionId,
+            $menorNombre,
+            $menorApellido,
+            $menorTelefono,
+            $menorRangoEdad,
+            $menorEsAlergico,
+            $menorAlergiasDetalle,
+            $menorGrupoSanguineo,
+            $menorEnfermedad,
+            $menorSeguroMedico,
+            $menorExperiencia,
+            $menorEmergenciaNombre,
+            $menorEmergenciaParentesco,
+            $menorEmergenciaTelefono
+        );
+        mysqli_stmt_execute($stmt);
+    }
+
+    mysqli_stmt_close($stmt);
+}
+
 function usuarios_senderos_crear_usuario_basico(mysqli $conn): int
 {
     $nombre = usuarios_senderos_text((string) ($_POST['nuevo_nombre'] ?? ''), 100);
@@ -280,11 +470,50 @@ if ($accion === 'agregar_participante') {
 
     $tipoParticipante = (string) ($_POST['tipo_participante'] ?? 'existente');
     $inversionId = (int) ($_POST['inversion_id'] ?? 0);
+    $chalecoTallaId = (int) ($_POST['chaleco_talla_id'] ?? 0);
     $marcarAsistio = !empty($_POST['marcar_asistio']) ? 1 : 0;
     $telefonoNuevo = usuarios_senderos_digits((string) ($_POST['nuevo_telefono'] ?? ''));
+    $menores = usuarios_senderos_menores_post();
 
     if (!usuarios_senderos_validar_inversion($conn, $senderoId, $inversionId)) {
         $_SESSION['usuarios_senderos_error'] = "Selecciona una inversion valida para este sendero.";
+        usuarios_senderos_redirect($conn, $senderoId);
+    }
+
+    $stmt = mysqli_prepare($conn, "SELECT incluye_chaleco_salvavidas FROM senderos WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $senderoRegistro = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+    $incluyeChalecoSalvavidas = (int) ($senderoRegistro['incluye_chaleco_salvavidas'] ?? 0) === 1;
+
+    if ($incluyeChalecoSalvavidas) {
+        $stmt = mysqli_prepare($conn, "SELECT id FROM tallas_chalecos_salvavidas WHERE id = ? AND activo = 1 LIMIT 1");
+        mysqli_stmt_bind_param($stmt, 'i', $chalecoTallaId);
+        mysqli_stmt_execute($stmt);
+        $tallaChalecoValida = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        mysqli_stmt_close($stmt);
+        if (!$tallaChalecoValida) {
+            $_SESSION['usuarios_senderos_error'] = "Selecciona una talla de chaleco salvavidas valida.";
+            usuarios_senderos_redirect($conn, $senderoId);
+        }
+    } else {
+        $chalecoTallaId = null;
+    }
+
+    $inversionesValidas = [];
+    $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_inversiones WHERE sendero_id = ? AND activo = 1");
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $resInversiones = mysqli_stmt_get_result($stmt);
+    while ($rowInversion = mysqli_fetch_assoc($resInversiones)) {
+        $inversionesValidas[] = (int) $rowInversion['id'];
+    }
+    mysqli_stmt_close($stmt);
+
+    $erroresMenores = usuarios_senderos_validar_menores($menores, $inversionesValidas);
+    if (!empty($erroresMenores)) {
+        $_SESSION['usuarios_senderos_error'] = implode(' ', $erroresMenores);
         usuarios_senderos_redirect($conn, $senderoId);
     }
 
@@ -344,6 +573,7 @@ if ($accion === 'agregar_participante') {
         $rgpdTexto = "Registro creado por administracion para control operativo y contable.";
         $adminId = (int) ($_SESSION['usuario_id'] ?? 0);
         $notaAsistencia = "Agregado desde Usuarios por sendero";
+        $registroGuardadoId = 0;
 
         if ($registroActual) {
             if ($registroActual['estado'] === 'registrado') {
@@ -356,6 +586,7 @@ if ($accion === 'agregar_participante') {
                 "UPDATE registros_senderos
                 SET detalle_usuario_id = ?,
                     inversion_id = ?,
+                    chaleco_talla_id = ?,
                     estado = 'registrado',
                     consentimiento_aceptado = 1,
                     rgpd_aceptado = 1,
@@ -374,9 +605,10 @@ if ($accion === 'agregar_participante') {
             );
             mysqli_stmt_bind_param(
                 $stmt,
-                'iissiisiiisii',
+                'iiissiisiiisii',
                 $detalleId,
                 $inversionId,
+                $chalecoTallaId,
                 $consentimientoTexto,
                 $rgpdTexto,
                 $marcarAsistio,
@@ -391,18 +623,19 @@ if ($accion === 'agregar_participante') {
             );
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
+            $registroGuardadoId = $registroActualId;
         } else {
             $stmt = mysqli_prepare(
                 $conn,
                 "INSERT INTO registros_senderos (
-                    sendero_id, usuario_id, detalle_usuario_id, manual_nombre, manual_apellido, manual_telefono, manual_email, inversion_id, estado, registro_origen, asistio,
+                    sendero_id, usuario_id, detalle_usuario_id, manual_nombre, manual_apellido, manual_telefono, manual_email, inversion_id, chaleco_talla_id, estado, registro_origen, asistio,
                     fecha_asistencia, asistencia_marcada_por, asistencia_notas,
                     consentimiento_aceptado, rgpd_aceptado, consentimiento_texto, rgpd_texto
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'registrado', 'admin_manual', ?, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'registrado', 'admin_manual', ?, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, CASE WHEN ? = 1 THEN ? ELSE NULL END, 1, 1, ?, ?)"
             );
             mysqli_stmt_bind_param(
                 $stmt,
-                'iiissssiiisiiisss',
+                'iiissssiiiisiiisss',
                 $senderoId,
                 $usuarioId,
                 $detalleId,
@@ -411,6 +644,7 @@ if ($accion === 'agregar_participante') {
                 $manualTelefono,
                 $manualEmail,
                 $inversionId,
+                $chalecoTallaId,
                 $marcarAsistio,
                 $marcarAsistio,
                 $fechaAsistencia,
@@ -422,8 +656,15 @@ if ($accion === 'agregar_participante') {
                 $rgpdTexto
             );
             mysqli_stmt_execute($stmt);
+            $registroGuardadoId = (int) mysqli_insert_id($conn);
             mysqli_stmt_close($stmt);
         }
+
+        if ($registroGuardadoId <= 0) {
+            throw new RuntimeException('No se pudo obtener el registro del participante.');
+        }
+
+        usuarios_senderos_guardar_menores_registro($conn, $registroGuardadoId, $usuarioId, $menores);
 
         mysqli_commit($conn);
         $_SESSION['usuarios_senderos_success'] = "Participante agregado al sendero correctamente.";

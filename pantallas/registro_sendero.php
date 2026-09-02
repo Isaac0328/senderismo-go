@@ -95,7 +95,7 @@ function perfil_senderista_completo(array $detalle): bool
 
 registro_crear_tabla_menores($conn);
 
-$stmt = mysqli_prepare($conn, "SELECT id, nombre, fecha_sendero, lugar, provincia, estado FROM senderos WHERE id = ? AND activo = 1 LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT id, nombre, fecha_sendero, lugar, provincia, estado, incluye_chaleco_salvavidas FROM senderos WHERE id = ? AND activo = 1 LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $idSendero);
 mysqli_stmt_execute($stmt);
 $sendero = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -142,15 +142,35 @@ $oldData = $_SESSION['registro_sendero_old'] ?? null;
 
 $registroExistente = false;
 $registroInversionId = 0;
+$registroChalecoTallaId = 0;
+$registroComprobanteRuta = '';
+$registroComprobanteNombre = '';
 $registroId = 0;
-$stmt = mysqli_prepare($conn, "SELECT id, inversion_id FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT id, inversion_id, chaleco_talla_id, comprobante_pago_ruta, comprobante_pago_nombre FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
 mysqli_stmt_bind_param($stmt, "ii", $usuarioId, $idSendero);
 mysqli_stmt_execute($stmt);
 $registroRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 $registroExistente = (bool) $registroRow;
 $registroId = (int) ($registroRow['id'] ?? 0);
 $registroInversionId = (int) ($registroRow['inversion_id'] ?? 0);
+$registroChalecoTallaId = (int) ($registroRow['chaleco_talla_id'] ?? 0);
+$registroComprobanteRuta = trim((string) ($registroRow['comprobante_pago_ruta'] ?? ''));
+$registroComprobanteNombre = trim((string) ($registroRow['comprobante_pago_nombre'] ?? ''));
 mysqli_stmt_close($stmt);
+
+$tallasChalecos = [];
+if ((int) ($sendero['incluye_chaleco_salvavidas'] ?? 0) === 1) {
+    $resTallas = mysqli_query(
+        $conn,
+        "SELECT id, nombre, descripcion
+         FROM tallas_chalecos_salvavidas
+         WHERE activo = 1
+         ORDER BY orden ASC, nombre ASC"
+    );
+    while ($resTallas && $row = mysqli_fetch_assoc($resTallas)) {
+        $tallasChalecos[] = $row;
+    }
+}
 
 $menoresRegistrados = [];
 if ($registroId > 0) {
@@ -253,7 +273,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <div class="registro-alert success">Ya tienes un registro activo para este sendero. Puedes actualizar tus datos y enviarlos nuevamente.</div>
         <?php endif; ?>
 
-        <form class="registro-card" method="POST" action="<?= BASE_URL ?>procesos/proceso_registro_sendero.php" novalidate>
+        <form class="registro-card" method="POST" action="<?= BASE_URL ?>procesos/proceso_registro_sendero.php" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="sendero_id" value="<?= (int) $sendero['id'] ?>">
 
             <section class="registro-section">
@@ -308,11 +328,73 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         </label>
                     <?php endforeach; ?>
                 </div>
+
+                <?php if ((int) ($sendero['incluye_chaleco_salvavidas'] ?? 0) === 1): ?>
+                    <div class="life-jacket-choice">
+                        <div class="life-jacket-icon" aria-hidden="true">
+                            <i data-feather="shield"></i>
+                        </div>
+                        <div class="life-jacket-copy">
+                            <strong>Chaleco salvavidas incluido</strong>
+                            <span>Selecciona la talla que necesitas para esta actividad.</span>
+                        </div>
+                        <label class="field life-jacket-field" for="chaleco_talla_id">
+                            <span>Elegir talla de chaleco salvavidas *</span>
+                            <select id="chaleco_talla_id" name="chaleco_talla_id" required>
+                                <option value="">Selecciona tu talla...</option>
+                                <?php foreach ($tallasChalecos as $talla): ?>
+                                    <?php $selectedTalla = (int) ($formData['chaleco_talla_id'] ?? $registroChalecoTallaId) === (int) $talla['id']; ?>
+                                    <option value="<?= (int) $talla['id'] ?>" <?= $selectedTalla ? 'selected' : '' ?>>
+                                        <?= h($talla['nombre']) ?><?= !empty($talla['descripcion']) ? ' - ' . h($talla['descripcion']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+                <?php endif; ?>
+            </section>
+
+            <section class="registro-section payment-proof-section">
+                <div class="section-title-row">
+                    <span>3</span>
+                    <div>
+                        <h2>Comprobante de pago</h2>
+                        <p>Adjunta una imagen o PDF del pago realizado. Este campo es opcional.</p>
+                    </div>
+                </div>
+
+                <div class="payment-proof-box">
+                    <div class="payment-proof-icon" aria-hidden="true">
+                        <i data-feather="paperclip"></i>
+                    </div>
+                    <label class="payment-proof-field" for="comprobante_pago">
+                        <strong><?= $registroComprobanteRuta !== '' ? 'Reemplazar comprobante' : 'Adjuntar comprobante' ?></strong>
+                        <span data-proof-file-name>JPG, PNG, WEBP o PDF. Maximo 8 MB.</span>
+                        <input id="comprobante_pago"
+                               type="file"
+                               name="comprobante_pago"
+                               accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                               data-proof-input>
+                    </label>
+
+                    <?php if ($registroComprobanteRuta !== ''): ?>
+                        <a class="payment-proof-current"
+                           href="<?= BASE_URL ?>procesos/proceso_ver_comprobante_pago.php?registro_id=<?= (int) $registroId ?>"
+                           target="_blank"
+                           rel="noopener">
+                            <i data-feather="file-text"></i>
+                            <span>
+                                <small>Comprobante actual</small>
+                                <strong><?= h($registroComprobanteNombre !== '' ? $registroComprobanteNombre : 'Ver archivo') ?></strong>
+                            </span>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </section>
 
             <section class="registro-section minors-section" data-minors-root data-minors='<?= $menoresJson ?>' data-saved-minors='<?= $menoresFrecuentesJson ?>'>
                 <div class="section-title-row">
-                    <span>3</span>
+                    <span>4</span>
                     <div>
                         <h2>Menores acompanantes</h2>
                         <p>Si llevaras ninos o adolescentes bajo tu responsabilidad, agregalos aqui antes de enviar el registro.</p>
@@ -342,7 +424,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <section class="registro-section">
                 <div class="section-title-row">
-                    <span>4</span>
+                    <span>5</span>
                     <div>
                         <h2>Consentimientos</h2>
                         <p>Debes aceptar estos terminos para completar el registro.</p>

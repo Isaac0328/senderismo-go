@@ -142,12 +142,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <div class="form-group">
                             <label for="nombre">Nombre *</label>
                             <input type="text" name="nombre" id="nombre" required maxlength="100"
-                                placeholder="Ej: Juan">
+                                placeholder="Ej: Juan" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
                         <div class="form-group">
                             <label for="apellido">Apellido *</label>
                             <input type="text" name="apellido" id="apellido" required maxlength="100"
-                                placeholder="Ej: PÃ©rez">
+                                placeholder="Ej: Pérez" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
                     </div>
 
@@ -189,7 +189,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                     <div class="form-group">
                         <label for="telefono">Telefono</label>
-                        <input type="text" name="telefono" id="telefono" maxlength="20" placeholder="8090000000">
+                        <input type="tel" name="telefono" id="telefono" maxlength="15" inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" oninput="this.value=this.value.replace(/\D/g,'')">
                     </div>
                     <div class="form-group">
                         <label for="rango_edad">Edad</label>
@@ -257,11 +257,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                     <div class="form-group">
                         <label for="referido_nombre">Referido</label>
-                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150">
+                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
                     <div class="form-group">
                         <label for="emergencia_nombre">Emergencia</label>
-                        <input type="text" name="emergencia_nombre" id="emergencia_nombre" maxlength="150">
+                        <input type="text" name="emergencia_nombre" id="emergencia_nombre" maxlength="150" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
                     <div class="form-group">
                         <label for="emergencia_parentesco">Parentesco</label>
@@ -269,7 +269,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                     <div class="form-group">
                         <label for="emergencia_telefono">Tel. emergencia</label>
-                        <input type="text" name="emergencia_telefono" id="emergencia_telefono" maxlength="20">
+                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" maxlength="15" inputmode="numeric" pattern="[0-9]{10,15}" oninput="this.value=this.value.replace(/\D/g,'')">
                     </div>
 
                     <div class="form-section-title">Menores asociados al usuario</div>
@@ -408,7 +408,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                                             <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios.php"
                                                 class="inline-form"
-                                                onsubmit="return confirm('Â¿Seguro que deseas eliminar este usuario?');">
+                                                onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
                                                 <button type="submit" class="btn-mini danger">Eliminar</button>
@@ -436,15 +436,15 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <div class="user-minor-grid">
             <label>
                 <span>Nombre *</span>
-                <input type="text" data-minor-field="nombre" maxlength="100" placeholder="Nombre">
+                <input type="text" data-minor-field="nombre" maxlength="100" placeholder="Nombre" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
             </label>
             <label>
                 <span>Apellido *</span>
-                <input type="text" data-minor-field="apellido" maxlength="100" placeholder="Apellido">
+                <input type="text" data-minor-field="apellido" maxlength="100" placeholder="Apellido" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
             </label>
             <label>
                 <span>Telefono</span>
-                <input type="text" data-minor-field="telefono" maxlength="30" placeholder="Opcional">
+                <input type="tel" data-minor-field="telefono" maxlength="15" inputmode="numeric" pattern="[0-9]{10,15}" placeholder="Opcional" oninput="this.value=this.value.replace(/\D/g,'')">
             </label>
             <label>
                 <span>Edad *</span>
@@ -495,7 +495,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </label>
             <label>
                 <span>Emergencia *</span>
-                <input type="text" data-minor-field="emergencia_nombre" maxlength="150">
+                <input type="text" data-minor-field="emergencia_nombre" maxlength="150" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
             </label>
             <label>
                 <span>Parentesco *</span>
@@ -503,7 +503,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </label>
             <label>
                 <span>Tel. emergencia *</span>
-                <input type="text" data-minor-field="emergencia_telefono" maxlength="30">
+                <input type="tel" data-minor-field="emergencia_telefono" maxlength="15" inputmode="numeric" pattern="[0-9]{10,15}" oninput="this.value=this.value.replace(/\D/g,'')">
             </label>
             <label>
                 <span>Estado</span>

@@ -264,6 +264,133 @@
     font-weight: 900;
 }
 
+.life-jacket-choice {
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) minmax(250px, .8fr);
+    gap: 12px;
+    align-items: center;
+    margin-top: 14px;
+    border: 1px solid rgba(8, 123, 77, .22);
+    border-radius: 8px;
+    background: #f2faf5;
+    padding: 14px;
+}
+
+.life-jacket-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: #087b4d;
+    color: #fff;
+}
+
+.life-jacket-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.life-jacket-copy strong,
+.life-jacket-copy span {
+    display: block;
+}
+
+.life-jacket-copy strong {
+    color: #111;
+    font-weight: 950;
+}
+
+.life-jacket-copy span {
+    margin-top: 3px;
+    color: #5f6d64;
+    font-size: .84rem;
+    line-height: 1.35;
+}
+
+.payment-proof-box {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    border: 1px dashed rgba(0, 0, 0, .20);
+    border-radius: 8px;
+    background: #f8f8f8;
+    padding: 14px;
+}
+
+.payment-proof-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+}
+
+.payment-proof-icon svg,
+.payment-proof-current svg {
+    width: 20px;
+    height: 20px;
+}
+
+.payment-proof-field {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.payment-proof-field strong {
+    color: #111;
+    font-weight: 950;
+}
+
+.payment-proof-field span {
+    color: #666;
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+}
+
+.payment-proof-field input {
+    width: 100%;
+    margin-top: 5px;
+    color: #333;
+    font-size: .82rem;
+}
+
+.payment-proof-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    max-width: 280px;
+    min-height: 44px;
+    border: 1px solid rgba(0, 140, 85, .16);
+    border-radius: 8px;
+    background: #e8f8ee;
+    color: #075f3d !important;
+    padding: 9px 11px;
+    text-decoration: none;
+}
+
+.payment-proof-current span {
+    display: grid;
+    min-width: 0;
+}
+
+.payment-proof-current small {
+    font-size: .68rem;
+    font-weight: 800;
+}
+
+.payment-proof-current strong {
+    overflow: hidden;
+    font-size: .78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .investment-choice-card small {
     color: #555;
     line-height: 1.35;
@@ -895,6 +1022,26 @@ body.modal-open {
     .field.span-2 {
         grid-template-columns: 1fr;
         grid-column: span 1;
+    }
+
+    .life-jacket-choice {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 12px;
+    }
+
+    .life-jacket-field {
+        grid-column: 1 / -1;
+    }
+
+    .payment-proof-box {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 12px;
+    }
+
+    .payment-proof-current {
+        grid-column: 1 / -1;
+        width: 100%;
+        max-width: none;
     }
 
     .registro-actions {

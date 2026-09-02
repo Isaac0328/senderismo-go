@@ -29,6 +29,7 @@ $password = $_POST['password'] ?? '';
 $remember = isset($_POST['remember']);
 
 if ($user === '' || $password === '') {
+  unset($_SESSION['login_unknown_identifier'], $_SESSION['login_unknown_attempts'], $_SESSION['show_register_prompt']);
   $_SESSION['error_message'] = "Por favor, completa todos los campos";
   redirect_to_login();
 }
@@ -87,9 +88,31 @@ $mensaje = (string) ($data['mensaje'] ?? '');
 
 if ($codigo !== 0) {
   registrar_intento_fallido($conn, $ip, $now);
+
+  if ($codigo === 1) {
+    $identifierKey = function_exists('mb_strtolower')
+      ? mb_strtolower($user, 'UTF-8')
+      : strtolower($user);
+    $previousIdentifier = (string) ($_SESSION['login_unknown_identifier'] ?? '');
+    $unknownAttempts = $previousIdentifier === $identifierKey
+      ? ((int) ($_SESSION['login_unknown_attempts'] ?? 0) + 1)
+      : 1;
+
+    $_SESSION['login_unknown_identifier'] = $identifierKey;
+    $_SESSION['login_unknown_attempts'] = $unknownAttempts;
+
+    if ($unknownAttempts >= 2) {
+      $_SESSION['show_register_prompt'] = true;
+    }
+  } else {
+    unset($_SESSION['login_unknown_identifier'], $_SESSION['login_unknown_attempts'], $_SESSION['show_register_prompt']);
+  }
+
   $_SESSION['error_message'] = $mensaje !== '' ? $mensaje : "Credenciales inválidas";
   redirect_to_login();
 }
+
+unset($_SESSION['login_unknown_identifier'], $_SESSION['login_unknown_attempts'], $_SESSION['show_register_prompt']);
 
 /* ================= PARSEAR RESULTADO ================= */
 $parts = explode('|', $mensaje);

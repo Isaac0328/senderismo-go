@@ -327,6 +327,139 @@
     font-weight: 600;
 }
 
+.login-register-dialog {
+    position: fixed;
+    width: min(410px, calc(100% - 32px));
+    margin: auto;
+    padding: 28px;
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    text-align: center;
+}
+
+.login-register-dialog::backdrop {
+    background: rgba(10, 13, 11, 0.62);
+    backdrop-filter: blur(3px);
+}
+
+.login-register-dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid #e1e5e2;
+    border-radius: 8px;
+    background: #f5f7f5;
+    color: #38413c;
+    cursor: pointer;
+}
+
+.login-register-dialog-close svg {
+    width: 17px;
+    height: 17px;
+}
+
+.login-register-dialog-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 13px;
+    border-radius: 50%;
+    background: #e5f5eb;
+    color: #0d5f35;
+}
+
+.login-register-dialog-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.login-register-dialog-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: #b20d0d;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.login-register-dialog h2 {
+    margin: 0;
+    color: #111;
+    font-size: 1.35rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.login-register-dialog p {
+    margin: 10px auto 20px;
+    max-width: 320px;
+    color: #5e6862;
+    font-size: 0.93rem;
+    line-height: 1.5;
+}
+
+.login-register-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.login-register-dialog-actions button,
+.login-register-dialog-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.login-register-dialog-actions svg {
+    width: 17px;
+    height: 17px;
+}
+
+.login-register-dialog-secondary {
+    border: 1px solid #dce1de;
+    background: #f3f5f3;
+    color: #222;
+}
+
+.login-register-dialog-primary {
+    border: 1px solid #0d3320;
+    background: #0d3320;
+    color: #fff;
+}
+
+.login-register-dialog-close:hover,
+.login-register-dialog-close:focus-visible,
+.login-register-dialog-secondary:hover,
+.login-register-dialog-secondary:focus-visible {
+    border-color: #0d5f35;
+    outline: none;
+}
+
+.login-register-dialog-primary:hover,
+.login-register-dialog-primary:focus-visible {
+    background: #0a2819;
+    outline: 3px solid rgba(13, 95, 53, 0.18);
+}
+
 /* ---------------- Animaciones modernas ---------------- */
 
 .login-animate {
@@ -426,5 +559,15 @@
 
     .login-card {
         max-width: 520px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-register-dialog {
+        padding: 26px 18px 18px;
+    }
+
+    .login-register-dialog-actions {
+        grid-template-columns: 1fr;
     }
 }

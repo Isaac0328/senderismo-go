@@ -42,6 +42,7 @@ $pagados = $_POST['pagado'] ?? [];
 $asistieron = $_POST['asistio'] ?? [];
 $montos = $_POST['monto_pagado'] ?? [];
 $creditosAplicados = $_POST['credito_aplicado'] ?? [];
+$descuentosAutorizados = $_POST['descuento_autorizado'] ?? [];
 $creditosGenerados = $_POST['credito_generado'] ?? [];
 $estadosFinancieros = $_POST['estado_financiero'] ?? [];
 $generarCreditos = $_POST['generar_credito'] ?? [];
@@ -60,6 +61,7 @@ $pagadosMap = array_flip(is_array($pagados) ? array_map('intval', $pagados) : []
 $asistieronMap = array_flip(is_array($asistieron) ? array_map('intval', $asistieron) : []);
 $montos = is_array($montos) ? $montos : [];
 $creditosAplicados = is_array($creditosAplicados) ? $creditosAplicados : [];
+$descuentosAutorizados = is_array($descuentosAutorizados) ? $descuentosAutorizados : [];
 $creditosGenerados = is_array($creditosGenerados) ? $creditosGenerados : [];
 $estadosFinancieros = is_array($estadosFinancieros) ? $estadosFinancieros : [];
 $generarCreditosMap = array_flip(is_array($generarCreditos) ? array_map('intval', $generarCreditos) : []);
@@ -118,8 +120,8 @@ try {
     $stmtPago = mysqli_prepare(
         $conn,
         "INSERT INTO contabilidad_registro_pagos
-            (registro_id, sendero_id, pagado, estado_financiero, monto_esperado, monto_pagado, credito_aplicado, saldo_pendiente, credito_id, credito_generado, monto_retenido, fecha_pago, metodo_pago, metodo_pago_id, nota)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (registro_id, sendero_id, pagado, estado_financiero, monto_esperado, monto_pagado, credito_aplicado, descuento_autorizado, saldo_pendiente, credito_id, credito_generado, monto_retenido, fecha_pago, metodo_pago, metodo_pago_id, nota)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
             sendero_id = VALUES(sendero_id),
             pagado = VALUES(pagado),
@@ -127,6 +129,7 @@ try {
             monto_esperado = VALUES(monto_esperado),
             monto_pagado = VALUES(monto_pagado),
             credito_aplicado = VALUES(credito_aplicado),
+            descuento_autorizado = VALUES(descuento_autorizado),
             saldo_pendiente = VALUES(saldo_pendiente),
             credito_id = VALUES(credito_id),
             credito_generado = VALUES(credito_generado),
@@ -136,6 +139,9 @@ try {
             metodo_pago_id = VALUES(metodo_pago_id),
             nota = VALUES(nota)"
     );
+    if (!$stmtPago) {
+        throw new RuntimeException('No se pudo preparar el guardado de ingresos.');
+    }
 
     $stmtAsistencia = mysqli_prepare(
         $conn,
@@ -145,17 +151,27 @@ try {
              asistencia_marcada_por = CASE WHEN ? = 1 THEN ? ELSE NULL END
          WHERE id = ? AND sendero_id = ? AND estado = 'registrado'"
     );
+    if (!$stmtAsistencia) {
+        throw new RuntimeException('No se pudo preparar el guardado de asistencia.');
+    }
 
     $totalCobrado = 0;
     $totalPagados = 0;
     $totalAsistieron = 0;
     $totalCreditoAplicado = 0;
+    $totalDescuento = 0;
     $totalDeuda = 0;
 
     foreach ($validos as $registroId) {
         $info = $registrosInfo[$registroId];
         $montoEsperado = $info['monto_esperado'];
         $usuarioId = $info['usuario_id'];
+        $estadoManual = ingresos_clean_text((string) ($estadosFinancieros[$registroId] ?? ''), 30);
+        $estadosPermitidos = ['pendiente', 'pagado', 'parcial', 'credito_aplicado', 'descuento', 'deuda', 'cortesia', 'exento', 'no_asistio_sin_pago'];
+        $estadoSinCobro = in_array($estadoManual, ['cortesia', 'exento', 'no_asistio_sin_pago'], true);
+        if ($estadoManual === 'exento') {
+            $montoEsperado = 0.0;
+        }
 
         if ($info['credito_anterior_id'] > 0 && $info['credito_anterior_monto'] > 0) {
             $creditoAnteriorId = $info['credito_anterior_id'];
@@ -176,6 +192,7 @@ try {
         $asistio = isset($asistieronMap[$registroId]) ? 1 : 0;
         $monto = max(0, (float) ($montos[$registroId] ?? 0));
         $creditoAplicado = max(0, (float) ($creditosAplicados[$registroId] ?? 0));
+        $descuentoAutorizado = max(0, (float) ($descuentosAutorizados[$registroId] ?? 0));
         $creditoGenerado = max(0, (float) ($creditosGenerados[$registroId] ?? 0));
         $montoRetenido = 0.0;
         $fecha = trim((string) ($fechas[$registroId] ?? ''));
@@ -186,6 +203,15 @@ try {
         if ($pagado === 0) {
             $monto = 0;
             $creditoGenerado = 0;
+            $fecha = null;
+        }
+        if ($estadoSinCobro) {
+            $pagado = 0;
+            $monto = 0;
+            $creditoAplicado = 0;
+            $descuentoAutorizado = 0;
+            $creditoGenerado = 0;
+            $montoRetenido = 0;
             $fecha = null;
         }
         if ($creditoAplicado > 0 && $usuarioId <= 0) {
@@ -232,16 +258,23 @@ try {
             mysqli_stmt_close($stmtMov);
         }
 
-        $totalCubierto = $monto + $creditoAplicado;
+        $descuentoAutorizado = min($descuentoAutorizado, max(0, $montoEsperado - $monto - $creditoAplicado));
+        $totalCubierto = $monto + $creditoAplicado + $descuentoAutorizado;
         $saldoPendiente = max(0, $montoEsperado - $totalCubierto);
-        $estadoManual = ingresos_clean_text((string) ($estadosFinancieros[$registroId] ?? ''), 30);
-        $estadosPermitidos = ['pendiente', 'pagado', 'parcial', 'credito_aplicado', 'deuda', 'cortesia', 'no_asistio_sin_pago'];
         if (!in_array($estadoManual, $estadosPermitidos, true)) {
             if ($montoEsperado <= 0) {
                 $estadoManual = 'cortesia';
                 $saldoPendiente = 0;
             } elseif ($totalCubierto >= $montoEsperado) {
-                $estadoManual = $creditoAplicado > 0 && $monto <= 0 ? 'credito_aplicado' : 'pagado';
+                if ($descuentoAutorizado > 0 && ($monto > 0 || $creditoAplicado > 0)) {
+                    $estadoManual = 'descuento';
+                } elseif ($creditoAplicado > 0 && $monto <= 0) {
+                    $estadoManual = 'credito_aplicado';
+                } elseif ($descuentoAutorizado > 0) {
+                    $estadoManual = 'cortesia';
+                } else {
+                    $estadoManual = 'pagado';
+                }
             } elseif ($totalCubierto > 0) {
                 $estadoManual = 'parcial';
             } elseif ($asistio === 1) {
@@ -252,25 +285,25 @@ try {
                 $saldoPendiente = 0;
             }
         }
-        if ($estadoManual === 'no_asistio_sin_pago') {
+        if (
+            $descuentoAutorizado > 0
+            && $saldoPendiente <= 0.00001
+            && ($monto > 0 || $creditoAplicado > 0)
+            && !in_array($estadoManual, ['cortesia', 'exento', 'no_asistio_sin_pago'], true)
+        ) {
+            $estadoManual = 'descuento';
+        }
+        if (in_array($estadoManual, ['cortesia', 'exento', 'no_asistio_sin_pago'], true)) {
             $pagado = 0;
             $monto = 0;
             $creditoAplicado = 0;
+            $descuentoAutorizado = 0;
             $creditoGenerado = 0;
             $montoRetenido = 0;
             $saldoPendiente = 0;
             $creditoIdAplicado = null;
         }
-        if ($estadoManual === 'cortesia') {
-            $pagado = 0;
-            $monto = 0;
-            $creditoAplicado = 0;
-            $creditoGenerado = 0;
-            $montoRetenido = 0;
-            $saldoPendiente = 0;
-            $creditoIdAplicado = null;
-        }
-        if (in_array($estadoManual, ['pagado', 'credito_aplicado'], true) && $saldoPendiente <= 0.00001) {
+        if (in_array($estadoManual, ['pagado', 'credito_aplicado', 'descuento'], true) && $saldoPendiente <= 0.00001) {
             $pagado = 1;
         }
 
@@ -306,7 +339,7 @@ try {
 
         mysqli_stmt_bind_param(
             $stmtPago,
-            'iiisddddiddssis',
+            'iiisdddddiddssis',
             $registroId,
             $senderoId,
             $pagado,
@@ -314,6 +347,7 @@ try {
             $montoEsperado,
             $monto,
             $creditoAplicado,
+            $descuentoAutorizado,
             $saldoPendiente,
             $creditoIdAplicado,
             $creditoGenerado,
@@ -332,6 +366,7 @@ try {
         $totalAsistieron += $asistio;
         $totalCobrado += $pagado === 1 ? $monto : 0;
         $totalCreditoAplicado += $creditoAplicado;
+        $totalDescuento += $descuentoAutorizado;
         $totalDeuda += $saldoPendiente;
 
         $debeGenerarCredito = isset($generarCreditosMap[$registroId]) && $creditoGenerado > 0 && $monto > 0 && $asistio === 0 && $usuarioId > 0;
@@ -398,7 +433,7 @@ try {
     mysqli_stmt_close($stmtAsistencia);
     mysqli_commit($conn);
 
-    $_SESSION['ingresos_sendero_success'] = "Ingresos guardados. Pagados: {$totalPagados}. Asistieron: {$totalAsistieron}. Cobrado: RD$ " . number_format($totalCobrado, 2) . ". Credito aplicado: RD$ " . number_format($totalCreditoAplicado, 2) . ". Por cobrar: RD$ " . number_format($totalDeuda, 2) . ".";
+    $_SESSION['ingresos_sendero_success'] = "Ingresos guardados. Pagados: {$totalPagados}. Asistieron: {$totalAsistieron}. Cobrado: RD$ " . number_format($totalCobrado, 2) . ". Credito aplicado: RD$ " . number_format($totalCreditoAplicado, 2) . ". Descuento: RD$ " . number_format($totalDescuento, 2) . ". Por cobrar: RD$ " . number_format($totalDeuda, 2) . ".";
     ingresos_sendero_redirect($conn, $senderoId);
 } catch (Throwable $e) {
     mysqli_rollback($conn);

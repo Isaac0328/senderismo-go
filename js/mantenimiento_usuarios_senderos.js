@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const participantModes = document.querySelectorAll('input[name="tipo_participante"]');
     const existingField = document.querySelector('.mus-existing-field');
     const newFields = document.querySelector('.mus-new-fields');
+    const minorsRoot = document.querySelector('[data-minors-root]');
+    const minorsList = document.querySelector('[data-minors-list]');
+    const addMinorButton = document.querySelector('[data-add-minor]');
+    const minorTemplate = document.getElementById('musMinorTemplate');
 
     const openDialog = (dialog) => {
         if (!dialog) return;
@@ -63,6 +67,47 @@ document.addEventListener('DOMContentLoaded', () => {
     syncParticipantMode();
     initUserSearch();
 
+    const refreshMinorNames = () => {
+        if (!minorsList) return;
+        [...minorsList.querySelectorAll('[data-minor-card]')].forEach((card, index) => {
+            const title = card.querySelector('[data-minor-title]');
+            if (title) title.textContent = `Menor ${index + 1}`;
+            card.querySelectorAll('[data-minor-name]').forEach((field) => {
+                field.name = `menores[${index}][${field.dataset.minorName}]`;
+            });
+        });
+    };
+
+    const syncMinorAllergy = (card) => {
+        const allergy = card.querySelector('[data-minor-allergy]');
+        const detail = card.querySelector('[data-minor-allergy-detail]');
+        if (!allergy || !detail) return;
+        const required = allergy.value === '1';
+        detail.required = required;
+        detail.closest('.mus-field')?.classList.toggle('is-required', required);
+    };
+
+    const addMinorCard = () => {
+        if (!minorTemplate || !minorsList) return;
+        const fragment = minorTemplate.content.cloneNode(true);
+        const card = fragment.querySelector('[data-minor-card]');
+        minorsList.append(fragment);
+        if (!card) return;
+        card.querySelector('[data-remove-minor]')?.addEventListener('click', () => {
+            card.remove();
+            refreshMinorNames();
+        });
+        card.querySelector('[data-minor-allergy]')?.addEventListener('change', () => syncMinorAllergy(card));
+        syncMinorAllergy(card);
+        refreshMinorNames();
+        if (window.feather) window.feather.replace();
+    };
+
+    addMinorButton?.addEventListener('click', addMinorCard);
+    minorsRoot?.closest('form')?.addEventListener('reset', () => {
+        if (minorsList) minorsList.replaceChildren();
+    });
+
     const detailsModal = document.querySelector('[data-user-detail-modal]');
     const detailsSource = document.getElementById('musUserDetailsData');
     const details = (() => {
@@ -98,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fillGrid('[data-detail-contact]', [
                 ['Telefono', data.telefono], ['Correo', data.email], ['Identificacion', data.identificacion],
-                ['Edad', data.rango_edad], ['Inversion', data.inversion], ['Fecha de registro', data.registro]
+                ['Edad', data.rango_edad], ['Inversion', data.inversion], ['Comprobante', data.comprobante], ['Talla de chaleco', data.chaleco_talla], ['Fecha de registro', data.registro]
             ]);
             fillGrid('[data-detail-health]', [
                 ['Grupo sanguineo', data.grupo_sanguineo], ['Alergico', data.es_alergico],

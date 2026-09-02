@@ -315,7 +315,11 @@
 .btn-mini {
     display: inline-flex;
     align-items: center;
-    min-height: 32px;
+    justify-content: center;
+    width: 76px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
     padding: 7px 9px;
     background: rgba(0, 0, 0, .08);
     color: #111;
@@ -338,7 +342,9 @@
 }
 
 .inline-form {
-    display: inline;
+    display: inline-flex;
+    width: 76px;
+    height: 34px;
 }
 
 .empty {
@@ -381,11 +387,27 @@
     }
 
     .catalog-head-actions,
-    .catalog-actions,
-    .catalog-item-actions {
+    .catalog-actions {
         align-items: stretch;
         flex-direction: column;
         width: 100%;
+    }
+
+    .catalog-item-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 76px);
+        align-items: center;
+        justify-content: end;
+        width: auto;
+    }
+
+    .catalog-item-actions > .btn-mini,
+    .catalog-item-actions .inline-form,
+    .catalog-item-actions .inline-form .btn-mini {
+        width: 76px;
+        height: 34px;
+        min-height: 34px;
+        max-height: 34px;
     }
 
     .catalog-toggle {

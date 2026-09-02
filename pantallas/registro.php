@@ -84,14 +84,14 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                             <label for="nombre">Nombre</label>
                             <input type="text" name="nombre" id="nombre" required placeholder="Tu nombre"
                                 value="<?= reg_old($old, 'nombre') ?>"
-                                autocomplete="given-name">
+                                autocomplete="given-name" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
 
                         <div class="form-group">
                             <label for="apellido">Apellido</label>
                             <input type="text" name="apellido" id="apellido" required placeholder="Tu apellido"
                                 value="<?= reg_old($old, 'apellido') ?>"
-                                autocomplete="family-name">
+                                autocomplete="family-name" pattern="[^0-9]*" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
                     </div>
 
@@ -145,7 +145,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <div class="grid-2">
                         <div class="form-group">
                             <label for="telefono">Telefono</label>
-                            <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= reg_old($old, 'telefono') ?>">
+                            <input type="tel" name="telefono" id="telefono" required inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" placeholder="8090000000" value="<?= reg_old($old, 'telefono') ?>" oninput="this.value=this.value.replace(/\D/g,'')">
                         </div>
                         <div class="form-group">
                             <label for="rango_edad">Edad</label>
@@ -221,7 +221,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                     <div class="form-group">
                         <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
-                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" value="<?= reg_old($old, 'referido_nombre') ?>">
+                        <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" pattern="[^0-9]*" value="<?= reg_old($old, 'referido_nombre') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
 
                     <div class="register-section-title">
@@ -231,7 +231,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <div class="grid-2">
                         <div class="form-group">
                             <label for="emergencia_nombre">Nombre</label>
-                            <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" value="<?= reg_old($old, 'emergencia_nombre') ?>">
+                            <input type="text" name="emergencia_nombre" id="emergencia_nombre" required maxlength="150" pattern="[^0-9]*" value="<?= reg_old($old, 'emergencia_nombre') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                         </div>
                         <div class="form-group">
                             <label for="emergencia_parentesco">Parentesco</label>
@@ -241,7 +241,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                     <div class="form-group">
                         <label for="emergencia_telefono">Telefono de emergencia</label>
-                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" placeholder="8090000000" value="<?= reg_old($old, 'emergencia_telefono') ?>">
+                        <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" placeholder="8090000000" value="<?= reg_old($old, 'emergencia_telefono') ?>" oninput="this.value=this.value.replace(/\D/g,'')">
                     </div>
                     <label class="terms">
                         <input type="checkbox" id="terms" name="terms" value="1" required>

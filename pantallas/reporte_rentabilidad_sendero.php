@@ -53,8 +53,10 @@ function rrs_estado_financiero(string $estado): string
         'pagado' => 'Pagado',
         'parcial' => 'Parcial',
         'credito_aplicado' => 'Credito aplicado',
+        'descuento' => 'Pagado con descuento',
         'deuda' => 'Deuda',
         'cortesia' => 'Cortesia',
+        'exento' => 'Exento',
         'no_asistio_sin_pago' => 'No asistio / sin pago',
     ];
 
@@ -84,8 +86,8 @@ $resSenderos = sgf_execute_query($conn, "
             sendero_id,
             SUM(
                 CASE
-                    WHEN estado_financiero = 'cortesia' THEN 0
-                    ELSE GREATEST(COALESCE(monto_pagado, 0) + COALESCE(credito_aplicado, 0) - COALESCE(credito_generado, 0), 0)
+                    WHEN estado_financiero IN ('cortesia', 'exento') THEN 0
+                    ELSE GREATEST(COALESCE(monto_pagado, 0) + COALESCE(credito_aplicado, 0) - COALESCE(descuento_autorizado, 0) - COALESCE(credito_generado, 0), 0)
                 END
             ) AS ingresos
         FROM contabilidad_registro_pagos
@@ -118,6 +120,7 @@ $resumen = [
     'esperado' => 0.0,
     'cobrado_bruto' => 0.0,
     'credito_aplicado' => 0.0,
+    'descuento_autorizado' => 0.0,
     'credito_generado' => 0.0,
     'monto_retenido' => 0.0,
     'por_cobrar' => 0.0,
@@ -137,14 +140,15 @@ if ($sendero) {
             COALESCE(SUM(1 + COALESCE(m.menores, 0)), 0) AS inscritos,
             COALESCE(SUM(CASE WHEN rs.asistio = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS asistieron,
             COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN 1 + COALESCE(m.menores, 0) ELSE 0 END), 0) AS pagados,
-            COALESCE(SUM(CASE WHEN COALESCE(crp.estado_financiero, '') <> 'cortesia' THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END), 0) AS esperado,
+            COALESCE(SUM(CASE WHEN COALESCE(crp.estado_financiero, '') NOT IN ('cortesia', 'exento') THEN COALESCE(crp.monto_esperado, 0) ELSE 0 END), 0) AS esperado,
             COALESCE(SUM(CASE WHEN crp.pagado = 1 THEN crp.monto_pagado ELSE 0 END), 0) AS cobrado_bruto,
             COALESCE(SUM(COALESCE(crp.credito_aplicado, 0)), 0) AS credito_aplicado,
+            COALESCE(SUM(COALESCE(crp.descuento_autorizado, 0)), 0) AS descuento_autorizado,
             COALESCE(SUM(COALESCE(crp.credito_generado, 0)), 0) AS credito_generado,
             COALESCE(SUM(COALESCE(crp.monto_retenido, 0)), 0) AS monto_retenido,
             COALESCE(SUM(
                 CASE
-                    WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'no_asistio_sin_pago') THEN 0
+                    WHEN COALESCE(crp.estado_financiero, '') IN ('cortesia', 'exento', 'no_asistio_sin_pago') THEN 0
                     ELSE COALESCE(crp.saldo_pendiente, 0)
                 END
             ), 0) AS por_cobrar
@@ -168,10 +172,11 @@ if ($sendero) {
     $resumen['esperado'] = (float) ($row['esperado'] ?? 0);
     $resumen['cobrado_bruto'] = (float) ($row['cobrado_bruto'] ?? 0);
     $resumen['credito_aplicado'] = (float) ($row['credito_aplicado'] ?? 0);
+    $resumen['descuento_autorizado'] = (float) ($row['descuento_autorizado'] ?? 0);
     $resumen['credito_generado'] = (float) ($row['credito_generado'] ?? 0);
     $resumen['monto_retenido'] = (float) ($row['monto_retenido'] ?? 0);
     $resumen['por_cobrar'] = (float) ($row['por_cobrar'] ?? 0);
-    $resumen['ingreso_neto'] = max(0, $resumen['cobrado_bruto'] + $resumen['credito_aplicado'] - $resumen['credito_generado']);
+    $resumen['ingreso_neto'] = max(0, $resumen['cobrado_bruto'] + $resumen['credito_aplicado'] - $resumen['descuento_autorizado'] - $resumen['credito_generado']);
 
     $stmt = mysqli_prepare(
         $conn,
@@ -279,6 +284,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article class="money"><span>Ingreso neto</span><strong><?= rrs_h(rrs_money($resumen['ingreso_neto'])) ?></strong></article>
                     <article><span>Cobrado bruto</span><strong><?= rrs_h(rrs_money($resumen['cobrado_bruto'])) ?></strong></article>
                     <article><span>Credito aplicado</span><strong><?= rrs_h(rrs_money($resumen['credito_aplicado'])) ?></strong></article>
+                    <article><span>Descuento</span><strong><?= rrs_h(rrs_money($resumen['descuento_autorizado'])) ?></strong></article>
                     <article class="warn"><span>Credito abonado</span><strong><?= rrs_h(rrs_money($resumen['credito_generado'])) ?></strong></article>
                     <article class="warn"><span>Gastos</span><strong><?= rrs_h(rrs_money($resumen['gastos'])) ?></strong></article>
                     <article class="<?= $resumen['utilidad'] >= 0 ? 'ok' : 'warn' ?>"><span>Utilidad</span><strong><?= rrs_h(rrs_money($resumen['utilidad'])) ?></strong></article>
@@ -300,6 +306,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <article><span>Pagados</span><strong><?= (int) $resumen['pagados'] ?></strong></article>
                     <article><span>Asistieron</span><strong><?= (int) $resumen['asistieron'] ?></strong></article>
                     <article><span>Esperado</span><strong><?= rrs_h(rrs_money($resumen['esperado'])) ?></strong></article>
+                    <article><span>Ajuste autorizado</span><strong><?= rrs_h(rrs_money($resumen['descuento_autorizado'])) ?></strong></article>
                     <article><span>Retenido</span><strong><?= rrs_h(rrs_money($resumen['monto_retenido'])) ?></strong></article>
                     <article><span>Por cobrar</span><strong><?= rrs_h(rrs_money($resumen['por_cobrar'])) ?></strong></article>
                 </div>
@@ -366,6 +373,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Esperado</th>
                                     <th>Cobrado</th>
                                     <th>Credito aplicado</th>
+                                    <th>Descuento</th>
                                     <th>Credito abonado</th>
                                     <th>Retenido</th>
                                     <th>Saldo</th>
@@ -387,6 +395,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <td><strong><?= rrs_h(rrs_money($ingreso['monto_esperado'])) ?></strong></td>
                                         <td><strong><?= rrs_h(rrs_money($ingreso['monto_pagado'])) ?></strong></td>
                                         <td><?= rrs_h(rrs_money($ingreso['credito_aplicado'])) ?></td>
+                                        <td><?= rrs_h(rrs_money($ingreso['descuento_autorizado'] ?? 0)) ?></td>
                                         <td><?= rrs_h(rrs_money($ingreso['credito_generado'])) ?></td>
                                         <td><?= rrs_h(rrs_money($ingreso['monto_retenido'])) ?></td>
                                         <td><?= rrs_h(rrs_money($ingreso['saldo_pendiente'])) ?></td>

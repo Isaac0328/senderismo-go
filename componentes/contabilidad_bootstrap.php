@@ -118,10 +118,11 @@ if (!function_exists('contabilidad_bootstrap')) {
                 registro_id INT NOT NULL,
                 sendero_id INT NOT NULL,
                 pagado TINYINT(1) NOT NULL DEFAULT 0,
-                estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente',
+                estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','descuento','deuda','cortesia','exento','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente',
                 monto_esperado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 monto_pagado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                descuento_autorizado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00,
                 credito_id INT DEFAULT NULL,
                 credito_generado DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -156,10 +157,11 @@ if (!function_exists('contabilidad_bootstrap')) {
         }
 
         $columnsPago = [
-            'estado_financiero' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente' AFTER pagado",
+            'estado_financiero' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','descuento','deuda','cortesia','exento','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente' AFTER pagado",
             'monto_esperado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN monto_esperado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER estado_financiero",
             'credito_aplicado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_aplicado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER monto_pagado",
-            'saldo_pendiente' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_aplicado",
+            'descuento_autorizado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN descuento_autorizado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_aplicado",
+            'saldo_pendiente' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN saldo_pendiente DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER descuento_autorizado",
             'credito_id' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_id INT DEFAULT NULL AFTER saldo_pendiente",
             'credito_generado' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN credito_generado DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_id",
             'monto_retenido' => "ALTER TABLE contabilidad_registro_pagos ADD COLUMN monto_retenido DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER credito_generado",
@@ -181,7 +183,7 @@ if (!function_exists('contabilidad_bootstrap')) {
 
         mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD INDEX IF NOT EXISTS idx_cont_pagos_estado_financiero (sendero_id, estado_financiero)");
         mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos ADD INDEX IF NOT EXISTS idx_cont_pagos_credito (credito_id)");
-        mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos MODIFY COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','deuda','cortesia','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente'");
+        mysqli_query($conn, "ALTER TABLE contabilidad_registro_pagos MODIFY COLUMN estado_financiero ENUM('pendiente','pagado','parcial','credito_aplicado','descuento','deuda','cortesia','exento','no_asistio_sin_pago') NOT NULL DEFAULT 'pendiente'");
 
         mysqli_query($conn, "
             CREATE TABLE IF NOT EXISTS usuario_creditos (

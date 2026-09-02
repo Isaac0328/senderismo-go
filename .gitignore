@@ -25,10 +25,10 @@ vendor/
 bd/*.sql
 respaldos_bd/*.sql
 scripts_bd/respaldos_bd/*.sql
-wordpress_backup/
 
-# Imagenes subidas por usuarios
+# Archivos cargados por usuarios o administradores
 imagenes/perfiles/*
+imagenes/senderos/*
 
 # Archivos generados por pruebas o herramientas
 coverage/

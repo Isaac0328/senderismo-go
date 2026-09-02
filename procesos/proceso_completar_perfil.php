@@ -62,7 +62,8 @@ function perfil_save_image(string $campo, string $actual, int $usuarioId): strin
     return $ruta ?: $actual;
 }
 
-$telefono = perfil_only_digits((string) ($_POST['telefono'] ?? ''));
+$telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
+$telefono = perfil_only_digits($telefonoRaw);
 $rangoEdad = perfil_clean_text((string) ($_POST['rango_edad'] ?? ''), 20);
 $identificacion = perfil_clean_text((string) ($_POST['identificacion'] ?? ''), 50);
 $esAlergico = (int) ($_POST['es_alergico'] ?? 0);
@@ -75,7 +76,8 @@ $viaEntero = perfil_clean_text((string) ($_POST['via_entero'] ?? ''), 80);
 $referidoNombre = perfil_clean_text((string) ($_POST['referido_nombre'] ?? ''), 150);
 $emergenciaNombre = perfil_clean_text((string) ($_POST['emergencia_nombre'] ?? ''), 150);
 $emergenciaParentesco = perfil_clean_text((string) ($_POST['emergencia_parentesco'] ?? ''), 80);
-$emergenciaTelefono = perfil_only_digits((string) ($_POST['emergencia_telefono'] ?? ''));
+$emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
+$emergenciaTelefono = perfil_only_digits($emergenciaTelefonoRaw);
 
 $_SESSION['perfil_senderista_old'] = [
     'telefono' => $telefono,
@@ -100,8 +102,8 @@ $experienciasPermitidas = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzad
 $viasPermitidas = ['Instagram', 'Facebook', 'TikTok', 'WhatsApp', 'Google', 'Amigos', 'Otro'];
 
 $errores = [];
-if (strlen($telefono) < 10 || strlen($telefono) > 15) {
-    $errores[] = "El telefono debe contener entre 10 y 15 digitos.";
+if (!sg_is_digits_between($telefonoRaw, 10, 15)) {
+    $errores[] = "El telefono debe contener solo numeros, entre 10 y 15 digitos.";
 }
 if (!in_array($rangoEdad, $rangosPermitidos, true)) {
     $errores[] = "Selecciona un rango de edad valido.";
@@ -127,7 +129,13 @@ if (!in_array($experiencia, $experienciasPermitidas, true)) {
 if (!in_array($viaEntero, $viasPermitidas, true)) {
     $errores[] = "Selecciona por cual via te enteraste.";
 }
-if ($emergenciaNombre === '' || $emergenciaParentesco === '' || strlen($emergenciaTelefono) < 10 || strlen($emergenciaTelefono) > 15) {
+if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
+    $errores[] = "El nombre de referido no puede contener numeros.";
+}
+if ($emergenciaNombre !== '' && sg_contains_digits($emergenciaNombre)) {
+    $errores[] = "El nombre del contacto de emergencia no puede contener numeros.";
+}
+if ($emergenciaNombre === '' || $emergenciaParentesco === '' || !sg_is_digits_between($emergenciaTelefonoRaw, 10, 15)) {
     $errores[] = "Completa correctamente el contacto de emergencia.";
 }
 

@@ -118,6 +118,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <article class="finance-kpi is-warning"><span><i data-feather="shopping-bag"></i>Gastos</span><strong><?= pf_h(pf_money($totals['gastos'])) ?></strong><small>Costos registrados en el periodo</small></article>
             <article class="finance-kpi <?= $totals['utilidad'] >= 0 ? 'is-success' : 'is-danger' ?>"><span><i data-feather="activity"></i>Utilidad</span><strong><?= pf_h(pf_money($totals['utilidad'])) ?></strong><small>Margen <?= pf_h(pf_pct($totals['margen'])) ?></small></article>
             <article class="finance-kpi"><span><i data-feather="refresh-cw"></i>Credito aplicado</span><strong><?= pf_h(pf_money($totals['credito_aplicado'])) ?></strong><small>Fondos anteriores usados</small></article>
+            <article class="finance-kpi"><span><i data-feather="percent"></i>Descuento autorizado</span><strong><?= pf_h(pf_money($totals['descuento_autorizado'] ?? 0)) ?></strong><small>Ajustes que cierran saldos sin cobrar</small></article>
             <article class="finance-kpi"><span><i data-feather="plus-circle"></i>Credito generado</span><strong><?= pf_h(pf_money($totals['credito_generado'])) ?></strong><small>Nuevos compromisos a favor</small></article>
             <article class="finance-kpi is-warning"><span><i data-feather="clock"></i>Por cobrar</span><strong><?= pf_h(pf_money($totals['por_cobrar'])) ?></strong><small><?= (int) $totals['cuentas_pendientes'] ?> cuentas pendientes</small></article>
             <article class="finance-kpi"><span><i data-feather="shield"></i>Creditos activos</span><strong><?= pf_h(pf_money($activeCredits['saldo'])) ?></strong><small><?= (int) $activeCredits['cuentas'] ?> saldos disponibles actualmente</small></article>
@@ -151,6 +152,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     <div><span>Margen neto</span><strong><?= pf_h(pf_pct($totals['margen'])) ?></strong></div>
                     <div><span>Retorno sobre gasto</span><strong><?= pf_h(pf_pct($totals['retorno'])) ?></strong></div>
                     <div><span>Monto esperado</span><strong><?= pf_h(pf_money($totals['esperado'])) ?></strong></div>
+                    <div><span>Descuento autorizado</span><strong><?= pf_h(pf_money($totals['descuento_autorizado'] ?? 0)) ?></strong></div>
                     <div><span>Monto retenido</span><strong><?= pf_h(pf_money($totals['monto_retenido'])) ?></strong></div>
                     <div><span>Senderos analizados</span><strong><?= (int) $totals['senderos'] ?></strong></div>
                 </div>

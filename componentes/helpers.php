@@ -23,6 +23,20 @@ if (!function_exists('sg_only_digits')) {
     }
 }
 
+if (!function_exists('sg_contains_digits')) {
+    function sg_contains_digits(string $value): bool
+    {
+        return preg_match('/\d/u', $value) === 1;
+    }
+}
+
+if (!function_exists('sg_is_digits_between')) {
+    function sg_is_digits_between(string $value, int $min = 10, int $max = 15): bool
+    {
+        return preg_match('/^\d{' . $min . ',' . $max . '}$/', $value) === 1;
+    }
+}
+
 if (!function_exists('sg_fecha')) {
     function sg_fecha(?string $fecha, bool $conHora = false, string $fallback = 'Sin fecha'): string
     {
@@ -121,8 +135,10 @@ if (!function_exists('sg_financial_statuses')) {
             'pagado' => 'Pagado',
             'parcial' => 'Parcial',
             'credito_aplicado' => 'Credito aplicado',
+            'descuento' => 'Pagado con descuento',
             'deuda' => 'Debe pagar',
             'cortesia' => 'Cortesia',
+            'exento' => 'Exento',
             'no_asistio_sin_pago' => 'No asistio / sin pago',
         ];
     }

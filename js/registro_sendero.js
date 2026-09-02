@@ -6,6 +6,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const investmentWarning = document.querySelector('[data-investment-warning]');
     const acceptInvestmentWarning = document.querySelector('[data-accept-investment-warning]');
     const lowInvestmentInputs = document.querySelectorAll('[data-low-investment="1"]');
+    const proofInput = document.querySelector('[data-proof-input]');
+    const proofFileName = document.querySelector('[data-proof-file-name]');
+
+    proofInput?.addEventListener('change', () => {
+        if (!proofFileName) return;
+        const file = proofInput.files?.[0];
+        proofFileName.textContent = file
+            ? `${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`
+            : 'JPG, PNG, WEBP o PDF. Maximo 8 MB.';
+    });
 
     const openInvestmentWarning = () => {
         if (!investmentWarning) return;

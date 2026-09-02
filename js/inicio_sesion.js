@@ -63,6 +63,35 @@ document.addEventListener('DOMContentLoaded', function () {
     const userInput = document.getElementById('user');
     if (userInput) userInput.focus();
 
+    const registerPrompt = document.querySelector('[data-register-prompt]');
+    if (registerPrompt) {
+        const openPrompt = () => {
+            if (typeof registerPrompt.showModal === 'function') {
+                registerPrompt.showModal();
+            } else {
+                registerPrompt.setAttribute('open', '');
+            }
+        };
+
+        const closePrompt = () => {
+            if (typeof registerPrompt.close === 'function') {
+                registerPrompt.close();
+            } else {
+                registerPrompt.removeAttribute('open');
+            }
+        };
+
+        openPrompt();
+
+        registerPrompt.querySelectorAll('[data-close-register-prompt]').forEach((button) => {
+            button.addEventListener('click', closePrompt);
+        });
+
+        registerPrompt.addEventListener('click', (event) => {
+            if (event.target === registerPrompt) closePrompt();
+        });
+    }
+
     function showAlert(message, type = 'error') {
         const existing = document.querySelector('.alert');
         if (existing) existing.remove();

@@ -47,16 +47,26 @@ document.addEventListener('DOMContentLoaded', function () {
             const password = document.getElementById('password');
             const confirm = document.getElementById('confirm_password');
             const terms = document.getElementById('terms');
+            const telefono = document.getElementById('telefono');
+            const referidoNombre = document.getElementById('referido_nombre');
+            const emergenciaNombre = document.getElementById('emergencia_nombre');
+            const emergenciaTelefono = document.getElementById('emergencia_telefono');
 
             // ================= Validaciones =================
             let error = '';
 
             if (!nombre.value.trim()) error = 'Debes ingresar tu nombre';
+            else if (/\d/.test(nombre.value)) error = 'El nombre no puede contener numeros';
             else if (!apellido.value.trim()) error = 'Debes ingresar tu apellido';
+            else if (/\d/.test(apellido.value)) error = 'El apellido no puede contener numeros';
             else if (!user.value.trim()) error = 'Debes ingresar un usuario';
             else if (/\s/.test(user.value)) error = 'El usuario no puede contener espacios';
             else if (!email.value.trim()) error = 'Debes ingresar tu correo';
             else if (!validateEmail(email.value)) error = 'Correo inválido';
+            else if (!isNumericPhone(telefono ? telefono.value : '')) error = 'El telefono debe contener solo numeros, entre 10 y 15 digitos';
+            else if (referidoNombre && /\d/.test(referidoNombre.value)) error = 'El nombre de referido no puede contener numeros';
+            else if (emergenciaNombre && /\d/.test(emergenciaNombre.value)) error = 'El nombre de emergencia no puede contener numeros';
+            else if (!isNumericPhone(emergenciaTelefono ? emergenciaTelefono.value : '')) error = 'El telefono de emergencia debe contener solo numeros, entre 10 y 15 digitos';
             else if (!password.value) error = 'Debes ingresar una contraseña';
             else if (password.value.length < 6) error = 'La contraseña debe tener al menos 6 caracteres';
             else if (password.value !== confirm.value) error = 'Las contraseñas no coinciden';
@@ -87,6 +97,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function validateEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.toLowerCase());
+    }
+
+    function isNumericPhone(phone) {
+        return /^\d{10,15}$/.test(String(phone || '').trim());
     }
 
     function showAlert(message, type = 'error') {

@@ -1,6 +1,7 @@
 ﻿<?php
 require_once __DIR__ . '/../configuracion.php';
 require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -13,7 +14,7 @@ $PERMISO_REQUERIDO = 'usuarios.usuarios';
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $_SESSION['usuarios_error'] = "MÃ©todo no permitido.";
+    $_SESSION['usuarios_error'] = "Método no permitido.";
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_usuarios.php");
     exit;
 }
@@ -49,7 +50,8 @@ function guardar_detalle_usuario(mysqli $conn, int $usuarioId): void
         return;
     }
 
-    $telefono = only_user_digits((string) ($_POST['telefono'] ?? ''));
+    $telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
+    $telefono = only_user_digits($telefonoRaw);
     $rangoEdad = clean_user_text((string) ($_POST['rango_edad'] ?? ''), 20);
     $identificacion = clean_user_text((string) ($_POST['identificacion'] ?? ''), 50);
     $esAlergico = (int) ($_POST['es_alergico'] ?? 0);
@@ -62,7 +64,26 @@ function guardar_detalle_usuario(mysqli $conn, int $usuarioId): void
     $referidoNombre = clean_user_text((string) ($_POST['referido_nombre'] ?? ''), 150);
     $emergenciaNombre = clean_user_text((string) ($_POST['emergencia_nombre'] ?? ''), 150);
     $emergenciaParentesco = clean_user_text((string) ($_POST['emergencia_parentesco'] ?? ''), 80);
-    $emergenciaTelefono = only_user_digits((string) ($_POST['emergencia_telefono'] ?? ''));
+    $emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
+    $emergenciaTelefono = only_user_digits($emergenciaTelefonoRaw);
+
+    $errores = [];
+    if ($telefonoRaw !== '' && !sg_is_digits_between($telefonoRaw, 10, 15)) {
+        $errores[] = "El telefono debe contener solo numeros, entre 10 y 15 digitos.";
+    }
+    if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
+        $errores[] = "El nombre de referido no puede contener numeros.";
+    }
+    if ($emergenciaNombre !== '' && sg_contains_digits($emergenciaNombre)) {
+        $errores[] = "El nombre de emergencia no puede contener numeros.";
+    }
+    if ($emergenciaTelefonoRaw !== '' && !sg_is_digits_between($emergenciaTelefonoRaw, 10, 15)) {
+        $errores[] = "El telefono de emergencia debe contener solo numeros, entre 10 y 15 digitos.";
+    }
+    if (!empty($errores)) {
+        $_SESSION['usuarios_error'] = implode(' ', $errores);
+        redirect_users($conn);
+    }
 
     $stmt = mysqli_prepare(
         $conn,
@@ -133,12 +154,15 @@ function obtener_menores_usuario_admin(): array
         if ($nombre === '' && $apellido === '') {
             continue;
         }
+        $telefonoRaw = trim((string) ($item['telefono'] ?? ''));
+        $emergenciaTelefonoRaw = trim((string) ($item['emergencia_telefono'] ?? ''));
 
         $menores[] = [
             'menor_usuario_id' => (int) ($item['menor_usuario_id'] ?? 0),
             'nombre' => $nombre,
             'apellido' => $apellido,
-            'telefono' => clean_user_text((string) ($item['telefono'] ?? ''), 30),
+            'telefono_raw' => $telefonoRaw,
+            'telefono' => only_user_digits($telefonoRaw),
             'rango_edad' => clean_user_text((string) ($item['rango_edad'] ?? ''), 20),
             'es_alergico' => (string) ($item['es_alergico'] ?? '0') === '1' ? 1 : 0,
             'alergias_detalle' => clean_user_text((string) ($item['alergias_detalle'] ?? ''), 255),
@@ -148,7 +172,8 @@ function obtener_menores_usuario_admin(): array
             'experiencia_senderismo' => clean_user_text((string) ($item['experiencia_senderismo'] ?? ''), 80),
             'emergencia_nombre' => clean_user_text((string) ($item['emergencia_nombre'] ?? ''), 150),
             'emergencia_parentesco' => clean_user_text((string) ($item['emergencia_parentesco'] ?? ''), 80),
-            'emergencia_telefono' => only_user_digits((string) ($item['emergencia_telefono'] ?? '')),
+            'emergencia_telefono_raw' => $emergenciaTelefonoRaw,
+            'emergencia_telefono' => only_user_digits($emergenciaTelefonoRaw),
             'activo' => (string) ($item['activo'] ?? '1') === '1' ? 1 : 0,
         ];
     }
@@ -167,6 +192,24 @@ function sincronizar_menores_usuario_admin(mysqli $conn, int $usuarioId): void
     $idsRecibidos = [];
 
     foreach ($menores as $menor) {
+        $erroresMenor = [];
+        if (sg_contains_digits($menor['nombre']) || sg_contains_digits($menor['apellido'])) {
+            $erroresMenor[] = "Los nombres y apellidos de menores no pueden contener numeros.";
+        }
+        if ($menor['telefono_raw'] !== '' && !sg_is_digits_between($menor['telefono_raw'], 10, 15)) {
+            $erroresMenor[] = "El telefono de menores debe contener solo numeros, entre 10 y 15 digitos.";
+        }
+        if ($menor['emergencia_nombre'] !== '' && sg_contains_digits($menor['emergencia_nombre'])) {
+            $erroresMenor[] = "El nombre de emergencia de menores no puede contener numeros.";
+        }
+        if ($menor['emergencia_telefono_raw'] !== '' && !sg_is_digits_between($menor['emergencia_telefono_raw'], 10, 15)) {
+            $erroresMenor[] = "El telefono de emergencia de menores debe contener solo numeros, entre 10 y 15 digitos.";
+        }
+        if (!empty($erroresMenor)) {
+            $_SESSION['usuarios_error'] = implode(' ', $erroresMenor);
+            redirect_users($conn);
+        }
+
         $menorId = (int) $menor['menor_usuario_id'];
         $nombre = $menor['nombre'];
         $apellido = $menor['apellido'];
@@ -271,12 +314,17 @@ try {
         $email = trim($_POST['email'] ?? '');
         $rol_id = (int) ($_POST['rol_id'] ?? 0);
 
+        if (sg_contains_digits($nombre) || sg_contains_digits($apellido)) {
+            $_SESSION['usuarios_error'] = "El nombre y apellido no pueden contener numeros.";
+            redirect_users($conn);
+        }
+
         $passwordPlain = (string) ($_POST['password'] ?? '');
         $passwordPlain = trim($passwordPlain);
 
-        // Si es creaciÃ³n (id=0) password obligatoria
+        // Si es creación (id=0) password obligatoria
         if ($id === 0 && $passwordPlain === '') {
-            $_SESSION['usuarios_error'] = "La contraseÃ±a es obligatoria para crear el usuario.";
+            $_SESSION['usuarios_error'] = "La contraseña es obligatoria para crear el usuario.";
             redirect_users($conn);
         }
 
@@ -285,7 +333,7 @@ try {
         if ($passwordPlain !== '') {
             $passwordHash = password_hash($passwordPlain, PASSWORD_DEFAULT);
             if ($passwordHash === false) {
-                $_SESSION['usuarios_error'] = "No se pudo generar el hash de la contraseÃ±a.";
+                $_SESSION['usuarios_error'] = "No se pudo generar el hash de la contraseña.";
                 redirect_users($conn);
             }
         }
@@ -355,7 +403,7 @@ try {
 
         $estado = (int) ($_POST['estado'] ?? -1);
 
-        // Evitar que el admin se inhabilite a sÃ­ mismo (opcional pero recomendado)
+        // Evitar que el admin se inhabilite a sí mismo (opcional pero recomendado)
         if ($id === (int) ($_SESSION['usuario_id'] ?? 0) && $estado === 0) {
             $_SESSION['usuarios_error'] = "No puedes inactivarte a ti mismo.";
             redirect_users($conn);
@@ -436,8 +484,8 @@ try {
         redirect_users($conn);
     }
 
-    // AcciÃ³n desconocida
-    $_SESSION['usuarios_error'] = "AcciÃ³n no vÃ¡lida.";
+    // Acción desconocida
+    $_SESSION['usuarios_error'] = "Acción no válida.";
     redirect_users($conn);
 
 } catch (Throwable $e) {

@@ -58,15 +58,21 @@ $resSenderos = sgf_execute_query($conn, "
         s.fecha_sendero,
         s.estado,
         s.distancia_km,
+        s.incluye_chaleco_salvavidas,
         nd.nombre AS dificultad_nombre,
-        SUM(CASE WHEN rs.estado = 'registrado' THEN 1 ELSE 0 END) AS activos,
-        SUM(CASE WHEN rs.estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,
+        SUM(CASE WHEN rs.estado = 'registrado' THEN 1 + COALESCE(m.total_menores, 0) ELSE 0 END) AS activos,
+        SUM(CASE WHEN rs.estado = 'cancelado' THEN 1 + COALESCE(m.total_menores, 0) ELSE 0 END) AS cancelados,
         COUNT(rs.id) AS total
     FROM senderos s
     LEFT JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
     LEFT JOIN registros_senderos rs ON rs.sendero_id = s.id
+    LEFT JOIN (
+        SELECT registro_id, COUNT(*) AS total_menores
+        FROM registro_sendero_menores
+        GROUP BY registro_id
+    ) m ON m.registro_id = rs.id
     {$senderoWhere}
-    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, nd.nombre
+    GROUP BY s.id, s.nombre, s.fecha_sendero, s.estado, s.distancia_km, s.incluye_chaleco_salvavidas, nd.nombre
     ORDER BY COALESCE(s.fecha_sendero, '1900-01-01') DESC, s.nombre ASC
 ",
     $senderoTypes,
@@ -90,6 +96,7 @@ foreach ($senderos as $sendero) {
 $registros = [];
 $inversionesSendero = [];
 $usuariosDisponibles = [];
+$tallasChalecos = [];
 if ($senderoSeleccionado) {
     $stmt = mysqli_prepare(
         $conn,
@@ -100,6 +107,10 @@ if ($senderoSeleccionado) {
             rs.updated_at,
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
+            tc.nombre AS chaleco_talla_nombre,
+            rs.comprobante_pago_ruta,
+            rs.comprobante_pago_nombre,
+            rs.comprobante_pago_mime,
             COALESCE(u.id, 0) AS usuario_id,
             COALESCE(NULLIF(TRIM(u.nombre), ''), NULLIF(TRIM(rs.manual_nombre), ''), 'Sin nombre') AS nombre,
             COALESCE(NULLIF(TRIM(u.apellido), ''), NULLIF(TRIM(rs.manual_apellido), ''), '') AS apellido,
@@ -120,12 +131,19 @@ if ($senderoSeleccionado) {
             COALESCE(du.emergencia_nombre, dup.emergencia_nombre, '') AS emergencia_nombre,
             COALESCE(du.emergencia_parentesco, dup.emergencia_parentesco, '') AS emergencia_parentesco,
             COALESCE(du.emergencia_telefono, dup.emergencia_telefono, '') AS emergencia_telefono,
+            COALESCE(m.total_menores, 0) AS total_menores,
             rs.registro_origen
         FROM registros_senderos rs
         LEFT JOIN usuarios u ON u.id = rs.usuario_id
         LEFT JOIN detalles_usuarios du ON du.id = rs.detalle_usuario_id
         LEFT JOIN detalles_usuarios dup ON dup.usuario_id = u.id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
+        LEFT JOIN tallas_chalecos_salvavidas tc ON tc.id = rs.chaleco_talla_id
+        LEFT JOIN (
+            SELECT registro_id, COUNT(*) AS total_menores
+            FROM registro_sendero_menores
+            GROUP BY registro_id
+        ) m ON m.registro_id = rs.id
         WHERE rs.sendero_id = ?
         ORDER BY
             CASE rs.estado WHEN 'registrado' THEN 0 ELSE 1 END,
@@ -139,6 +157,19 @@ if ($senderoSeleccionado) {
         $registros[] = $row;
     }
     mysqli_stmt_close($stmt);
+
+    if ((int) ($senderoSeleccionado['incluye_chaleco_salvavidas'] ?? 0) === 1) {
+        $resTallas = mysqli_query(
+            $conn,
+            "SELECT id, nombre, descripcion
+             FROM tallas_chalecos_salvavidas
+             WHERE activo = 1
+             ORDER BY orden ASC, nombre ASC"
+        );
+        while ($resTallas && $row = mysqli_fetch_assoc($resTallas)) {
+            $tallasChalecos[] = $row;
+        }
+    }
 
     $stmt = mysqli_prepare(
         $conn,
@@ -184,9 +215,9 @@ $activos = 0;
 $cancelados = 0;
 foreach ($registros as $registro) {
     if ($registro['estado_registro'] === 'registrado') {
-        $activos++;
+        $activos += 1 + (int) ($registro['total_menores'] ?? 0);
     } else {
-        $cancelados++;
+        $cancelados += 1 + (int) ($registro['total_menores'] ?? 0);
     }
 }
 
@@ -217,6 +248,8 @@ foreach ($registros as $registro) {
         'emergencia_parentesco' => (string) $registro['emergencia_parentesco'],
         'emergencia_telefono' => (string) $registro['emergencia_telefono'],
         'inversion' => (string) ($registro['inversion_nombre'] ?: 'Sin inversion'),
+        'chaleco_talla' => (string) ($registro['chaleco_talla_nombre'] ?: 'No aplica'),
+        'comprobante' => !empty($registro['comprobante_pago_ruta']) ? 'Adjunto disponible' : 'Sin comprobante',
         'registro' => mus_fecha($registro['fecha_registro'], true),
         'es_temporal' => (int) $registro['usuario_id'] <= 0,
     ];
@@ -316,6 +349,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <th>Usuario</th>
                                     <th>Contacto</th>
                                     <th>Inversion</th>
+                                    <th>Chaleco</th>
                                     <th>Estado</th>
                                     <th>Registro</th>
                                     <th>Acciones</th>
@@ -325,12 +359,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <?php foreach ($registros as $registro): ?>
                                     <?php $estaActivo = $registro['estado_registro'] === 'registrado'; ?>
                                     <tr>
-                                        <td>
-                                            <button type="button" class="mus-user-link" data-user-detail-trigger="<?= (int) $registro['registro_id'] ?>">
-                                                <?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>
-                                            </button>
-                                            <span>@<?= mus_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
-                                        </td>
+        <td>
+            <button type="button" class="mus-user-link" data-user-detail-trigger="<?= (int) $registro['registro_id'] ?>">
+                <?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>
+            </button>
+            <span>@<?= mus_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
+            <span>Menores: <?= (int) $registro['total_menores'] ?></span>
+        </td>
                                         <td>
                                             <strong><?= mus_h($registro['telefono'] ?: 'Sin telefono') ?></strong>
                                             <span><?= mus_h($registro['email']) ?></span>
@@ -338,6 +373,18 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <td>
                                             <strong><?= mus_h($registro['inversion_nombre'] ?: 'Sin inversion') ?></strong>
                                             <span><?= $registro['inversion_monto'] !== null ? 'RD$ ' . number_format((float) $registro['inversion_monto'], 2) : 'Sin monto' ?></span>
+                                            <?php if (!empty($registro['comprobante_pago_ruta'])): ?>
+                                                <a class="mus-proof-link" href="<?= BASE_URL ?>procesos/proceso_ver_comprobante_pago.php?registro_id=<?= (int) $registro['registro_id'] ?>" target="_blank" rel="noopener">
+                                                    <i data-feather="paperclip"></i>
+                                                    Ver comprobante
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="mus-proof-empty">Sin comprobante</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <strong><?= mus_h($registro['chaleco_talla_nombre'] ?: 'No aplica') ?></strong>
+                                            <span><?= $registro['chaleco_talla_nombre'] ? 'Talla seleccionada' : 'Sin chaleco' ?></span>
                                         </td>
                                         <td>
                                             <span class="mus-state <?= $estaActivo ? 'active' : 'cancelled' ?>">
@@ -387,6 +434,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <?= mus_h(trim($registro['nombre'] . ' ' . $registro['apellido'])) ?>
                                         </button>
                                         <span>@<?= mus_h($registro['user']) ?></span>
+                                        <span>Menores: <?= (int) $registro['total_menores'] ?></span>
                                     </div>
                                     <span class="mus-state <?= $estaActivo ? 'active' : 'cancelled' ?>">
                                         <?= $estaActivo ? 'Activo' : 'Cancelado' ?>
@@ -394,6 +442,15 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 </div>
                                 <p><?= mus_h($registro['telefono'] ?: 'Sin telefono') ?> / <?= mus_h($registro['email']) ?></p>
                                 <p><?= mus_h($registro['inversion_nombre'] ?: 'Sin inversion') ?> - <?= $registro['inversion_monto'] !== null ? 'RD$ ' . number_format((float) $registro['inversion_monto'], 2) : 'Sin monto' ?></p>
+                                <?php if (!empty($registro['comprobante_pago_ruta'])): ?>
+                                    <a class="mus-proof-link" href="<?= BASE_URL ?>procesos/proceso_ver_comprobante_pago.php?registro_id=<?= (int) $registro['registro_id'] ?>" target="_blank" rel="noopener">
+                                        <i data-feather="paperclip"></i>
+                                        Ver comprobante
+                                    </a>
+                                <?php else: ?>
+                                    <span class="mus-proof-empty">Sin comprobante de pago</span>
+                                <?php endif; ?>
+                                <p>Chaleco: <strong><?= mus_h($registro['chaleco_talla_nombre'] ?: 'No aplica') ?></strong></p>
                                 <small>Registro: <?= mus_h(mus_fecha($registro['fecha_registro'], true)) ?></small>
                                 <div class="mus-actions">
                                     <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios_senderos.php">
@@ -500,11 +557,38 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             </select>
                         </label>
 
+                        <?php if ((int) ($senderoSeleccionado['incluye_chaleco_salvavidas'] ?? 0) === 1): ?>
+                            <label class="mus-field">
+                                <span>Talla de chaleco salvavidas</span>
+                                <select name="chaleco_talla_id" required>
+                                    <option value="">Selecciona una talla</option>
+                                    <?php foreach ($tallasChalecos as $talla): ?>
+                                        <option value="<?= (int) $talla['id'] ?>">
+                                            <?= mus_h($talla['nombre']) ?><?= !empty($talla['descripcion']) ? ' - ' . mus_h($talla['descripcion']) : '' ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                        <?php endif; ?>
+
+                        <section class="mus-minors-box" data-minors-root>
+                            <div class="mus-minors-head">
+                                <div>
+                                    <span>Menores asociados</span>
+                                    <strong>Acompañantes del participante</strong>
+                                </div>
+                                <button type="button" class="mus-add-minor" data-add-minor>
+                                    <i data-feather="plus"></i>
+                                    Agregar menor
+                                </button>
+                            </div>
+                            <div class="mus-minors-list" data-minors-list></div>
+                        </section>
+
                         <label class="mus-checkline">
                             <input type="checkbox" name="marcar_asistio" value="1" checked>
                             Marcar como asistio a este sendero
                         </label>
-                        <p class="mus-modal-note">El asistente temporal queda guardado solo en este sendero y no crea cuenta en la plataforma.</p>
                     </div>
 
                     <div class="mus-modal-actions">
@@ -513,6 +597,105 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </form>
             </dialog>
+
+            <template id="musMinorTemplate">
+                <section class="mus-minor-card" data-minor-card>
+                    <div class="mus-minor-card-head">
+                        <strong data-minor-title>Menor</strong>
+                        <button type="button" data-remove-minor aria-label="Quitar menor">
+                            <i data-feather="trash-2"></i>
+                        </button>
+                    </div>
+                    <div class="mus-minor-grid">
+                        <label class="mus-field">
+                            <span>Nombre</span>
+                            <input type="text" data-minor-name="nombre" maxlength="100" required placeholder="Nombre">
+                        </label>
+                        <label class="mus-field">
+                            <span>Apellido</span>
+                            <input type="text" data-minor-name="apellido" maxlength="100" required placeholder="Apellido">
+                        </label>
+                        <label class="mus-field">
+                            <span>Telefono</span>
+                            <input type="text" data-minor-name="telefono" maxlength="30" placeholder="Opcional">
+                        </label>
+                        <label class="mus-field">
+                            <span>Inversion</span>
+                            <select data-minor-name="inversion_id" required>
+                                <option value="">Selecciona una inversion</option>
+                                <?php foreach ($inversionesSendero as $inversion): ?>
+                                    <option value="<?= (int) $inversion['id'] ?>">
+                                        <?= mus_h($inversion['nombre']) ?> - RD$ <?= number_format((float) $inversion['monto'], 2) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="mus-field">
+                            <span>Edad</span>
+                            <select data-minor-name="rango_edad" required>
+                                <option value="">Selecciona</option>
+                                <option value="8-12">8-12</option>
+                                <option value="13-17">13-17</option>
+                            </select>
+                        </label>
+                        <label class="mus-field">
+                            <span>Grupo sanguineo</span>
+                            <select data-minor-name="grupo_sanguineo" required>
+                                <option value="">Selecciona</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                            </select>
+                        </label>
+                        <label class="mus-field">
+                            <span>Alergico</span>
+                            <select data-minor-name="es_alergico" data-minor-allergy>
+                                <option value="0">No</option>
+                                <option value="1">Si</option>
+                            </select>
+                        </label>
+                        <label class="mus-field">
+                            <span>Detalle alergia</span>
+                            <input type="text" data-minor-name="alergias_detalle" maxlength="255" placeholder="Solo si aplica" data-minor-allergy-detail>
+                        </label>
+                        <label class="mus-field">
+                            <span>Enfermedad</span>
+                            <input type="text" data-minor-name="enfermedad" maxlength="255" required placeholder="Ninguna / detalle">
+                        </label>
+                        <label class="mus-field">
+                            <span>Seguro medico</span>
+                            <input type="text" data-minor-name="seguro_medico" maxlength="255" required placeholder="Ninguno / nombre">
+                        </label>
+                        <label class="mus-field">
+                            <span>Experiencia</span>
+                            <select data-minor-name="experiencia_senderismo" required>
+                                <option value="">Selecciona</option>
+                                <option value="Primera vez">Primera vez</option>
+                                <option value="Principiante">Principiante</option>
+                                <option value="Intermedio">Intermedio</option>
+                                <option value="Avanzado">Avanzado</option>
+                            </select>
+                        </label>
+                        <label class="mus-field">
+                            <span>Emergencia nombre</span>
+                            <input type="text" data-minor-name="emergencia_nombre" maxlength="150" required placeholder="Nombre">
+                        </label>
+                        <label class="mus-field">
+                            <span>Parentesco</span>
+                            <input type="text" data-minor-name="emergencia_parentesco" maxlength="80" required placeholder="Madre, padre, tutor">
+                        </label>
+                        <label class="mus-field">
+                            <span>Telefono emergencia</span>
+                            <input type="text" data-minor-name="emergencia_telefono" maxlength="30" required placeholder="8090000000">
+                        </label>
+                    </div>
+                </section>
+            </template>
 
             <dialog class="mus-modal mus-detail-dialog" data-user-detail-modal>
                 <section class="mus-modal-box">

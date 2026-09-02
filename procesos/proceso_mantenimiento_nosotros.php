@@ -88,6 +88,94 @@ ob_end_clean();
 
 $accion = (string) ($_POST['accion'] ?? 'guardar_config');
 
+if ($accion === 'guardar_seccion') {
+    $seccion = (string) ($_POST['seccion'] ?? '');
+    $secciones = [
+        'hero' => [
+            'campos' => [
+                'hero_kicker' => 80,
+                'hero_titulo' => 180,
+                'hero_subtitulo' => 1200,
+                'boton_principal_texto' => 80,
+                'boton_principal_url' => 255,
+                'boton_secundario_texto' => 80,
+                'boton_secundario_url' => 255,
+            ],
+            'imagen' => 'hero_imagen',
+            'imagen_default' => 'imagenes/paisajes/hero.jpg',
+        ],
+        'historia' => [
+            'campos' => [
+                'historia_kicker' => 80,
+                'historia_badge_titulo' => 80,
+                'historia_badge_texto' => 120,
+                'historia_titulo' => 180,
+                'historia_texto_1' => 1600,
+                'historia_texto_2' => 1600,
+            ],
+            'imagen' => 'historia_imagen',
+            'imagen_default' => 'imagenes/paisajes/img4.jpg',
+        ],
+        'valores' => [
+            'campos' => ['valores_kicker' => 80, 'valores_titulo' => 180, 'valores_texto' => 1200],
+        ],
+        'proceso' => [
+            'campos' => ['proceso_kicker' => 80, 'proceso_titulo' => 180, 'proceso_texto' => 1200],
+        ],
+        'equipo' => [
+            'campos' => ['equipo_kicker' => 80, 'equipo_titulo' => 180, 'equipo_texto' => 1200],
+        ],
+        'cta' => [
+            'campos' => [
+                'cta_kicker' => 80,
+                'cta_titulo' => 180,
+                'cta_texto' => 1200,
+                'cta_boton_principal_texto' => 80,
+                'cta_boton_principal_url' => 255,
+                'cta_boton_secundario_texto' => 80,
+                'cta_boton_secundario_url' => 255,
+            ],
+        ],
+    ];
+
+    if (!isset($secciones[$seccion])) {
+        $_SESSION['nosotros_admin_error'] = 'Seccion invalida.';
+        volver_nosotros();
+    }
+
+    $definicion = $secciones[$seccion];
+    $datos = [];
+    foreach ($definicion['campos'] as $campo => $max) {
+        $datos[$campo] = texto_post($campo, $max);
+    }
+
+    if (!empty($definicion['imagen'])) {
+        $campoImagen = $definicion['imagen'];
+        $imagenActual = (string) $definicion['imagen_default'];
+        $res = mysqli_query($conn, "SELECT {$campoImagen} FROM configuracion_nosotros WHERE id = 1 LIMIT 1");
+        if ($res && ($row = mysqli_fetch_assoc($res))) {
+            $imagenActual = $row[$campoImagen] ?: $imagenActual;
+        }
+        $datos[$campoImagen] = subir_imagen_nosotros($campoImagen, $imagenActual);
+    }
+
+    $asignaciones = [];
+    $valores = [];
+    foreach ($datos as $campo => $valor) {
+        $asignaciones[] = "{$campo} = ?";
+        $valores[] = $valor;
+    }
+    $stmt = mysqli_prepare($conn, 'UPDATE configuracion_nosotros SET ' . implode(', ', $asignaciones) . ' WHERE id = 1');
+    $tipos = str_repeat('s', count($valores));
+    mysqli_stmt_bind_param($stmt, $tipos, ...$valores);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+
+    $_SESSION['nosotros_admin_success'] = 'Seccion actualizada correctamente.';
+    volver_nosotros('?seccion=' . urlencode($seccion));
+}
+
 if ($accion === 'guardar_config') {
     $actual = [
         'hero_imagen' => 'imagenes/paisajes/hero.jpg',
@@ -203,6 +291,13 @@ if (!isset($tablas[$tipo])) {
     volver_nosotros();
 }
 $tabla = $tablas[$tipo];
+$seccionesPorTipo = [
+    'indicador' => 'indicadores',
+    'valor' => 'valores',
+    'paso' => 'proceso',
+    'equipo' => 'equipo',
+];
+$volverASeccion = '?seccion=' . urlencode($seccionesPorTipo[$tipo]);
 
 if ($accion === 'toggle_item') {
     $stmt = mysqli_prepare($conn, "UPDATE {$tabla} SET activo=? WHERE id=?");
@@ -211,7 +306,7 @@ if ($accion === 'toggle_item') {
     mysqli_stmt_close($stmt);
     mysqli_close($conn);
     $_SESSION['nosotros_admin_success'] = $activo ? 'Registro activado.' : 'Registro inactivado.';
-    volver_nosotros();
+    volver_nosotros($volverASeccion);
 }
 
 if ($accion === 'eliminar_item') {
@@ -222,7 +317,7 @@ if ($accion === 'eliminar_item') {
     mysqli_stmt_close($stmt);
     mysqli_close($conn);
     $_SESSION['nosotros_admin_success'] = $ok ? 'Registro eliminado.' : 'Solo puedes eliminar registros inactivos.';
-    volver_nosotros();
+    volver_nosotros($volverASeccion);
 }
 
 $orden = (int) ($_POST['orden'] ?? 0);
@@ -272,5 +367,4 @@ mysqli_stmt_execute($stmt);
 mysqli_stmt_close($stmt);
 mysqli_close($conn);
 $_SESSION['nosotros_admin_success'] = $id > 0 ? 'Registro actualizado.' : 'Registro agregado.';
-volver_nosotros();
-
+volver_nosotros($volverASeccion);
