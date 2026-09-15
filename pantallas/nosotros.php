@@ -1,5 +1,6 @@
 ﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -53,7 +54,7 @@ if ($connNosotros) {
 }
 
 $url = static function (string $path): string {
-    return BASE_URL . ltrim($path, '/');
+    return sg_clean_url($path);
 };
 
 include_once __DIR__ . "/../componentes/encabezado.php";

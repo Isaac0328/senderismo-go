@@ -128,7 +128,71 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <label><span>Titulo de contacto</span><input type="text" name="footer_contacto_titulo" maxlength="80" value="<?= cga_h($site['footer_contacto_titulo']) ?>"></label>
                         <label class="full"><span>Copyright *</span><input type="text" name="footer_copyright" maxlength="255" required value="<?= cga_h($site['footer_copyright']) ?>"></label>
                     </div>
+                    <div class="site-config-visibility">
+                        <div class="site-config-subhead">
+                            <strong>Elementos visibles</strong>
+                            <small>Selecciona que partes deseas mostrar en todas las paginas publicas.</small>
+                        </div>
+                        <div class="site-config-checklist">
+                            <?php foreach ([
+                                ['Identidad', [
+                                    ['footer_mostrar_identidad', 'Bloque de identidad', 'Nombre y descripcion institucional'],
+                                    ['footer_mostrar_logo', 'Logo', 'Imagen del pie de pagina'],
+                                    ['footer_mostrar_descripcion', 'Descripcion', 'Texto institucional'],
+                                ]],
+                                ['Navegacion', [
+                                    ['footer_mostrar_enlaces', 'Enlaces', 'Columna de navegacion publica'],
+                                ]],
+                                ['Contacto', [
+                                    ['footer_mostrar_contacto', 'Bloque de contacto', 'Titulo y datos de contacto'],
+                                    ['footer_mostrar_ubicacion', 'Ubicacion', 'Direccion o pais'],
+                                    ['footer_mostrar_telefono', 'Telefono', 'Numero telefonico visible'],
+                                    ['footer_mostrar_email', 'Correo', 'Correo electronico visible'],
+                                    ['footer_mostrar_whatsapp', 'WhatsApp', 'Acceso directo a WhatsApp'],
+                                    ['footer_mostrar_instagram', 'Instagram', 'Red social de contacto'],
+                                ]],
+                                ['Pie legal', [
+                                    ['footer_mostrar_copyright', 'Copyright', 'Ano, nombre corto y derechos reservados'],
+                                ]],
+                            ] as [$groupTitle, $items]): ?>
+                                <div class="site-config-checkgroup">
+                                    <strong class="site-config-checkgroup-title"><?= cga_h($groupTitle) ?></strong>
+                                    <?php foreach ($items as [$key, $title, $description]): ?>
+                                        <label class="site-config-checkitem">
+                                            <input type="checkbox" name="<?= cga_h($key) ?>" value="1" <?= !empty($site[$key]) ? 'checked' : '' ?>>
+                                            <span><strong><?= cga_h($title) ?></strong><small><?= cga_h($description) ?></small></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                     <div class="contact-source-note"><i data-feather="info"></i><span>Telefono, correo, ubicacion y redes se toman de <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_contacto.php">Mantenimiento Contacto</a> para evitar datos duplicados.</span></div>
+                </div>
+            </details>
+
+            <details class="site-config-section">
+                <summary>
+                    <span class="section-icon"><i data-feather="file-text"></i></span>
+                    <span><strong>Consentimientos y privacidad</strong><small>Textos legales que debe aceptar cada participante al registrarse.</small></span>
+                    <i data-feather="chevron-down" class="section-chevron"></i>
+                </summary>
+                <div class="site-config-section-body legal-config-fields">
+                    <label>
+                        <span>Consentimiento informado *</span>
+                        <textarea name="consentimiento_informado_texto" maxlength="10000" rows="10" required><?= cga_h($site['consentimiento_informado_texto']) ?></textarea>
+                        <small>Describe los riesgos, responsabilidades y autorizaciones relacionados con la actividad.</small>
+                    </label>
+                    <label>
+                        <span>Acuerdo RGPD *</span>
+                        <textarea name="rgpd_texto" maxlength="2000" rows="5" required><?= cga_h($site['rgpd_texto']) ?></textarea>
+                        <small>Texto breve mostrado junto a la casilla de aceptación de datos.</small>
+                    </label>
+                    <label>
+                        <span>Política de privacidad *</span>
+                        <textarea name="politica_privacidad_texto" maxlength="10000" rows="10" required><?= cga_h($site['politica_privacidad_texto']) ?></textarea>
+                        <small>Explica el uso, conservación y protección de la información del participante.</small>
+                    </label>
                 </div>
             </details>
 

@@ -8,6 +8,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const lowInvestmentInputs = document.querySelectorAll('[data-low-investment="1"]');
     const proofInput = document.querySelector('[data-proof-input]');
     const proofFileName = document.querySelector('[data-proof-file-name]');
+    const registrationForm = document.querySelector('form.registro-card');
+    const validationSummary = document.querySelector('[data-validation-summary]');
+    let validationAttempted = false;
+
+    const validationRules = [
+        {
+            name: 'inversion_id',
+            message: 'Selecciona un tipo de inversion.',
+            input: () => registrationForm?.querySelector('input[name="inversion_id"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="inversion_id"]:checked')),
+            anchor: () => document.querySelector('[data-validation-anchor="inversion_id"]'),
+        },
+        {
+            name: 'chaleco_talla_id',
+            message: 'Selecciona una talla de chaleco salvavidas.',
+            input: () => document.getElementById('chaleco_talla_id'),
+            valid: () => {
+                const input = document.getElementById('chaleco_talla_id');
+                return !input || Boolean(input.value);
+            },
+            anchor: () => document.querySelector('.life-jacket-choice'),
+        },
+        {
+            name: 'sendero_punto_encuentro_id',
+            message: 'Selecciona el punto de encuentro donde te esperaremos.',
+            input: () => registrationForm?.querySelector('input[name="sendero_punto_encuentro_id"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="sendero_punto_encuentro_id"]:checked')),
+            anchor: () => document.querySelector('[data-validation-anchor="sendero_punto_encuentro_id"]'),
+        },
+        {
+            name: 'consentimiento',
+            message: 'Debes aceptar el consentimiento informado.',
+            input: () => registrationForm?.querySelector('input[name="consentimiento"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="consentimiento"]:checked')),
+            anchor: () => registrationForm?.querySelector('input[name="consentimiento"]')?.closest('.consent-box'),
+        },
+        {
+            name: 'rgpd',
+            message: 'Debes aceptar el acuerdo RGPD.',
+            input: () => registrationForm?.querySelector('input[name="rgpd"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="rgpd"]:checked')),
+            anchor: () => registrationForm?.querySelector('input[name="rgpd"]')?.closest('.consent-box'),
+        },
+    ];
+
+    const setValidationState = (rule, showError) => {
+        const anchor = rule.anchor();
+        const message = document.querySelector(`[data-validation-message="${rule.name}"]`);
+        anchor?.classList.toggle('has-validation-error', showError);
+        if (message) {
+            message.textContent = showError ? rule.message : '';
+            message.hidden = !showError;
+        }
+    };
+
+    const validateRegistrationForm = () => {
+        const failed = validationRules.filter((rule) => rule.input() && !rule.valid());
+        validationRules.forEach((rule) => setValidationState(rule, failed.includes(rule)));
+
+        if (validationSummary) {
+            validationSummary.textContent = failed.map((rule) => rule.message).join(' ');
+            validationSummary.hidden = failed.length === 0;
+        }
+
+        return failed;
+    };
+
+    validationRules.forEach((rule) => {
+        registrationForm?.querySelectorAll(`[name="${rule.name}"]`).forEach((input) => {
+            input.addEventListener('change', () => {
+                if (!validationAttempted) return;
+                setValidationState(rule, !rule.valid());
+                const failed = validationRules.filter((item) => item.input() && !item.valid());
+                if (validationSummary) {
+                    validationSummary.textContent = failed.map((item) => item.message).join(' ');
+                    validationSummary.hidden = failed.length === 0;
+                }
+            });
+        });
+    });
+
+    registrationForm?.addEventListener('submit', (event) => {
+        validationAttempted = true;
+        const failed = validateRegistrationForm();
+        if (!failed.length) return;
+
+        event.preventDefault();
+        const firstRule = failed[0];
+        const firstAnchor = firstRule.anchor();
+        firstAnchor?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => firstRule.input()?.focus({ preventScroll: true }), 350);
+    });
 
     proofInput?.addEventListener('change', () => {
         if (!proofFileName) return;
@@ -61,7 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
             button.setAttribute('aria-expanded', String(!isOpen));
             button.classList.toggle('is-open', !isOpen);
             target.hidden = isOpen;
-            button.querySelector('span').textContent = isOpen ? 'Leer consentimiento completo' : 'Ocultar consentimiento';
+            const collapsedLabel = button.dataset.collapsedLabel || 'Leer contenido completo';
+            const expandedLabel = button.dataset.expandedLabel || 'Ocultar contenido';
+            button.querySelector('span').textContent = isOpen ? collapsedLabel : expandedLabel;
         });
     });
 
@@ -91,7 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         'es_alergico',
         'alergias_detalle',
         'grupo_sanguineo',
+        'tiene_enfermedad',
         'enfermedad',
+        'tiene_seguro_medico',
         'seguro_medico',
         'experiencia_senderismo',
         'emergencia_nombre',
@@ -99,23 +195,41 @@ document.addEventListener('DOMContentLoaded', () => {
         'emergencia_telefono',
     ];
 
-    const normalizeMinor = (minor = {}) => ({
-        menor_usuario_id: minor.menor_usuario_id || minor.id || '',
-        nombre: minor.nombre || '',
-        apellido: minor.apellido || '',
-        telefono: minor.telefono || '',
-        inversion_id: minor.inversion_id || '',
-        rango_edad: minor.rango_edad || '',
-        es_alergico: String(minor.es_alergico ?? '0') === '1' ? '1' : '0',
-        alergias_detalle: minor.alergias_detalle || '',
-        grupo_sanguineo: minor.grupo_sanguineo || '',
-        enfermedad: minor.enfermedad || '',
-        seguro_medico: minor.seguro_medico || '',
-        experiencia_senderismo: minor.experiencia_senderismo || '',
-        emergencia_nombre: minor.emergencia_nombre || '',
-        emergencia_parentesco: minor.emergencia_parentesco || '',
-        emergencia_telefono: minor.emergencia_telefono || '',
-    });
+    const hasConditionDetail = (value) => {
+        const normalized = String(value || '').trim().toLowerCase();
+        return normalized !== '' && !['no', 'ninguna', 'ninguno', 'no aplica'].includes(normalized);
+    };
+
+    const normalizeMinor = (minor = {}) => {
+        const enfermedad = minor.enfermedad || '';
+        const tieneEnfermedad = minor.tiene_enfermedad === undefined
+            ? hasConditionDetail(enfermedad)
+            : String(minor.tiene_enfermedad) === '1';
+        const seguroMedico = minor.seguro_medico || '';
+        const tieneSeguroMedico = minor.tiene_seguro_medico === undefined
+            ? hasConditionDetail(seguroMedico)
+            : String(minor.tiene_seguro_medico) === '1';
+
+        return {
+            menor_usuario_id: minor.menor_usuario_id || minor.id || '',
+            nombre: minor.nombre || '',
+            apellido: minor.apellido || '',
+            telefono: minor.telefono || '',
+            inversion_id: minor.inversion_id || '',
+            rango_edad: minor.rango_edad || '',
+            es_alergico: String(minor.es_alergico ?? '0') === '1' ? '1' : '0',
+            alergias_detalle: minor.alergias_detalle || '',
+            grupo_sanguineo: minor.grupo_sanguineo || '',
+            tiene_enfermedad: tieneEnfermedad ? '1' : '0',
+            enfermedad: tieneEnfermedad ? enfermedad : 'No',
+            tiene_seguro_medico: tieneSeguroMedico ? '1' : '0',
+            seguro_medico: tieneSeguroMedico ? seguroMedico : 'No',
+            experiencia_senderismo: minor.experiencia_senderismo || '',
+            emergencia_nombre: minor.emergencia_nombre || '',
+            emergencia_parentesco: minor.emergencia_parentesco || '',
+            emergencia_telefono: minor.emergencia_telefono || '',
+        };
+    };
 
     const refreshFeather = () => {
         if (window.feather) {
@@ -123,13 +237,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const syncAlergiaMenorCard = (card) => {
-        const alergico = card.querySelector('[data-field="es_alergico"]');
-        const detalle = card.querySelector('[data-field="alergias_detalle"]');
-        if (!alergico || !detalle) return;
-        const requiere = alergico.value === '1';
+    const syncMinorConditional = (card, selectorField, detailField) => {
+        const selector = card.querySelector(`[data-field="${selectorField}"]`);
+        const detalle = card.querySelector(`[data-field="${detailField}"]`);
+        const container = card.querySelector(`[data-minor-conditional="${detailField}"]`);
+        if (!selector || !detalle || !container) return;
+        const requiere = selector.value === '1';
+        container.hidden = !requiere;
         detalle.required = requiere;
-        detalle.closest('.field')?.classList.toggle('is-required', requiere);
+        container.classList.toggle('is-required', requiere);
+        if (!requiere) detalle.value = '';
+    };
+
+    const syncConditionalMinorCard = (card) => {
+        syncMinorConditional(card, 'es_alergico', 'alergias_detalle');
+        syncMinorConditional(card, 'tiene_enfermedad', 'enfermedad');
+        syncMinorConditional(card, 'tiene_seguro_medico', 'seguro_medico');
     };
 
     const collectEditorMinors = () => {
@@ -148,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!minorsEditor) return true;
         const cards = [...minorsEditor.querySelectorAll('[data-minor-card]')];
         for (const card of cards) {
-            syncAlergiaMenorCard(card);
+            syncConditionalMinorCard(card);
             const requiredFields = [...card.querySelectorAll('[required]')];
             for (const field of requiredFields) {
                 if (!field.value.trim()) {
@@ -230,10 +353,12 @@ document.addEventListener('DOMContentLoaded', () => {
             card.remove();
             updateCardTitles();
         });
-        card.querySelector('[data-field="es_alergico"]')?.addEventListener('change', () => syncAlergiaMenorCard(card));
+        card.querySelector('[data-field="es_alergico"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
+        card.querySelector('[data-field="tiene_enfermedad"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
+        card.querySelector('[data-field="tiene_seguro_medico"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
 
         minorsEditor.appendChild(fragment);
-        syncAlergiaMenorCard(card);
+        syncConditionalMinorCard(card);
         updateCardTitles();
         refreshFeather();
     };

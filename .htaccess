@@ -1,2 +1,25 @@
 DirectoryIndex index.php
 Options -Indexes
+
+RewriteEngine On
+
+# Convierte accesos GET antiguos en rutas canonicas antes de ejecutar la pantalla.
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?pantallas/[a-z0-9_]+\.php(?:[?\s]) [NC]
+RewriteRule ^pantallas/([a-z0-9_]+)\.php$ index.php?__legacy_screen=$1 [L,QSA]
+
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?mantenimientos/mantenimiento_[a-z0-9_]+\.php(?:[?\s]) [NC]
+RewriteRule ^mantenimientos/mantenimiento_([a-z0-9_]+)\.php$ index.php?__legacy_admin=$1 [L,QSA]
+
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?sesion/cerrar_sesion\.php(?:[?\s]) [NC]
+RewriteRule ^sesion/cerrar_sesion\.php$ index.php?__legacy_logout=1 [L,QSA]
+
+# Mantiene archivos y carpetas reales accesibles (CSS, JS, imagenes y procesos).
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Todas las rutas navegables se resuelven desde el controlador principal.
+RewriteRule ^ index.php [L,QSA]

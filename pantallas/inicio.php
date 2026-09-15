@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -40,7 +41,7 @@ function inicio_url(?string $ruta): string
     if (preg_match('/^https?:\/\//i', $ruta)) {
         return $ruta;
     }
-    return BASE_URL . ltrim($ruta, '/');
+    return sg_clean_url($ruta);
 }
 
 $sgEncuestasUsuarioResumen = ['total' => 0, 'items' => []];
@@ -119,8 +120,8 @@ include_once "../componentes/barra_navegacion.php";
                 </small>
             </div>
             <div class="inicio-survey-actions">
-                <a class="inicio-survey-secondary" href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes">Ver todas</a>
-                <a class="inicio-survey-primary" href="<?= BASE_URL ?>pantallas/encuesta.php?envio_id=<?= (int) $inicioEncuestaPrincipal['envio_id'] ?>">
+                <a class="inicio-survey-secondary" href="<?= htmlspecialchars(sg_clean_url('pantallas/mi_perfil.php#encuestas-pendientes'), ENT_QUOTES, 'UTF-8') ?>">Ver todas</a>
+                <a class="inicio-survey-primary" href="<?= htmlspecialchars(sg_clean_url('pantallas/encuesta.php?envio_id=' . (int) $inicioEncuestaPrincipal['envio_id']), ENT_QUOTES, 'UTF-8') ?>">
                     Responder ahora <i data-feather="arrow-right"></i>
                 </a>
             </div>

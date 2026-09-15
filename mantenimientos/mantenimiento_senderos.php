@@ -70,6 +70,7 @@ $editTerrenos = [];
 $editAnotaciones = [];
 $editAnotacionesOrden = [];
 $editInversiones = [];
+$investmentUsageById = [];
 $editPuntos = [];
 $editGaleria = [];
 
@@ -103,7 +104,9 @@ if ($editId > 0) {
 
         $stmt = mysqli_prepare(
             $conn,
-            "SELECT si.*, GROUP_CONCAT(sii.incluye_id ORDER BY sii.orden ASC, sii.incluye_id ASC) AS incluye_ids
+            "SELECT si.*, GROUP_CONCAT(sii.incluye_id ORDER BY sii.orden ASC, sii.incluye_id ASC) AS incluye_ids,
+                    ((SELECT COUNT(*) FROM registros_senderos rs WHERE rs.inversion_id = si.id) +
+                     (SELECT COUNT(*) FROM registro_sendero_menores rsm WHERE rsm.inversion_id = si.id)) AS uso_count
              FROM sendero_inversiones si
              LEFT JOIN sendero_inversion_incluye sii ON sii.inversion_id = si.id
              WHERE si.sendero_id = ?
@@ -115,11 +118,12 @@ if ($editId > 0) {
         $res = mysqli_stmt_get_result($stmt);
         while ($row = mysqli_fetch_assoc($res)) {
             $row['incluye_ids_array'] = array_values(array_filter(array_map('intval', explode(',', (string) ($row['incluye_ids'] ?? '')))));
+            $investmentUsageById[(int) $row['id']] = (int) ($row['uso_count'] ?? 0);
             $editInversiones[] = $row;
         }
         mysqli_stmt_close($stmt);
 
-        $stmt = mysqli_prepare($conn, "SELECT * FROM sendero_puntos_encuentro WHERE sendero_id = ? AND activo = 1 ORDER BY orden ASC, id ASC LIMIT 2");
+        $stmt = mysqli_prepare($conn, "SELECT * FROM sendero_puntos_encuentro WHERE sendero_id = ? AND activo = 1 ORDER BY orden ASC, id ASC");
         mysqli_stmt_bind_param($stmt, "i", $editId);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
@@ -187,6 +191,7 @@ if (!empty($oldSenderoInput)) {
             'orden' => max(1, (int) ($oldInvestment['orden'] ?? ((int) $index + 1))),
             'activo' => isset($oldInvestment['activo']) ? 1 : 0,
             'incluye_ids_array' => $oldIncludes,
+            'uso_count' => $investmentUsageById[(int) ($oldInvestment['id'] ?? 0)] ?? 0,
         ];
     }
 
@@ -541,13 +546,24 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 $investmentNumber = $index + 1;
                                 $investmentCount = count($inversion['incluye_ids_array'] ?? []);
                                 ?>
-                                <article class="investment-admin-card" data-investment-card>
+                                <?php $investmentInUse = (int) ($inversion['uso_count'] ?? 0) > 0; ?>
+                                <article class="investment-admin-card" data-investment-card data-investment-index="<?= $index ?>">
                                     <div class="investment-admin-card-head">
                                         <strong data-investment-title>Inversion <?= $investmentNumber ?></strong>
-                                        <label>
-                                            <input type="checkbox" name="inversiones[<?= $index ?>][activo]" value="1" <?= (int) ($inversion['activo'] ?? 1) === 1 ? 'checked' : '' ?>>
-                                            Activa
-                                        </label>
+                                        <div class="investment-admin-card-actions">
+                                            <label>
+                                                <input type="checkbox" name="inversiones[<?= $index ?>][activo]" value="1" <?= (int) ($inversion['activo'] ?? 1) === 1 ? 'checked' : '' ?>>
+                                                Activa
+                                            </label>
+                                            <button type="button"
+                                                    class="investment-remove-btn"
+                                                    data-remove-investment
+                                                    aria-label="Eliminar inversion <?= $investmentNumber ?>"
+                                                    title="<?= $investmentInUse ? 'Esta inversion tiene participantes; desactivala para conservar el historial.' : 'Eliminar inversion' ?>"
+                                                    <?= $investmentInUse ? 'disabled' : '' ?>>
+                                                <i data-feather="trash-2" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <input type="hidden" name="inversiones[<?= $index ?>][id]" value="<?= (int) ($inversion['id'] ?? 0) ?>">
                                     <input type="hidden" name="inversiones[<?= $index ?>][orden]" value="<?= (int) ($inversion['orden'] ?? ($index + 1)) ?>">
@@ -625,22 +641,30 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <span class="sendero-section-heading">
                                 <span class="sendero-section-kicker">Logistica</span>
                                 <strong>Puntos de encuentro</strong>
-                                <small>Define hasta dos ubicaciones con sus horas y enlaces de mapa.</small>
+                                <small>Agrega las ubicaciones necesarias con sus horas y enlaces de mapa.</small>
                             </span>
                             <span class="sendero-section-arrow" aria-hidden="true"></span>
                         </button>
                         <div class="sendero-section-body">
 
                     <div class="field span-6">
-                        <label class="section-label">Puntos de encuentro</label>
-                        <div class="detail-buttons-row points-admin-row">
-                            <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_puntos_encuentro.php" class="detail-admin-link">
-                                Mantener puntos
-                            </a>
+                        <div class="meeting-admin-head">
+                            <div>
+                                <label class="section-label">Puntos de encuentro</label>
+                                <p>Selecciona uno o varios lugares para que cada senderista indique donde lo recogeran.</p>
+                            </div>
+                            <div class="meeting-admin-actions">
+                                <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_puntos_encuentro.php" class="detail-admin-link">
+                                    Mantener catalogo
+                                </a>
+                                <button type="button" class="meeting-add-btn" id="addMeetingPoint">
+                                    <i data-feather="plus" aria-hidden="true"></i>
+                                    Agregar punto
+                                </button>
+                            </div>
                         </div>
-                        <div class="meeting-grid">
-                            <?php for ($i = 0; $i < 2; $i++): ?>
-                                <?php $punto = $editPuntos[$i] ?? []; ?>
+                        <div class="meeting-grid" id="meetingPointsAdmin">
+                            <?php foreach (($editPuntos ?: [[]]) as $i => $punto): ?>
                                 <?php
                                 $selectedPuntoId = (int) ($punto['punto_encuentro_id'] ?? 0);
                                 if ($selectedPuntoId <= 0 && !empty($punto['nombre_punto'])) {
@@ -652,8 +676,14 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     }
                                 }
                                 ?>
-                                <div class="meeting-card">
-                                    <strong>Punto <?= $i + 1 ?></strong>
+                                <article class="meeting-card" data-meeting-card data-meeting-index="<?= $i ?>">
+                                    <div class="meeting-card-head">
+                                        <strong data-meeting-title>Punto <?= $i + 1 ?></strong>
+                                        <button type="button" class="meeting-remove-btn" data-remove-meeting aria-label="Eliminar punto <?= $i + 1 ?>" title="Eliminar punto">
+                                            <i data-feather="trash-2" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="puntos[<?= $i ?>][id]" value="<?= (int) ($punto['id'] ?? 0) ?>">
                                     <label>
                                         <span>Titulo del punto</span>
                                         <select name="puntos[<?= $i ?>][punto_encuentro_id]" class="meeting-point-select">
@@ -688,8 +718,8 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <span>URL de Google Maps</span>
                                         <input type="url" name="puntos[<?= $i ?>][url_mapa]" value="<?= htmlspecialchars($punto['url_mapa'] ?? '') ?>" placeholder="Se completa al elegir el punto" data-meeting-map readonly>
                                     </label>
-                                </div>
-                            <?php endfor; ?>
+                                </article>
+                            <?php endforeach; ?>
                         </div>
                     </div>
 
@@ -746,14 +776,63 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </div>
                 </div>
 
+                <template id="meetingPointTemplate">
+                    <article class="meeting-card" data-meeting-card>
+                        <div class="meeting-card-head">
+                            <strong data-meeting-title>Punto __ORDER__</strong>
+                            <button type="button" class="meeting-remove-btn" data-remove-meeting aria-label="Eliminar punto __ORDER__" title="Eliminar punto">
+                                <i data-feather="trash-2" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" data-name-template="puntos[__INDEX__][id]" value="0">
+                        <label>
+                            <span>Titulo del punto</span>
+                            <select data-name-template="puntos[__INDEX__][punto_encuentro_id]" class="meeting-point-select">
+                                <option value="">Seleccione un punto...</option>
+                                <?php foreach ($puntosCatalogo as $catalogoPunto): ?>
+                                    <option value="<?= (int) $catalogoPunto['id'] ?>"
+                                            data-nombre="<?= htmlspecialchars($catalogoPunto['nombre']) ?>"
+                                            data-direccion="<?= htmlspecialchars($catalogoPunto['direccion_referencia'] ?? '') ?>"
+                                            data-url="<?= htmlspecialchars($catalogoPunto['url_mapa'] ?? '') ?>">
+                                        <?= htmlspecialchars($catalogoPunto['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Referencia o direccion</span>
+                            <input type="text" data-name-template="puntos[__INDEX__][direccion_referencia]" placeholder="Se completa al elegir el punto" data-meeting-address readonly>
+                        </label>
+                        <div class="time-row">
+                            <label>
+                                <span>Hora de llegada</span>
+                                <input type="time" data-name-template="puntos[__INDEX__][hora_encuentro]">
+                            </label>
+                            <label>
+                                <span>Hora de salida</span>
+                                <input type="time" data-name-template="puntos[__INDEX__][hora_salida]">
+                            </label>
+                        </div>
+                        <label>
+                            <span>URL de Google Maps</span>
+                            <input type="url" data-name-template="puntos[__INDEX__][url_mapa]" placeholder="Se completa al elegir el punto" data-meeting-map readonly>
+                        </label>
+                    </article>
+                </template>
+
                 <template id="investmentOptionTemplate">
                     <article class="investment-admin-card" data-investment-card>
                         <div class="investment-admin-card-head">
                             <strong data-investment-title>Inversion __ORDER__</strong>
-                            <label>
-                                <input type="checkbox" data-name-template="inversiones[__INDEX__][activo]" value="1" checked>
-                                Activa
-                            </label>
+                            <div class="investment-admin-card-actions">
+                                <label>
+                                    <input type="checkbox" data-name-template="inversiones[__INDEX__][activo]" value="1" checked>
+                                    Activa
+                                </label>
+                                <button type="button" class="investment-remove-btn" data-remove-investment aria-label="Eliminar inversion __ORDER__" title="Eliminar inversion">
+                                    <i data-feather="trash-2" aria-hidden="true"></i>
+                                </button>
+                            </div>
                         </div>
                         <input type="hidden" data-name-template="inversiones[__INDEX__][id]" value="0">
                         <input type="hidden" data-name-template="inversiones[__INDEX__][orden]" value="__ORDER__">
@@ -820,6 +899,34 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         </div>
                     </article>
                 </template>
+
+                <dialog class="investment-delete-dialog" data-meeting-delete-dialog>
+                    <div class="investment-delete-dialog-icon" aria-hidden="true">
+                        <i data-feather="trash-2"></i>
+                    </div>
+                    <div class="investment-delete-dialog-copy">
+                        <h3>Eliminar punto</h3>
+                        <p data-meeting-delete-message>Este punto se retirara cuando guardes el sendero.</p>
+                    </div>
+                    <div class="investment-delete-dialog-actions">
+                        <button type="button" class="btn-secondary" data-cancel-meeting-delete>Cancelar</button>
+                        <button type="button" class="investment-delete-confirm" data-confirm-meeting-delete>Eliminar</button>
+                    </div>
+                </dialog>
+
+                <dialog class="investment-delete-dialog" data-investment-delete-dialog>
+                    <div class="investment-delete-dialog-icon" aria-hidden="true">
+                        <i data-feather="trash-2"></i>
+                    </div>
+                    <div class="investment-delete-dialog-copy">
+                        <h3>Eliminar inversion</h3>
+                        <p data-investment-delete-message>Esta inversion se eliminara cuando guardes el sendero.</p>
+                    </div>
+                    <div class="investment-delete-dialog-actions">
+                        <button type="button" class="btn-secondary" data-cancel-investment-delete>Cancelar</button>
+                        <button type="button" class="investment-delete-confirm" data-confirm-investment-delete>Eliminar</button>
+                    </div>
+                </dialog>
             </form>
         </section>
 

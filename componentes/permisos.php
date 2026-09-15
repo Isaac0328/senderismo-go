@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/rutas.php';
 
 if (!function_exists('sg_permission_catalog')) {
     function sg_permission_catalog(): array
@@ -17,7 +19,7 @@ if (!function_exists('sg_permission_catalog')) {
                 'title' => 'Interfaz publica',
                 'icon' => 'globe',
                 'items' => [
-                    ['interfaz.configuracion_general', 'Configuracion general', 'Administrar identidad, encabezado, menu, SEO y pie de pagina.', 'settings', 'mantenimientos/mantenimiento_configuracion_sitio.php'],
+                    ['interfaz.configuracion_general', 'Configuracion general', 'Administrar identidad, menu, SEO, consentimientos y pie de pagina.', 'settings', 'mantenimientos/mantenimiento_configuracion_sitio.php'],
                     ['interfaz.inicio', 'Inicio', 'Editar portada, tarjetas, galeria y llamados.', 'home', 'mantenimientos/mantenimiento_inicio.php'],
                     ['interfaz.nosotros', 'Nosotros', 'Editar historia, valores, pasos, indicadores y equipo.', 'users', 'mantenimientos/mantenimiento_nosotros.php'],
                     ['interfaz.contacto', 'Contacto', 'Editar redes, telefonos, ubicacion y bloques de contacto.', 'phone-call', 'mantenimientos/mantenimiento_contacto.php'],
@@ -258,7 +260,7 @@ if (!function_exists('sg_require_permission_action')) {
         }
 
         $_SESSION['error_message'] = 'No tienes permiso para ' . $action . ' registros en este modulo.';
-        header('Location: ' . ($redirect !== '' ? $redirect : BASE_URL . 'pantallas/panel_administrativo.php'));
+        header('Location: ' . ($redirect !== '' ? $redirect : sg_clean_url('pantallas/panel_administrativo.php')));
         exit;
     }
 }
@@ -360,6 +362,15 @@ if (!function_exists('sg_permission_route_map')) {
 if (!function_exists('sg_permission_current_path')) {
     function sg_permission_current_path(): string
     {
+        $routeTarget = (string) ($_SERVER['SG_ROUTE_TARGET'] ?? '');
+        if ($routeTarget !== '') {
+            $projectRoot = str_replace('\\', '/', dirname(__DIR__)) . '/';
+            $targetPath = str_replace('\\', '/', $routeTarget);
+            if (str_starts_with($targetPath, $projectRoot)) {
+                return strtolower(substr($targetPath, strlen($projectRoot)));
+            }
+        }
+
         $path = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?: '');
         $base = (string) (parse_url(BASE_URL, PHP_URL_PATH) ?: '/');
         $path = ltrim(str_replace('\\', '/', $path), '/');
@@ -450,7 +461,7 @@ if (!function_exists('sg_require_permission')) {
         }
 
         $_SESSION['error_message'] = 'No tienes permiso para acceder a esta seccion.';
-        header('Location: ' . ($redirect !== '' ? $redirect : BASE_URL . 'pantallas/inicio.php'));
+        header('Location: ' . ($redirect !== '' ? $redirect : sg_clean_url('pantallas/inicio.php')));
         exit;
     }
 }

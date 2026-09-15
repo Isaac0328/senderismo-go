@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -20,7 +21,7 @@ $jsFiles = [
 
 // Si ya está logueado, enviarlo a Home
 if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio.php'));
     exit;
 }
 
@@ -44,6 +45,19 @@ function reg_checked(array $old, string $key, string $value): string
 {
     return (string) ($old[$key] ?? '') === $value ? 'checked' : '';
 }
+
+function reg_has_condition(array $old, string $flagKey, string $detailKey): bool
+{
+    if (array_key_exists($flagKey, $old)) {
+        return (string) $old[$flagKey] === '1';
+    }
+
+    $detail = strtolower(trim((string) ($old[$detailKey] ?? '')));
+    return $detail !== '' && !in_array($detail, ['no', 'ninguna', 'ninguno', 'no aplica'], true);
+}
+
+$tieneEnfermedad = reg_has_condition($old, 'tiene_enfermedad', 'enfermedad');
+$tieneSeguroMedico = reg_has_condition($old, 'tiene_seguro_medico', 'seguro_medico');
 
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
@@ -76,6 +90,24 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                 <h1 class="register-title">Crear cuenta</h1>
                 <p class="register-desc">Completa tus datos para registrarte</p>
+
+                <!-- Mensajes del servidor -->
+                <?php if (isset($_SESSION['error_message'])): ?>
+                    <div class="alert alert-error">
+                        <?= htmlspecialchars($_SESSION['error_message']) ?>
+                        <?php unset($_SESSION['error_message']); ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['success_message'])): ?>
+                    <div class="alert alert-success">
+                        <?= htmlspecialchars($_SESSION['success_message']) ?>
+                        <?php unset($_SESSION['success_message']); ?>
+                    </div>
+                <?php endif; ?>
+
+                <div class="alert alert-error registration-validation-summary"
+                    data-registration-validation-summary role="alert" hidden></div>
 
                 <form method="POST" action="<?= BASE_URL ?>procesos/proceso_registro.php" class="register-form"
                     novalidate>
@@ -182,20 +214,38 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                                 <label><input type="radio" name="es_alergico" value="0" <?= $old ? reg_checked($old, 'es_alergico', '0') : 'checked' ?> required> No</label>
                             </div>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group conditional-detail" data-conditional-detail="alergias_detalle" <?= reg_has_condition($old, 'es_alergico', 'alergias_detalle') ? '' : 'hidden' ?>>
                             <label for="alergias_detalle">Detalle de alergia</label>
-                            <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" value="<?= reg_old($old, 'alergias_detalle') ?>" placeholder="Si no aplica, dejar vacio">
+                            <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" value="<?= reg_old($old, 'alergias_detalle') ?>" placeholder="Especifica la alergia">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="enfermedad">Padece alguna enfermedad?</label>
-                        <input type="text" name="enfermedad" id="enfermedad" required maxlength="255" value="<?= reg_old($old, 'enfermedad') ?>" placeholder="Si no aplica, escribe No">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Padece alguna enfermedad?</label>
+                            <div class="radio-inline">
+                                <label><input type="radio" name="tiene_enfermedad" value="1" <?= $tieneEnfermedad ? 'checked' : '' ?> required> Si</label>
+                                <label><input type="radio" name="tiene_enfermedad" value="0" <?= !$tieneEnfermedad ? 'checked' : '' ?> required> No</label>
+                            </div>
+                        </div>
+                        <div class="form-group conditional-detail" data-conditional-detail="enfermedad" <?= $tieneEnfermedad ? '' : 'hidden' ?>>
+                            <label for="enfermedad">Detalle de enfermedad</label>
+                            <input type="text" name="enfermedad" id="enfermedad" maxlength="255" value="<?= reg_old($old, 'enfermedad') ?>" placeholder="Especifica la enfermedad">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="seguro_medico">Tiene seguro medico?</label>
-                        <input type="text" name="seguro_medico" id="seguro_medico" required maxlength="255" value="<?= reg_old($old, 'seguro_medico') ?>" placeholder="Si no aplica, escribe No">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Tiene seguro medico?</label>
+                            <div class="radio-inline">
+                                <label><input type="radio" name="tiene_seguro_medico" value="1" <?= $tieneSeguroMedico ? 'checked' : '' ?> required> Si</label>
+                                <label><input type="radio" name="tiene_seguro_medico" value="0" <?= !$tieneSeguroMedico ? 'checked' : '' ?> required> No</label>
+                            </div>
+                        </div>
+                        <div class="form-group conditional-detail" data-conditional-detail="seguro_medico" <?= $tieneSeguroMedico ? '' : 'hidden' ?>>
+                            <label for="seguro_medico">Nombre o detalle del seguro</label>
+                            <input type="text" name="seguro_medico" id="seguro_medico" maxlength="255" value="<?= reg_old($old, 'seguro_medico') ?>" placeholder="Especifica el seguro medico">
+                        </div>
                     </div>
 
                     <div class="grid-2">
@@ -219,7 +269,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group conditional-detail" data-select-conditional="referido_nombre" <?= (string) ($old['via_entero'] ?? '') === 'Amigos' ? '' : 'hidden' ?>>
                         <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
                         <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" pattern="[^0-9]*" value="<?= reg_old($old, 'referido_nombre') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
@@ -243,31 +293,18 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <label for="emergencia_telefono">Telefono de emergencia</label>
                         <input type="tel" name="emergencia_telefono" id="emergencia_telefono" required inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" placeholder="8090000000" value="<?= reg_old($old, 'emergencia_telefono') ?>" oninput="this.value=this.value.replace(/\D/g,'')">
                     </div>
-                    <label class="terms">
-                        <input type="checkbox" id="terms" name="terms" value="1" required>
-                        <span>Acepto los términos y condiciones</span>
-                    </label>
+                    <div class="terms-field">
+                        <label class="terms">
+                            <input type="checkbox" id="terms" name="terms" value="1" required>
+                            <span>Acepto los términos y condiciones</span>
+                        </label>
+                    </div>
 
                     <button type="submit" class="btn-register" id="registerButton">
                         <span class="btn-text">Crear cuenta</span>
                         <span class="btn-loading hidden">Creando...</span>
                     </button>
                 </form>
-
-                <!-- Mensajes -->
-                <?php if (isset($_SESSION['error_message'])): ?>
-                    <div class="alert alert-error">
-                        <?= htmlspecialchars($_SESSION['error_message']) ?>
-                        <?php unset($_SESSION['error_message']); ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['success_message'])): ?>
-                    <div class="alert alert-success">
-                        <?= htmlspecialchars($_SESSION['success_message']) ?>
-                        <?php unset($_SESSION['success_message']); ?>
-                    </div>
-                <?php endif; ?>
 
                 <?php unset($_SESSION['reg_old']); ?>
 
@@ -278,7 +315,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </p>
 
                     <p class="mt-2">
-                        <a href="<?= BASE_URL ?>index.php">← Volver al inicio</a>
+                        <a href="<?= BASE_URL ?>">← Volver al inicio</a>
                     </p>
                 </div>
 

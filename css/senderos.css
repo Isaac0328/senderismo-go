@@ -108,8 +108,10 @@
 
 .featured-media {
     position: relative;
+    display: block;
     height: clamp(280px, 28vw, 360px);
     background: #111;
+    overflow: hidden;
 }
 
 .featured-media img {
@@ -117,6 +119,23 @@
     height: 100%;
     object-fit: contain;
     display: block;
+    transition: transform .3s ease, opacity .3s ease;
+}
+
+.featured-media-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.featured-media-link:hover img {
+    transform: scale(1.02);
+    opacity: .94;
+}
+
+.featured-media-link:focus-visible {
+    outline: 3px solid #e10600;
+    outline-offset: -3px;
 }
 
 .featured-date {

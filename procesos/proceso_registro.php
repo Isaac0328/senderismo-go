@@ -30,14 +30,19 @@ $telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
 $telefono = sg_only_digits($telefonoRaw);
 $rangoEdad = trim((string) ($_POST['rango_edad'] ?? ''));
 $identificacion = trim((string) ($_POST['identificacion'] ?? ''));
-$esAlergico = (int) ($_POST['es_alergico'] ?? 0);
-$alergiasDetalle = trim((string) ($_POST['alergias_detalle'] ?? ''));
+$esAlergicoRaw = (string) ($_POST['es_alergico'] ?? '');
+$esAlergico = $esAlergicoRaw === '1' ? 1 : 0;
+$alergiasDetalle = $esAlergico === 1 ? trim((string) ($_POST['alergias_detalle'] ?? '')) : '';
 $grupoSanguineo = trim((string) ($_POST['grupo_sanguineo'] ?? ''));
-$enfermedad = trim((string) ($_POST['enfermedad'] ?? ''));
-$seguroMedico = trim((string) ($_POST['seguro_medico'] ?? ''));
+$tieneEnfermedadRaw = (string) ($_POST['tiene_enfermedad'] ?? '');
+$tieneEnfermedad = $tieneEnfermedadRaw === '1';
+$enfermedad = $tieneEnfermedad ? trim((string) ($_POST['enfermedad'] ?? '')) : 'No';
+$tieneSeguroMedicoRaw = (string) ($_POST['tiene_seguro_medico'] ?? '');
+$tieneSeguroMedico = $tieneSeguroMedicoRaw === '1';
+$seguroMedico = $tieneSeguroMedico ? trim((string) ($_POST['seguro_medico'] ?? '')) : 'No';
 $experiencia = trim((string) ($_POST['experiencia_senderismo'] ?? ''));
 $viaEntero = trim((string) ($_POST['via_entero'] ?? ''));
-$referidoNombre = trim((string) ($_POST['referido_nombre'] ?? ''));
+$referidoNombre = $viaEntero === 'Amigos' ? trim((string) ($_POST['referido_nombre'] ?? '')) : '';
 $emergenciaNombre = trim((string) ($_POST['emergencia_nombre'] ?? ''));
 $emergenciaParentesco = trim((string) ($_POST['emergencia_parentesco'] ?? ''));
 $emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
@@ -55,7 +60,9 @@ $_SESSION['reg_old'] = [
     'es_alergico' => (string) $esAlergico,
     'alergias_detalle' => $alergiasDetalle,
     'grupo_sanguineo' => $grupoSanguineo,
+    'tiene_enfermedad' => $tieneEnfermedad ? '1' : '0',
     'enfermedad' => $enfermedad,
+    'tiene_seguro_medico' => $tieneSeguroMedico ? '1' : '0',
     'seguro_medico' => $seguroMedico,
     'experiencia_senderismo' => $experiencia,
     'via_entero' => $viaEntero,
@@ -99,20 +106,35 @@ if (!in_array($rangoEdad, $rangosPermitidos, true)) {
 if ($identificacion === '') {
     $erroresDetalle[] = "La identificacion es obligatoria.";
 }
+if (!in_array($esAlergicoRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si eres alergico.";
+}
 if ($esAlergico === 1 && $alergiasDetalle === '') {
     $erroresDetalle[] = "Especifica a que eres alergico.";
 }
 if (!in_array($grupoSanguineo, $gruposPermitidos, true)) {
     $erroresDetalle[] = "Selecciona un grupo sanguineo valido.";
 }
-if ($enfermedad === '' || $seguroMedico === '') {
-    $erroresDetalle[] = "Completa enfermedad y seguro medico. Si no aplica, escribe No.";
+if (!in_array($tieneEnfermedadRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si padeces alguna enfermedad.";
+}
+if ($tieneEnfermedad && $enfermedad === '') {
+    $erroresDetalle[] = "Especifica la enfermedad que padeces.";
+}
+if (!in_array($tieneSeguroMedicoRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si tienes seguro medico.";
+}
+if ($tieneSeguroMedico && $seguroMedico === '') {
+    $erroresDetalle[] = "Especifica el seguro medico que tienes.";
 }
 if (!in_array($experiencia, $experienciasPermitidas, true)) {
     $erroresDetalle[] = "Selecciona tu experiencia haciendo senderismo.";
 }
 if (!in_array($viaEntero, $viasPermitidas, true)) {
     $erroresDetalle[] = "Selecciona por cual via te enteraste.";
+}
+if ($viaEntero === 'Amigos' && $referidoNombre === '') {
+    $erroresDetalle[] = "Escribe el nombre del amigo por quien te enteraste.";
 }
 if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
     $erroresDetalle[] = "El nombre de referido no puede contener numeros.";

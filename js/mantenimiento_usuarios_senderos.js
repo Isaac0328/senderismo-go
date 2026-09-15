@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fillGrid('[data-detail-contact]', [
                 ['Telefono', data.telefono], ['Correo', data.email], ['Identificacion', data.identificacion],
-                ['Edad', data.rango_edad], ['Inversion', data.inversion], ['Comprobante', data.comprobante], ['Talla de chaleco', data.chaleco_talla], ['Fecha de registro', data.registro]
+                ['Edad', data.rango_edad], ['Inversion', data.inversion], ['Punto de encuentro', data.punto_encuentro], ['Comprobante', data.comprobante], ['Talla de chaleco', data.chaleco_talla], ['Fecha de registro', data.registro]
             ]);
             fillGrid('[data-detail-health]', [
                 ['Grupo sanguineo', data.grupo_sanguineo], ['Alergico', data.es_alergico],

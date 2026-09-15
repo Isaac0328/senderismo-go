@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,7 +12,7 @@ sg_restaurar_sesion_recordada();
 if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
     $_SESSION['redirect_after_login'] = (string) ($_SERVER['REQUEST_URI'] ?? BASE_URL . 'pantallas/mi_perfil.php');
     $_SESSION['error_message'] = 'Inicia sesion para responder la encuesta.';
-    header('Location: ' . BASE_URL . 'pantallas/inicio_sesion.php');
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 

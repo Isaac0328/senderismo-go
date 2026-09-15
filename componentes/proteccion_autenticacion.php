@@ -6,6 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/recordar_sesion.php';
+require_once __DIR__ . '/rutas.php';
 sg_restaurar_sesion_recordada();
 require_once __DIR__ . '/permisos.php';
 
@@ -42,7 +43,7 @@ function sg_auth_return_url(): string
     $query = !empty($parts['query']) ? '?' . $parts['query'] : '';
 
     if ($path === '') {
-        return BASE_URL . 'pantallas/inicio.php';
+        return sg_clean_url('pantallas/inicio.php');
     }
 
     if ($basePath !== '/' && str_starts_with($path, $basePath)) {
@@ -55,7 +56,7 @@ function sg_auth_return_url(): string
 function redirect_login_msg(string $msg)
 {
     $_SESSION['error_message'] = $msg;
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 
@@ -66,7 +67,7 @@ if (
     $_SESSION['logged_in'] !== true
 ) {
     $_SESSION['redirect_after_login'] = sg_auth_return_url();
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 
@@ -115,7 +116,7 @@ if (empty($permissionCodes) && isset($ROLES_PERMITIDOS)) {
     $rol = (int)($_SESSION['usuario_rol_id'] ?? 0);
 
     if ($rol <= 0 || !in_array($rol, $ROLES_PERMITIDOS, true)) {
-        header("Location: " . BASE_URL . "pantallas/inicio.php");
+        header('Location: ' . sg_clean_url('pantallas/inicio.php'));
         exit;
     }
 }

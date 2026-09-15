@@ -12,4 +12,72 @@
 .public-footer-contact-list svg { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; color: var(--theme-primary, #e60000); }
 .public-footer-bottom { width: min(1180px, calc(100% - 36px)); margin: 0 auto; padding: 15px 0 18px; display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid rgba(255, 255, 255, .1); color: #929993; font-size: .76rem; }
 @media (max-width: 820px) { .public-footer-inner { grid-template-columns: 1fr 1fr; } .public-footer-brand { grid-column: 1 / -1; } }
-@media (max-width: 560px) { .public-footer-inner { width: min(100% - 28px, 1180px); padding: 28px 0 24px; grid-template-columns: 1fr; gap: 26px; } .public-footer-brand { grid-column: auto; } .public-footer-brand img { width: 72px; } .public-footer-bottom { width: min(100% - 28px, 1180px); flex-direction: column; gap: 5px; } }
+@media (max-width: 560px) {
+    .public-footer-inner {
+        width: min(100% - 28px, 1180px);
+        padding: 16px 0 13px;
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .public-footer-brand {
+        grid-column: auto;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .public-footer-brand img {
+        width: 52px;
+        max-height: 44px;
+    }
+
+    .public-footer-brand strong {
+        margin-bottom: 0;
+        font-size: .94rem;
+    }
+
+    .public-footer-brand p {
+        display: none;
+    }
+
+    .public-footer h2 {
+        margin-bottom: 7px;
+        font-size: .72rem;
+    }
+
+    .public-footer-links div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+    }
+
+    .public-footer-links a {
+        font-size: .79rem;
+    }
+
+    .public-footer-contact-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px 12px;
+    }
+
+    .public-footer-contact-list a,
+    .public-footer-contact-list span {
+        min-width: 0;
+        gap: 7px;
+        font-size: .77rem;
+        overflow-wrap: anywhere;
+    }
+
+    .public-footer-contact-list span:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .public-footer-bottom {
+        width: min(100% - 28px, 1180px);
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 3px 8px;
+        padding: 10px 0 12px;
+        font-size: .69rem;
+    }
+}

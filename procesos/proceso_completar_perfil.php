@@ -66,14 +66,19 @@ $telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
 $telefono = perfil_only_digits($telefonoRaw);
 $rangoEdad = perfil_clean_text((string) ($_POST['rango_edad'] ?? ''), 20);
 $identificacion = perfil_clean_text((string) ($_POST['identificacion'] ?? ''), 50);
-$esAlergico = (int) ($_POST['es_alergico'] ?? 0);
-$alergiasDetalle = perfil_clean_text((string) ($_POST['alergias_detalle'] ?? ''));
+$esAlergicoRaw = (string) ($_POST['es_alergico'] ?? '');
+$esAlergico = $esAlergicoRaw === '1' ? 1 : 0;
+$alergiasDetalle = $esAlergico === 1 ? perfil_clean_text((string) ($_POST['alergias_detalle'] ?? '')) : '';
 $grupoSanguineo = perfil_clean_text((string) ($_POST['grupo_sanguineo'] ?? ''), 10);
-$enfermedad = perfil_clean_text((string) ($_POST['enfermedad'] ?? ''));
-$seguroMedico = perfil_clean_text((string) ($_POST['seguro_medico'] ?? ''));
+$tieneEnfermedadRaw = (string) ($_POST['tiene_enfermedad'] ?? '');
+$tieneEnfermedad = $tieneEnfermedadRaw === '1';
+$enfermedad = $tieneEnfermedad ? perfil_clean_text((string) ($_POST['enfermedad'] ?? '')) : 'No';
+$tieneSeguroMedicoRaw = (string) ($_POST['tiene_seguro_medico'] ?? '');
+$tieneSeguroMedico = $tieneSeguroMedicoRaw === '1';
+$seguroMedico = $tieneSeguroMedico ? perfil_clean_text((string) ($_POST['seguro_medico'] ?? '')) : 'No';
 $experiencia = perfil_clean_text((string) ($_POST['experiencia_senderismo'] ?? ''), 80);
 $viaEntero = perfil_clean_text((string) ($_POST['via_entero'] ?? ''), 80);
-$referidoNombre = perfil_clean_text((string) ($_POST['referido_nombre'] ?? ''), 150);
+$referidoNombre = $viaEntero === 'Amigos' ? perfil_clean_text((string) ($_POST['referido_nombre'] ?? ''), 150) : '';
 $emergenciaNombre = perfil_clean_text((string) ($_POST['emergencia_nombre'] ?? ''), 150);
 $emergenciaParentesco = perfil_clean_text((string) ($_POST['emergencia_parentesco'] ?? ''), 80);
 $emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
@@ -86,7 +91,9 @@ $_SESSION['perfil_senderista_old'] = [
     'es_alergico' => (string) $esAlergico,
     'alergias_detalle' => $alergiasDetalle,
     'grupo_sanguineo' => $grupoSanguineo,
+    'tiene_enfermedad' => $tieneEnfermedad ? '1' : '0',
     'enfermedad' => $enfermedad,
+    'tiene_seguro_medico' => $tieneSeguroMedico ? '1' : '0',
     'seguro_medico' => $seguroMedico,
     'experiencia_senderismo' => $experiencia,
     'via_entero' => $viaEntero,
@@ -111,7 +118,7 @@ if (!in_array($rangoEdad, $rangosPermitidos, true)) {
 if ($identificacion === '') {
     $errores[] = "La identificacion es obligatoria.";
 }
-if ($esAlergico !== 0 && $esAlergico !== 1) {
+if (!in_array($esAlergicoRaw, ['0', '1'], true)) {
     $errores[] = "Selecciona si eres alergico.";
 }
 if ($esAlergico === 1 && $alergiasDetalle === '') {
@@ -120,14 +127,26 @@ if ($esAlergico === 1 && $alergiasDetalle === '') {
 if (!in_array($grupoSanguineo, $gruposPermitidos, true)) {
     $errores[] = "Selecciona un grupo sanguineo valido.";
 }
-if ($enfermedad === '' || $seguroMedico === '') {
-    $errores[] = "Completa enfermedad y seguro medico. Si no aplica, escribe No.";
+if (!in_array($tieneEnfermedadRaw, ['0', '1'], true)) {
+    $errores[] = "Selecciona si padeces alguna enfermedad.";
+}
+if ($tieneEnfermedad && $enfermedad === '') {
+    $errores[] = "Especifica la enfermedad que padeces.";
+}
+if (!in_array($tieneSeguroMedicoRaw, ['0', '1'], true)) {
+    $errores[] = "Selecciona si tienes seguro medico.";
+}
+if ($tieneSeguroMedico && $seguroMedico === '') {
+    $errores[] = "Especifica el seguro medico que tienes.";
 }
 if (!in_array($experiencia, $experienciasPermitidas, true)) {
     $errores[] = "Selecciona tu experiencia haciendo senderismo.";
 }
 if (!in_array($viaEntero, $viasPermitidas, true)) {
     $errores[] = "Selecciona por cual via te enteraste.";
+}
+if ($viaEntero === 'Amigos' && $referidoNombre === '') {
+    $errores[] = "Escribe el nombre del amigo por quien te enteraste.";
 }
 if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
     $errores[] = "El nombre de referido no puede contener numeros.";

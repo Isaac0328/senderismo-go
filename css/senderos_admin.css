@@ -417,7 +417,8 @@
     margin: 0 0 10px;
 }
 
-.investment-admin-head {
+.investment-admin-head,
+.meeting-admin-head {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
@@ -425,14 +426,16 @@
     margin-bottom: 8px;
 }
 
-.investment-admin-head p {
+.investment-admin-head p,
+.meeting-admin-head p {
     margin: 2px 0 0;
     color: #666;
     font-size: .84rem;
     line-height: 1.35;
 }
 
-.investment-add-btn {
+.investment-add-btn,
+.meeting-add-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -445,6 +448,29 @@
     font-weight: 900;
     cursor: pointer;
     white-space: nowrap;
+}
+
+.meeting-admin-actions,
+.meeting-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.meeting-admin-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.meeting-add-btn {
+    gap: 7px;
+}
+
+.meeting-add-btn svg,
+.meeting-remove-btn svg {
+    width: 17px;
+    height: 17px;
 }
 
 .investment-options-admin {
@@ -488,6 +514,116 @@
     color: #222;
     font-size: .82rem;
     font-weight: 900;
+}
+
+.investment-admin-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.investment-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 1px solid #f2caca;
+    border-radius: 7px;
+    background: #fff0f0;
+    color: #c40000;
+    cursor: pointer;
+}
+
+.investment-remove-btn:hover {
+    border-color: #df9d9d;
+    background: #ffe1e1;
+}
+
+.investment-remove-btn:disabled {
+    border-color: #ddd;
+    background: #f3f3f3;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.investment-remove-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.investment-delete-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(420px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    border: 0;
+    border-radius: 8px;
+    padding: 22px;
+    color: #151515;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+}
+
+.investment-delete-dialog::backdrop {
+    background: rgba(0, 0, 0, .58);
+}
+
+.investment-delete-dialog[open] {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 14px;
+}
+
+.investment-delete-dialog-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    background: #ffe4e4;
+    color: #c40000;
+}
+
+.investment-delete-dialog-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.investment-delete-dialog-copy h3 {
+    margin: 0 0 6px;
+    font-size: 1.15rem;
+}
+
+.investment-delete-dialog-copy p {
+    margin: 0;
+    color: #5e6863;
+    line-height: 1.45;
+}
+
+.investment-delete-dialog-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 5px;
+}
+
+.investment-delete-confirm {
+    min-height: 40px;
+    border: 0;
+    border-radius: 7px;
+    padding: 9px 16px;
+    background: #c40000;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.investment-delete-confirm:hover {
+    background: #9e0000;
 }
 
 .investment-admin-grid {
@@ -594,6 +730,36 @@
 .meeting-card strong {
     color: #111;
     font-size: .86rem;
+}
+
+.meeting-card-head strong {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    border-radius: 999px;
+    background: rgba(8, 123, 77, .11);
+    color: #087b4d;
+    padding: 5px 10px;
+    font-weight: 900;
+}
+
+.meeting-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 1px solid #f2caca;
+    border-radius: 7px;
+    background: #fff0f0;
+    color: #c40000;
+    cursor: pointer;
+}
+
+.meeting-remove-btn:hover {
+    border-color: #df9d9d;
+    background: #ffe1e1;
 }
 
 .meeting-card label {
@@ -1236,6 +1402,7 @@
     }
 
     .investment-admin-head,
+    .meeting-admin-head,
     .investment-admin-card-head {
         align-items: flex-start;
         flex-direction: column;
@@ -1305,7 +1472,9 @@
         width: 100%;
     }
 
-    .investment-add-btn {
+    .investment-add-btn,
+    .meeting-add-btn,
+    .meeting-admin-actions {
         width: 100%;
     }
 

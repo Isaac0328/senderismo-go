@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/rutas.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -93,7 +94,7 @@ if (!function_exists('nav_avatar_html')) {
 
             <!-- Logo -->
             <div class="flex items-center">
-                <a href="<?= BASE_URL ?>pantallas/inicio.php" class="flex items-center gap-3">
+                <a href="<?= htmlspecialchars(sg_clean_url('pantallas/inicio.php'), ENT_QUOTES, 'UTF-8') ?>" class="flex items-center gap-3">
                     <img src="<?= htmlspecialchars($navLogo, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($navSiteName, ENT_QUOTES, 'UTF-8') ?>"
                         class="h-12 sm:h-14 md:h-16 w-auto">
                 </a>
@@ -106,7 +107,7 @@ if (!function_exists('nav_avatar_html')) {
                         <?php
                         $navCode = (string) ($navItem['codigo'] ?? '');
                         $navLabel = (string) ($navItem['etiqueta'] ?? '');
-                        $navRoute = BASE_URL . ltrim((string) ($navItem['ruta'] ?? ''), '/');
+                        $navRoute = sg_clean_url((string) ($navItem['ruta'] ?? ''));
                         $children = $navChildren[$navCode] ?? [];
                         ?>
                         <?php if (!empty($children)): ?>
@@ -117,7 +118,7 @@ if (!function_exists('nav_avatar_html')) {
                                 </a>
                                 <div class="nav-dropdown-menu">
                                     <?php foreach ($children as $child): ?>
-                                        <a href="<?= htmlspecialchars(BASE_URL . ltrim((string) $child['ruta'], '/'), ENT_QUOTES, 'UTF-8') ?>">
+                                        <a href="<?= htmlspecialchars(sg_clean_url((string) $child['ruta']), ENT_QUOTES, 'UTF-8') ?>">
                                             <i data-feather="<?= htmlspecialchars((string) ($child['icono'] ?: 'circle'), ENT_QUOTES, 'UTF-8') ?>"></i>
                                             <span><?= htmlspecialchars((string) $child['etiqueta']) ?></span>
                                         </a>
@@ -138,7 +139,7 @@ if (!function_exists('nav_avatar_html')) {
                     <?php if ($navPendingSurveysCount > 0): ?>
                         <a
                             class="nav-survey-alert"
-                            href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes"
+                            href="<?= htmlspecialchars(sg_clean_url('pantallas/mi_perfil.php#encuestas-pendientes'), ENT_QUOTES, 'UTF-8') ?>"
                             aria-label="<?= $navPendingSurveysCount ?> encuestas pendientes"
                             title="Encuestas pendientes"
                         >
@@ -168,7 +169,7 @@ if (!function_exists('nav_avatar_html')) {
                             </div>
 
                             <div class="p-2">
-                                <a href="<?= BASE_URL ?>pantallas/mi_perfil.php" class="dropdown-item">
+                                <a href="<?= htmlspecialchars(sg_clean_url('pantallas/mi_perfil.php'), ENT_QUOTES, 'UTF-8') ?>" class="dropdown-item">
                                     <i data-feather="user"></i>
                                     <span>Mi perfil</span>
                                 </a>
@@ -193,7 +194,7 @@ if (!function_exists('nav_avatar_html')) {
                 <?php else: ?>
                     <!-- Login desktop -->
                     <div class="hidden md:block">
-                        <a href="<?= BASE_URL ?>pantallas/inicio_sesion.php" class="btn">
+                        <a href="<?= htmlspecialchars(sg_clean_url('pantallas/inicio_sesion.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn">
                             <?= htmlspecialchars($navLoginText) ?>
                         </a>
                     </div>
@@ -240,14 +241,14 @@ if (!function_exists('nav_avatar_html')) {
             <?php if ($isLoggedIn): ?>
                 <div class="border-t pt-2 mt-2">
                     <?php if ($navPendingSurveysCount > 0): ?>
-                        <a href="<?= BASE_URL ?>pantallas/mi_perfil.php#encuestas-pendientes" class="mobile-nav-link nav-mobile-survey-link">
+                        <a href="<?= htmlspecialchars(sg_clean_url('pantallas/mi_perfil.php#encuestas-pendientes'), ENT_QUOTES, 'UTF-8') ?>" class="mobile-nav-link nav-mobile-survey-link">
                             <i data-feather="bell"></i>
                             <span>Encuestas pendientes</span>
                             <strong><?= $navPendingSurveysCount > 99 ? '99+' : $navPendingSurveysCount ?></strong>
                         </a>
                     <?php endif; ?>
 
-                    <a href="<?= BASE_URL ?>pantallas/mi_perfil.php" class="mobile-nav-link">
+                    <a href="<?= htmlspecialchars(sg_clean_url('pantallas/mi_perfil.php'), ENT_QUOTES, 'UTF-8') ?>" class="mobile-nav-link">
                         <i data-feather="user"></i><span>Mi perfil</span>
                     </a>
 
@@ -263,7 +264,7 @@ if (!function_exists('nav_avatar_html')) {
                 </div>
             <?php else: ?>
                 <div class="border-t pt-2 mt-2">
-                    <a href="<?= BASE_URL ?>pantallas/inicio_sesion.php" class="mobile-nav-link justify-center">
+                    <a href="<?= htmlspecialchars(sg_clean_url('pantallas/inicio_sesion.php'), ENT_QUOTES, 'UTF-8') ?>" class="mobile-nav-link justify-center">
                         <i data-feather="log-in"></i><span><?= htmlspecialchars($navLoginText) ?></span>
                     </a>
                 </div>

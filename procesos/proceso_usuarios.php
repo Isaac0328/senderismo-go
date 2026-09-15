@@ -452,6 +452,21 @@ try {
             redirect_users($conn);
         }
 
+        // Un usuario con cualquier registro en un sendero conserva su historial.
+        $stmtRegistro = mysqli_prepare(
+            $conn,
+            "SELECT COUNT(*) AS total FROM registros_senderos WHERE usuario_id = ?"
+        );
+        mysqli_stmt_bind_param($stmtRegistro, "i", $id);
+        mysqli_stmt_execute($stmtRegistro);
+        $registroData = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtRegistro));
+        mysqli_stmt_close($stmtRegistro);
+
+        if ((int) ($registroData['total'] ?? 0) > 0) {
+            $_SESSION['usuarios_error'] = "No se puede eliminar este usuario porque tiene registros enlazados a senderos. Debe inactivarlo.";
+            redirect_users($conn);
+        }
+
         mysqli_query($conn, "SET @p_mensaje = ''");
         mysqli_query($conn, "SET @p_codigo = 0");
 
@@ -492,4 +507,3 @@ try {
     $_SESSION['usuarios_error'] = "Error: " . $e->getMessage();
     redirect_users($conn);
 }
-

@@ -14,3 +14,6 @@ if ($conn === false) {
 
 // Forzar UTF-8
 mysqli_set_charset($conn, "utf8mb4");
+
+// MySQL puede usar UTC por defecto en el hosting; la aplicacion opera en UTC-4.
+mysqli_query($conn, "SET time_zone = '" . APP_DB_TIMEZONE . "'");

@@ -732,6 +732,10 @@
     margin-bottom: 15px;
 }
 
+.perfil-conditional-detail[hidden] {
+    display: none;
+}
+
 .perfil-field label {
     margin-bottom: 8px;
     color: #171717;

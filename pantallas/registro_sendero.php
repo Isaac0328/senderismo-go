@@ -1,5 +1,7 @@
 ﻿<?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,7 +16,7 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
         $_SESSION['redirect_after_login'] = BASE_URL . "pantallas/registro_sendero.php?id=" . $idParaRetorno;
     }
     $_SESSION['error_message'] = "Inicia sesion para registrarte en este sendero.";
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 
@@ -120,7 +122,7 @@ mysqli_stmt_close($stmt);
 
 if (!$usuario) {
     $_SESSION['error_message'] = "No se pudo cargar tu usuario. Inicia sesion nuevamente.";
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 
@@ -143,10 +145,11 @@ $oldData = $_SESSION['registro_sendero_old'] ?? null;
 $registroExistente = false;
 $registroInversionId = 0;
 $registroChalecoTallaId = 0;
+$registroPuntoEncuentroId = 0;
 $registroComprobanteRuta = '';
 $registroComprobanteNombre = '';
 $registroId = 0;
-$stmt = mysqli_prepare($conn, "SELECT id, inversion_id, chaleco_talla_id, comprobante_pago_ruta, comprobante_pago_nombre FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
+$stmt = mysqli_prepare($conn, "SELECT id, inversion_id, chaleco_talla_id, sendero_punto_encuentro_id, comprobante_pago_ruta, comprobante_pago_nombre FROM registros_senderos WHERE usuario_id = ? AND sendero_id = ? AND estado = 'registrado' LIMIT 1");
 mysqli_stmt_bind_param($stmt, "ii", $usuarioId, $idSendero);
 mysqli_stmt_execute($stmt);
 $registroRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -154,8 +157,25 @@ $registroExistente = (bool) $registroRow;
 $registroId = (int) ($registroRow['id'] ?? 0);
 $registroInversionId = (int) ($registroRow['inversion_id'] ?? 0);
 $registroChalecoTallaId = (int) ($registroRow['chaleco_talla_id'] ?? 0);
+$registroPuntoEncuentroId = (int) ($registroRow['sendero_punto_encuentro_id'] ?? 0);
 $registroComprobanteRuta = trim((string) ($registroRow['comprobante_pago_ruta'] ?? ''));
 $registroComprobanteNombre = trim((string) ($registroRow['comprobante_pago_nombre'] ?? ''));
+mysqli_stmt_close($stmt);
+
+$puntosEncuentro = [];
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa
+     FROM sendero_puntos_encuentro
+     WHERE sendero_id = ? AND activo = 1
+     ORDER BY orden ASC, id ASC"
+);
+mysqli_stmt_bind_param($stmt, "i", $idSendero);
+mysqli_stmt_execute($stmt);
+$resPuntos = mysqli_stmt_get_result($stmt);
+while ($row = mysqli_fetch_assoc($resPuntos)) {
+    $puntosEncuentro[] = $row;
+}
 mysqli_stmt_close($stmt);
 
 $tallasChalecos = [];
@@ -232,8 +252,9 @@ $jsFiles = [
     "js/registro_sendero.js"
 ];
 
-$consentimientoTexto = "Estoy de acuerdo que: Yo, siendo mayor de edad, en pleno uso de mis facultades y con total capacidad para comprender el contenido de este documento, declaro que he leido y entiendo completamente la informacion proporcionada en esta pagina sobre la actividad en la que participare. Reconozco que se trata de una actividad fisicamente exigente y que conlleva riesgos inherentes a su naturaleza. Estoy consciente de los posibles desafios y riesgos involucrados, incluyendo aquellos relacionados con el esfuerzo fisico, las condiciones del terreno y cualquier otro factor mencionado en la informacion suministrada. Asimismo, acepto que, en caso de emergencia medica, el acceso a asistencia puede estar sujeto a condiciones y tiempos de respuesta variables. Acepto y doy mi consentimiento a recibir asistencia de primeros auxilios por el personal de la directiva de ser necesario. Comprendo que la organizacion y su personal no son responsables de los riesgos que pudiera enfrentar debido a mi participacion o al incumplimiento de las recomendaciones y medidas de seguridad indicadas. Declaro que participo de manera voluntaria, asumiendo plena responsabilidad por mi bienestar y cualquier consecuencia derivada de mi participacion. Finalmente, autorizo el uso y publicacion de imagenes en las que pueda aparecer durante la actividad, siempre que se respete mi integridad y dignidad.";
-$rgpdTexto = "Doy mi consentimiento para que esta web almacene la informacion que envio para que puedan responder a mi peticion. Politica de Privacidad.";
+$consentimientoTexto = (string) $siteConfig['consentimiento_informado_texto'];
+$rgpdTexto = (string) $siteConfig['rgpd_texto'];
+$politicaPrivacidadTexto = (string) $siteConfig['politica_privacidad_texto'];
 
 $rangosEdad = ['0-18', '19-30', '31-40', '41-50', '51-60', '61+'];
 $gruposSanguineos = ['O+', 'O-', 'A+', 'A-', 'AB+', 'AB-', 'B+', 'B-'];
@@ -264,6 +285,8 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <?php unset($_SESSION['registro_sendero_error']); ?>
         <?php endif; ?>
 
+        <div class="registro-alert error client-validation-summary" data-validation-summary hidden></div>
+
         <?php if (!empty($_SESSION['registro_sendero_info'])): ?>
             <div class="registro-alert success"><?= h($_SESSION['registro_sendero_info']) ?></div>
             <?php unset($_SESSION['registro_sendero_info']); ?>
@@ -274,6 +297,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
         <?php endif; ?>
 
         <form class="registro-card" method="POST" action="<?= BASE_URL ?>procesos/proceso_registro_sendero.php" enctype="multipart/form-data" novalidate>
+            <?= csrf_field() ?>
             <input type="hidden" name="sendero_id" value="<?= (int) $sendero['id'] ?>">
 
             <section class="registro-section">
@@ -300,7 +324,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </div>
                 </div>
 
-                <div class="investment-choice-grid">
+                <div class="investment-choice-grid" data-validation-anchor="inversion_id">
                     <?php if (empty($inversiones)): ?>
                         <div class="registro-alert error">Este sendero aun no tiene inversiones disponibles.</div>
                     <?php endif; ?>
@@ -316,6 +340,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <label class="investment-choice-card">
                             <input type="radio" name="inversion_id" value="<?= (int) $inversion['id'] ?>" <?= $esInversionEconomica ? 'data-low-investment="1"' : '' ?> <?= $selectedInvestment ? 'checked' : '' ?> required>
                             <span>
+                                <i class="selection-light" aria-hidden="true"></i>
                                 <strong><?= h($tituloInversion) ?></strong>
                                 <b><?= h(dinero_registro($inversion['monto'])) ?></b>
                                 <?php if ($mostrarNombreOpcional): ?>
@@ -328,6 +353,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         </label>
                     <?php endforeach; ?>
                 </div>
+                <div class="field-validation-message" data-validation-message="inversion_id" role="alert" hidden></div>
 
                 <?php if ((int) ($sendero['incluye_chaleco_salvavidas'] ?? 0) === 1): ?>
                     <div class="life-jacket-choice">
@@ -349,14 +375,61 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <small class="field-validation-message" data-validation-message="chaleco_talla_id" role="alert" hidden></small>
                         </label>
                     </div>
                 <?php endif; ?>
             </section>
 
+            <?php if (!empty($puntosEncuentro)): ?>
+                <section class="registro-section meeting-point-section">
+                    <div class="section-title-row">
+                        <span>3</span>
+                        <div>
+                            <h2>Punto de encuentro</h2>
+                            <p>Selecciona el lugar donde te recogeremos. Esta eleccion tambien aplica a tus menores acompanantes.</p>
+                        </div>
+                    </div>
+
+                    <div class="meeting-point-grid" data-validation-anchor="sendero_punto_encuentro_id">
+                        <?php foreach ($puntosEncuentro as $punto): ?>
+                            <?php $puntoSeleccionado = (int) ($formData['sendero_punto_encuentro_id'] ?? $registroPuntoEncuentroId) === (int) $punto['id']; ?>
+                            <label class="meeting-point-choice">
+                                <input type="radio"
+                                       name="sendero_punto_encuentro_id"
+                                       value="<?= (int) $punto['id'] ?>"
+                                       <?= $puntoSeleccionado ? 'checked' : '' ?>
+                                       required>
+                                <span class="meeting-point-card">
+                                    <i class="selection-light" aria-hidden="true"></i>
+                                    <span class="meeting-point-marker" aria-hidden="true"><i data-feather="map-pin"></i></span>
+                                    <span class="meeting-point-copy">
+                                        <strong><?= h($punto['nombre_punto']) ?></strong>
+                                        <?php if (!empty($punto['direccion_referencia'])): ?>
+                                            <small><?= h($punto['direccion_referencia']) ?></small>
+                                        <?php endif; ?>
+                                        <span class="meeting-point-times">
+                                            <b>Encuentro <?= h(date('h:i A', strtotime($punto['hora_encuentro']))) ?></b>
+                                            <b>Salida <?= h(date('h:i A', strtotime($punto['hora_salida']))) ?></b>
+                                        </span>
+                                        <?php if (!empty($punto['url_mapa'])): ?>
+                                            <a href="<?= h($punto['url_mapa']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                                                <i data-feather="external-link"></i>
+                                                Ver ubicacion
+                                            </a>
+                                        <?php endif; ?>
+                                    </span>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="field-validation-message" data-validation-message="sendero_punto_encuentro_id" role="alert" hidden></div>
+                </section>
+            <?php endif; ?>
+
             <section class="registro-section payment-proof-section">
                 <div class="section-title-row">
-                    <span>3</span>
+                    <span><?= !empty($puntosEncuentro) ? 4 : 3 ?></span>
                     <div>
                         <h2>Comprobante de pago</h2>
                         <p>Adjunta una imagen o PDF del pago realizado. Este campo es opcional.</p>
@@ -394,7 +467,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <section class="registro-section minors-section" data-minors-root data-minors='<?= $menoresJson ?>' data-saved-minors='<?= $menoresFrecuentesJson ?>'>
                 <div class="section-title-row">
-                    <span>4</span>
+                    <span><?= !empty($puntosEncuentro) ? 5 : 4 ?></span>
                     <div>
                         <h2>Menores acompanantes</h2>
                         <p>Si llevaras ninos o adolescentes bajo tu responsabilidad, agregalos aqui antes de enviar el registro.</p>
@@ -424,7 +497,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <section class="registro-section">
                 <div class="section-title-row">
-                    <span>5</span>
+                    <span><?= !empty($puntosEncuentro) ? 6 : 5 ?></span>
                     <div>
                         <h2>Consentimientos</h2>
                         <p>Debes aceptar estos terminos para completar el registro.</p>
@@ -440,21 +513,28 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                             <small>Lee y acepta las condiciones de participacion antes de enviar tu registro.</small>
                         </span>
                     </label>
-                    <button class="consent-toggle" type="button" aria-expanded="false" aria-controls="consentimientoTexto">
+                    <button class="consent-toggle" type="button" aria-expanded="false" aria-controls="consentimientoTexto" data-collapsed-label="Leer consentimiento completo" data-expanded-label="Ocultar consentimiento">
                         <span>Leer consentimiento completo</span>
                         <i data-feather="chevron-down"></i>
                     </button>
-                    <div class="consent-readable" id="consentimientoTexto" hidden><?= h($consentimientoTexto) ?></div>
+                    <div class="consent-readable" id="consentimientoTexto" hidden><?= nl2br(h($consentimientoTexto)) ?></div>
                 </div>
+                <div class="field-validation-message" data-validation-message="consentimiento" role="alert" hidden></div>
 
                 <label class="consent-box">
                     <input type="checkbox" name="rgpd" value="1" <?= !empty($formData['rgpd']) ? 'checked' : '' ?> required>
                     <span class="consent-check" aria-hidden="true"></span>
                     <span class="consent-copy">
                         <strong>Acuerdo RGPD *</strong>
-                        <span>Doy mi consentimiento para que esta web almacene la informacion que envio para que puedan responder a mi peticion. <span class="privacy-link">Politica de Privacidad</span>.</span>
+                        <span><?= h($rgpdTexto) ?></span>
                     </span>
                 </label>
+                <button class="consent-toggle privacy-toggle" type="button" aria-expanded="false" aria-controls="politicaPrivacidadTexto" data-collapsed-label="Leer politica de privacidad" data-expanded-label="Ocultar politica de privacidad">
+                    <span>Leer politica de privacidad</span>
+                    <i data-feather="chevron-down"></i>
+                </button>
+                <div class="consent-readable privacy-readable" id="politicaPrivacidadTexto" hidden><?= nl2br(h($politicaPrivacidadTexto)) ?></div>
+                <div class="field-validation-message" data-validation-message="rgpd" role="alert" hidden></div>
             </section>
 
             <div class="registro-actions">
@@ -596,21 +676,39 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <option value="1">Si</option>
                     </select>
                 </label>
-                <label class="field">
+                <label class="field minor-conditional-detail" data-minor-conditional="alergias_detalle" hidden>
                     <span>Especifique alergias</span>
                     <input type="text" data-field="alergias_detalle" maxlength="255" placeholder="Obligatorio si es alergico">
                 </label>
             </div>
 
-            <label class="field">
-                <span>Padece alguna enfermedad? Cual? *</span>
-                <input type="text" data-field="enfermedad" maxlength="255" required placeholder="Si no padece, escribe No">
-            </label>
+            <div class="minor-grid two">
+                <label class="field">
+                    <span>Padece alguna enfermedad? *</span>
+                    <select data-field="tiene_enfermedad" required>
+                        <option value="0">No</option>
+                        <option value="1">Si</option>
+                    </select>
+                </label>
+                <label class="field minor-conditional-detail" data-minor-conditional="enfermedad" hidden>
+                    <span>Especifique la enfermedad</span>
+                    <input type="text" data-field="enfermedad" maxlength="255" placeholder="Obligatorio si padece una enfermedad">
+                </label>
+            </div>
 
-            <label class="field">
-                <span>Tiene seguro medico? Cual? *</span>
-                <input type="text" data-field="seguro_medico" maxlength="255" required placeholder="Si no tiene, escribe No">
-            </label>
+            <div class="minor-grid two">
+                <label class="field">
+                    <span>Tiene seguro medico? *</span>
+                    <select data-field="tiene_seguro_medico" required>
+                        <option value="0">No</option>
+                        <option value="1">Si</option>
+                    </select>
+                </label>
+                <label class="field minor-conditional-detail" data-minor-conditional="seguro_medico" hidden>
+                    <span>Nombre o detalle del seguro</span>
+                    <input type="text" data-field="seguro_medico" maxlength="255" placeholder="Obligatorio si tiene seguro medico">
+                </label>
+            </div>
 
             <div class="minor-grid">
                 <label class="field">

@@ -259,6 +259,76 @@
 .contact-source-note svg { flex: 0 0 auto; width: 17px; height: 17px; color: #167244; }
 .contact-source-note a { color: #126b3d !important; font-weight: 900; }
 
+.site-config-visibility {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #e0e6e1;
+    border-radius: 8px;
+    background: #f8faf8;
+}
+
+.site-config-subhead {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 10px;
+}
+
+.site-config-subhead strong { font-size: .84rem; }
+.site-config-subhead small { color: #6d7870; font-size: .75rem; }
+
+.site-config-checklist {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.site-config-checkgroup {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    min-width: 0;
+}
+
+.site-config-checkgroup-title {
+    color: #167244;
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.site-config-checkitem {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 54px;
+    padding: 9px 10px;
+    border: 1px solid #e0e6e1;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.site-config-checkitem input {
+    width: 16px;
+    min-height: 16px;
+    margin-top: 2px;
+    accent-color: #167244;
+}
+
+.site-config-checkitem span { display: grid; gap: 2px; }
+.site-config-checkitem strong { font-size: .76rem; }
+.site-config-checkitem small { font-size: .68rem; }
+
+.legal-config-fields {
+    display: grid;
+    gap: 14px;
+}
+
+.legal-config-fields textarea {
+    min-height: 132px;
+    line-height: 1.55;
+}
+
 .site-config-savebar {
     position: sticky;
     bottom: 10px;
@@ -298,6 +368,7 @@
     .site-config-header-actions,
     .site-config-header-actions a { width: 100%; }
     .site-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .site-config-checklist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .site-menu-item { grid-template-columns: 24px minmax(0, 1fr) 76px; }
     .site-menu-item > label:first-of-type { grid-column: 2 / -1; }
     .site-menu-item .order-field { grid-column: 2; }
@@ -306,7 +377,8 @@
 
 @media (max-width: 560px) {
     .site-config-grid.two,
-    .site-media-grid { grid-template-columns: 1fr; }
+    .site-media-grid,
+    .site-config-checklist { grid-template-columns: 1fr; }
     .site-config-section-body { padding: 12px; }
     .site-config-section summary { grid-template-columns: 34px minmax(0, 1fr) 18px; padding: 10px; }
     .site-menu-item.is-child { margin-left: 14px; }

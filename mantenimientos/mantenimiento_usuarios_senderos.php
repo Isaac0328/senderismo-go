@@ -108,6 +108,8 @@ if ($senderoSeleccionado) {
             si.nombre AS inversion_nombre,
             si.monto AS inversion_monto,
             tc.nombre AS chaleco_talla_nombre,
+            spe.nombre_punto AS punto_encuentro_nombre,
+            spe.hora_encuentro AS punto_encuentro_hora,
             rs.comprobante_pago_ruta,
             rs.comprobante_pago_nombre,
             rs.comprobante_pago_mime,
@@ -139,6 +141,7 @@ if ($senderoSeleccionado) {
         LEFT JOIN detalles_usuarios dup ON dup.usuario_id = u.id
         LEFT JOIN sendero_inversiones si ON si.id = rs.inversion_id
         LEFT JOIN tallas_chalecos_salvavidas tc ON tc.id = rs.chaleco_talla_id
+        LEFT JOIN sendero_puntos_encuentro spe ON spe.id = rs.sendero_punto_encuentro_id
         LEFT JOIN (
             SELECT registro_id, COUNT(*) AS total_menores
             FROM registro_sendero_menores
@@ -249,6 +252,9 @@ foreach ($registros as $registro) {
         'emergencia_telefono' => (string) $registro['emergencia_telefono'],
         'inversion' => (string) ($registro['inversion_nombre'] ?: 'Sin inversion'),
         'chaleco_talla' => (string) ($registro['chaleco_talla_nombre'] ?: 'No aplica'),
+        'punto_encuentro' => $registro['punto_encuentro_nombre']
+            ? (string) $registro['punto_encuentro_nombre'] . (!empty($registro['punto_encuentro_hora']) ? ' / ' . date('h:i A', strtotime($registro['punto_encuentro_hora'])) : '')
+            : 'Sin seleccionar',
         'comprobante' => !empty($registro['comprobante_pago_ruta']) ? 'Adjunto disponible' : 'Sin comprobante',
         'registro' => mus_fecha($registro['fecha_registro'], true),
         'es_temporal' => (int) $registro['usuario_id'] <= 0,
@@ -365,6 +371,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             </button>
             <span>@<?= mus_h($registro['user']) ?> / <?= (int) $registro['usuario_id'] > 0 ? 'ID ' . (int) $registro['usuario_id'] : 'Temporal' ?></span>
             <span>Menores: <?= (int) $registro['total_menores'] ?></span>
+            <span>Punto: <?= mus_h($registro['punto_encuentro_nombre'] ?: 'Sin seleccionar') ?><?= !empty($registro['punto_encuentro_hora']) ? ' / ' . mus_h(date('h:i A', strtotime($registro['punto_encuentro_hora']))) : '' ?></span>
         </td>
                                         <td>
                                             <strong><?= mus_h($registro['telefono'] ?: 'Sin telefono') ?></strong>
@@ -435,6 +442,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         </button>
                                         <span>@<?= mus_h($registro['user']) ?></span>
                                         <span>Menores: <?= (int) $registro['total_menores'] ?></span>
+                                        <span>Punto: <?= mus_h($registro['punto_encuentro_nombre'] ?: 'Sin seleccionar') ?><?= !empty($registro['punto_encuentro_hora']) ? ' / ' . mus_h(date('h:i A', strtotime($registro['punto_encuentro_hora']))) : '' ?></span>
                                     </div>
                                     <span class="mus-state <?= $estaActivo ? 'active' : 'cancelled' ?>">
                                         <?= $estaActivo ? 'Activo' : 'Cancelado' ?>

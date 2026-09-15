@@ -18,6 +18,20 @@ if (!function_exists('sg_site_defaults')) {
             'footer_enlaces_titulo' => 'Explora',
             'footer_contacto_titulo' => 'Contacto',
             'footer_copyright' => 'Senderismo Go. Todos los derechos reservados.',
+            'footer_mostrar_identidad' => 1,
+            'footer_mostrar_logo' => 1,
+            'footer_mostrar_descripcion' => 1,
+            'footer_mostrar_enlaces' => 1,
+            'footer_mostrar_contacto' => 1,
+            'footer_mostrar_ubicacion' => 1,
+            'footer_mostrar_telefono' => 1,
+            'footer_mostrar_email' => 1,
+            'footer_mostrar_whatsapp' => 1,
+            'footer_mostrar_instagram' => 0,
+            'footer_mostrar_copyright' => 1,
+            'consentimiento_informado_texto' => 'Estoy de acuerdo que: Yo, siendo mayor de edad, en pleno uso de mis facultades y con total capacidad para comprender el contenido de este documento, declaro que he leido y entiendo completamente la informacion proporcionada en esta pagina sobre la actividad en la que participare. Reconozco que se trata de una actividad fisicamente exigente y que conlleva riesgos inherentes a su naturaleza. Estoy consciente de los posibles desafios y riesgos involucrados, incluyendo aquellos relacionados con el esfuerzo fisico, las condiciones del terreno y cualquier otro factor mencionado en la informacion suministrada. Asimismo, acepto que, en caso de emergencia medica, el acceso a asistencia puede estar sujeto a condiciones y tiempos de respuesta variables. Acepto y doy mi consentimiento a recibir asistencia de primeros auxilios por el personal de la directiva de ser necesario. Comprendo que la organizacion y su personal no son responsables de los riesgos que pudiera enfrentar debido a mi participacion o al incumplimiento de las recomendaciones y medidas de seguridad indicadas. Declaro que participo de manera voluntaria, asumiendo plena responsabilidad por mi bienestar y cualquier consecuencia derivada de mi participacion. Finalmente, autorizo el uso y publicacion de imagenes en las que pueda aparecer durante la actividad, siempre que se respete mi integridad y dignidad.',
+            'rgpd_texto' => 'Doy mi consentimiento para que esta web almacene la informacion que envio para gestionar mi solicitud y mi participacion en las actividades.',
+            'politica_privacidad_texto' => 'La informacion suministrada sera utilizada para gestionar registros, comunicaciones, seguridad y participacion en las actividades. Los datos no se compartiran con terceros salvo obligacion legal o necesidad operativa debidamente justificada.',
         ];
     }
 }
@@ -53,6 +67,7 @@ if (!function_exists('sg_site_open_connection')) {
             return null;
         }
         mysqli_set_charset($conn, 'utf8mb4');
+        mysqli_query($conn, "SET time_zone = '" . APP_DB_TIMEZONE . "'");
         return $conn;
     }
 }
@@ -119,6 +134,8 @@ if (!function_exists('sg_site_public_footer_enabled')) {
             'recuperar_password.php', 'restablecer_password.php', 'registro_sendero.php',
             'completar_perfil.php', 'mi_perfil.php',
         ];
-        return in_array(basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')), $allowed, true);
+        $routeTarget = (string) ($_SERVER['SG_ROUTE_TARGET'] ?? '');
+        $script = $routeTarget !== '' ? $routeTarget : (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+        return in_array(basename($script), $allowed, true);
     }
 }

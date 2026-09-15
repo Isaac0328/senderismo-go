@@ -47,6 +47,7 @@ $res = mysqli_query($conn, "
         u.rol_id,
         r.nombre AS rol_nombre,
         u.estado,
+        (SELECT COUNT(*) FROM registros_senderos rs WHERE rs.usuario_id = u.id) AS registros_senderos_total,
         u.created_at,
         u.last_login,
         du.telefono,
@@ -327,6 +328,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <?php
                                     $estadoTxt = ((int) $u['estado'] === 1) ? 'Activo' : 'Inactivo';
                                     $estadoClass = ((int) $u['estado'] === 1) ? 'pill ok' : 'pill off';
+                                    $puedeEliminar = (int) $u['estado'] === 0 && (int) ($u['registros_senderos_total'] ?? 0) === 0;
                                     $tieneDetalles = !empty($u['telefono']) || !empty($u['grupo_sanguineo']) || !empty($u['emergencia_nombre']);
                                     $alergiaTxt = ((int) ($u['es_alergico'] ?? 0) === 1)
                                         ? 'Alergico: ' . ($u['alergias_detalle'] ?: 'Si')
@@ -406,13 +408,15 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 </button>
                                             </form>
 
-                                            <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios.php"
-                                                class="inline-form"
-                                                onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
-                                                <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                                                <button type="submit" class="btn-mini danger">Eliminar</button>
-                                            </form>
+                                            <?php if ($puedeEliminar): ?>
+                                                <form method="POST" action="<?= BASE_URL ?>procesos/proceso_usuarios.php"
+                                                    class="inline-form"
+                                                    onsubmit="return confirm('¿Seguro que deseas eliminar este usuario?');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                                                    <button type="submit" class="btn-mini danger">Eliminar</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -518,4 +522,3 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <?php mysqli_close($conn); ?>
 <?php include_once __DIR__ . '/../componentes/pie_pagina.php'; ?>
-

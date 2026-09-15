@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -209,9 +210,12 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <?php
             $destacadoImg = sendero_img_src($senderoDestacado['imagen_flyer']);
             $dias = dias_restantes($senderoDestacado['fecha_sendero']);
+            $destacadoUrl = htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $senderoDestacado['id']), ENT_QUOTES, 'UTF-8');
             ?>
             <section class="featured-sendero">
-                <div class="featured-media">
+                <a href="<?= $destacadoUrl ?>"
+                   class="featured-media featured-media-link"
+                   aria-label="Ver detalle de <?= htmlspecialchars($senderoDestacado['nombre'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if ($destacadoImg !== ''): ?>
                         <img src="<?= $destacadoImg ?>" alt="<?= htmlspecialchars($senderoDestacado['nombre']) ?>">
                     <?php else: ?>
@@ -224,7 +228,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <?= date('d', strtotime($senderoDestacado['fecha_sendero'])) ?>
                         <small><?= strtoupper(date('M', strtotime($senderoDestacado['fecha_sendero']))) ?></small>
                     </span>
-                </div>
+                </a>
 
                 <div class="featured-content">
                     <span class="section-eyebrow">Siguiente salida</span>
@@ -240,7 +244,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </div>
 
                     <div class="featured-actions">
-                        <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $senderoDestacado['id'] ?>" class="btn-primary-sendero">
+                        <a href="<?= $destacadoUrl ?>" class="btn-primary-sendero">
                             Ver detalle
                         </a>
                         <span class="days-chip"><?= $dias === 0 ? 'Salida hoy' : 'Faltan ' . $dias . ' dias' ?></span>
@@ -255,7 +259,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     <span class="section-eyebrow">Agenda abierta</span>
                     <h2 class="section-title">Proximos senderos</h2>
                 </div>
-                <a href="<?= BASE_URL ?>pantallas/senderos_visitados.php" class="section-link">Ver visitados</a>
+                <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_visitados.php'), ENT_QUOTES, 'UTF-8') ?>" class="section-link">Ver visitados</a>
             </div>
 
             <?php if (!empty($proximosSenderos)): ?>
@@ -266,7 +270,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         $terrenos = trim((string) ($sendero['tipos_terreno'] ?? ''));
                         ?>
                         <article class="sendero-card">
-                            <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $sendero['id'] ?>" class="sendero-card-link">
+                            <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $sendero['id']), ENT_QUOTES, 'UTF-8') ?>" class="sendero-card-link">
                                 <div class="sendero-image-wrap">
                                     <?php if ($imagenSrc !== ''): ?>
                                         <img src="<?= $imagenSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
@@ -365,7 +369,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                             <?php if ($tieneEventos): ?>
                                 <?php foreach ($eventosCalendario[$fechaActual] as $evento): ?>
-                                    <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $evento['id'] ?>" class="calendar-event-name" title="<?= htmlspecialchars($evento['nombre']) ?>">
+                                    <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $evento['id']), ENT_QUOTES, 'UTF-8') ?>" class="calendar-event-name" title="<?= htmlspecialchars($evento['nombre']) ?>">
                                         <?= htmlspecialchars($evento['nombre']) ?>
                                     </a>
                                 <?php endforeach; ?>

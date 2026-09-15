@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,7 +15,7 @@ if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
         $_SESSION['redirect_after_login'] = BASE_URL . "pantallas/completar_perfil.php?sendero_id=" . $senderoIdRetorno;
     }
     $_SESSION['error_message'] = "Inicia sesion para completar tus datos.";
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio_sesion.php'));
     exit;
 }
 
@@ -295,6 +296,16 @@ function perfil_completo_vista(array $detalle): bool
     return (int) ($detalle['es_alergico'] ?? 0) !== 1 || trim((string) ($detalle['alergias_detalle'] ?? '')) !== '';
 }
 
+function perfil_has_condition(array $detalle, string $flagKey, string $detailKey): bool
+{
+    if (array_key_exists($flagKey, $detalle)) {
+        return (string) $detalle[$flagKey] === '1';
+    }
+
+    $detail = strtolower(trim((string) ($detalle[$detailKey] ?? '')));
+    return $detail !== '' && !in_array($detail, ['no', 'ninguna', 'ninguno', 'no aplica'], true);
+}
+
 function perfil_fecha_historial(?string $fecha): string
 {
     if (!$fecha) {
@@ -305,6 +316,9 @@ function perfil_fecha_historial(?string $fecha): string
 }
 
 $perfilCompleto = perfil_completo_vista($detalle);
+$tieneAlergia = perfil_has_condition($detalle, 'es_alergico', 'alergias_detalle');
+$tieneEnfermedad = perfil_has_condition($detalle, 'tiene_enfermedad', 'enfermedad');
+$tieneSeguroMedico = perfil_has_condition($detalle, 'tiene_seguro_medico', 'seguro_medico');
 $camposPerfil = [
     'telefono',
     'rango_edad',
@@ -651,20 +665,38 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                                 <label><input type="radio" name="es_alergico" value="0" <?= $detalle ? perfil_checked($detalle, 'es_alergico', '0') : 'checked' ?> required> No</label>
                             </div>
                         </div>
-                        <div class="perfil-field">
+                        <div class="perfil-field perfil-conditional-detail" data-conditional-detail="alergias_detalle" <?= $tieneAlergia ? '' : 'hidden' ?>>
                             <label for="alergias_detalle">Detalle de alergia</label>
-                            <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" placeholder="Solo si aplica" value="<?= perfil_h($detalle['alergias_detalle'] ?? '') ?>">
+                            <input type="text" name="alergias_detalle" id="alergias_detalle" maxlength="255" placeholder="Especifica la alergia" value="<?= perfil_h($detalle['alergias_detalle'] ?? '') ?>">
                         </div>
                     </div>
 
-                    <div class="perfil-field">
-                        <label for="enfermedad">Padece alguna enfermedad? *</label>
-                        <input type="text" name="enfermedad" id="enfermedad" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['enfermedad'] ?? '') ?>">
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label>Padece alguna enfermedad? *</label>
+                            <div class="perfil-radio-row">
+                                <label><input type="radio" name="tiene_enfermedad" value="1" <?= $tieneEnfermedad ? 'checked' : '' ?> required> Si</label>
+                                <label><input type="radio" name="tiene_enfermedad" value="0" <?= !$tieneEnfermedad ? 'checked' : '' ?> required> No</label>
+                            </div>
+                        </div>
+                        <div class="perfil-field perfil-conditional-detail" data-conditional-detail="enfermedad" <?= $tieneEnfermedad ? '' : 'hidden' ?>>
+                            <label for="enfermedad">Detalle de enfermedad</label>
+                            <input type="text" name="enfermedad" id="enfermedad" maxlength="255" placeholder="Especifica la enfermedad" value="<?= perfil_h($detalle['enfermedad'] ?? '') ?>">
+                        </div>
                     </div>
 
-                    <div class="perfil-field">
-                        <label for="seguro_medico">Tiene seguro medico? *</label>
-                        <input type="text" name="seguro_medico" id="seguro_medico" required maxlength="255" placeholder="Si no aplica, escribe No" value="<?= perfil_h($detalle['seguro_medico'] ?? '') ?>">
+                    <div class="perfil-grid">
+                        <div class="perfil-field">
+                            <label>Tiene seguro medico? *</label>
+                            <div class="perfil-radio-row">
+                                <label><input type="radio" name="tiene_seguro_medico" value="1" <?= $tieneSeguroMedico ? 'checked' : '' ?> required> Si</label>
+                                <label><input type="radio" name="tiene_seguro_medico" value="0" <?= !$tieneSeguroMedico ? 'checked' : '' ?> required> No</label>
+                            </div>
+                        </div>
+                        <div class="perfil-field perfil-conditional-detail" data-conditional-detail="seguro_medico" <?= $tieneSeguroMedico ? '' : 'hidden' ?>>
+                            <label for="seguro_medico">Nombre o detalle del seguro</label>
+                            <input type="text" name="seguro_medico" id="seguro_medico" maxlength="255" placeholder="Especifica el seguro medico" value="<?= perfil_h($detalle['seguro_medico'] ?? '') ?>">
+                        </div>
                     </div>
 
                     <div class="perfil-grid">
@@ -688,7 +720,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         </div>
                     </div>
 
-                    <div class="perfil-field">
+                    <div class="perfil-field perfil-conditional-detail" data-select-conditional="referido_nombre" <?= (string) ($detalle['via_entero'] ?? '') === 'Amigos' ? '' : 'hidden' ?>>
                         <label for="referido_nombre">Si fue por amigos, escribe su nombre</label>
                         <input type="text" name="referido_nombre" id="referido_nombre" maxlength="150" pattern="[^0-9]*" value="<?= perfil_h($detalle['referido_nombre'] ?? '') ?>" oninput="this.value=this.value.replace(/[0-9]/g,'')">
                     </div>
@@ -759,6 +791,53 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function setupConditionalDetail(radioName, inputId) {
+        const radios = document.querySelectorAll('input[name="' + radioName + '"]');
+        const input = document.getElementById(inputId);
+        const container = document.querySelector('[data-conditional-detail="' + inputId + '"]');
+        if (!radios.length || !input || !container) {
+            return;
+        }
+
+        function sync() {
+            const selected = document.querySelector('input[name="' + radioName + '"]:checked');
+            const visible = selected && selected.value === '1';
+            container.hidden = !visible;
+            input.required = Boolean(visible);
+            if (!visible) {
+                input.value = '';
+            }
+        }
+
+        radios.forEach(function (radio) {
+            radio.addEventListener('change', sync);
+        });
+        sync();
+    }
+
+    setupConditionalDetail('es_alergico', 'alergias_detalle');
+    setupConditionalDetail('tiene_enfermedad', 'enfermedad');
+    setupConditionalDetail('tiene_seguro_medico', 'seguro_medico');
+
+    const viaEntero = document.getElementById('via_entero');
+    const referidoNombre = document.getElementById('referido_nombre');
+    const referidoContainer = document.querySelector('[data-select-conditional="referido_nombre"]');
+
+    function syncReferidoNombre() {
+        if (!viaEntero || !referidoNombre || !referidoContainer) {
+            return;
+        }
+        const visible = viaEntero.value === 'Amigos';
+        referidoContainer.hidden = !visible;
+        referidoNombre.required = visible;
+        if (!visible) {
+            referidoNombre.value = '';
+        }
+    }
+
+    viaEntero && viaEntero.addEventListener('change', syncReferidoNombre);
+    syncReferidoNombre();
+
     const perfilInput = document.getElementById('imagen_perfil');
     const cabeceraInput = document.getElementById('imagen_cabecera');
     const avatarPreview = document.getElementById('perfil_avatar_preview');

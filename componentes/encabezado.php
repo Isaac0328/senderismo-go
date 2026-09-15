@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/rutas.php';
+sg_redirect_legacy_route();
+
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/configuracion_sitio.php';
 

@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const investmentWrap = document.getElementById('investmentOptionsAdmin');
     const investmentTemplate = document.getElementById('investmentOptionTemplate');
     const addInvestmentButton = document.getElementById('addInvestmentOption');
+    const investmentDeleteDialog = document.querySelector('[data-investment-delete-dialog]');
+    const meetingWrap = document.getElementById('meetingPointsAdmin');
+    const meetingTemplate = document.getElementById('meetingPointTemplate');
+    const addMeetingButton = document.getElementById('addMeetingPoint');
+    const meetingDeleteDialog = document.querySelector('[data-meeting-delete-dialog]');
     const senderoForm = document.querySelector('form.senderos-form');
     const senderoSections = Array.from(document.querySelectorAll('[data-sendero-section]'));
 
@@ -53,6 +58,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!amountField || !Number.isFinite(amount) || amount <= 0) {
                     event.preventDefault();
                     reportSenderoFieldError(amountField, 'Coloca un monto mayor a cero para esta inversion activa.');
+                    return;
+                }
+            }
+
+            const selectedMeetingIds = new Set();
+            const meetingCards = Array.from(meetingWrap?.querySelectorAll('[data-meeting-card]') || []);
+            for (const card of meetingCards) {
+                const pointField = card.querySelector('.meeting-point-select');
+                const arrivalField = card.querySelector('input[name$="[hora_encuentro]"]');
+                const departureField = card.querySelector('input[name$="[hora_salida]"]');
+                const hasData = Boolean(pointField?.value || arrivalField?.value || departureField?.value);
+                if (!hasData) continue;
+
+                if (!pointField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(pointField, 'Selecciona el lugar de este punto de encuentro.');
+                    return;
+                }
+                if (selectedMeetingIds.has(pointField.value)) {
+                    event.preventDefault();
+                    reportSenderoFieldError(pointField, 'Este punto de encuentro ya fue agregado.');
+                    return;
+                }
+                selectedMeetingIds.add(pointField.value);
+
+                if (!arrivalField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(arrivalField, 'Indica la hora de llegada a este punto.');
+                    return;
+                }
+                if (!departureField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(departureField, 'Indica la hora de salida desde este punto.');
                     return;
                 }
             }
@@ -320,13 +358,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.querySelectorAll('.meeting-point-select').forEach((select) => {
-        select.addEventListener('change', () => syncMeetingPoint(select));
-        syncMeetingPoint(select);
-    });
+    function prepareMeetingCard(card, visualIndex, fieldIndex = visualIndex) {
+        const order = visualIndex + 1;
+        if (!card.dataset.meetingIndex) {
+            card.dataset.meetingIndex = String(fieldIndex);
+        }
 
-    function prepareInvestmentCard(card, index) {
-        const order = index + 1;
+        card.querySelectorAll('[data-name-template]').forEach((field) => {
+            field.name = (field.dataset.nameTemplate || '')
+                .replaceAll('__INDEX__', String(fieldIndex))
+                .replaceAll('__ORDER__', String(order));
+            field.removeAttribute('data-name-template');
+        });
+
+        const title = card.querySelector('[data-meeting-title]');
+        if (title) title.textContent = `Punto ${order}`;
+
+        const removeButton = card.querySelector('[data-remove-meeting]');
+        if (removeButton) removeButton.setAttribute('aria-label', `Eliminar punto ${order}`);
+
+        const select = card.querySelector('.meeting-point-select');
+        if (select) syncMeetingPoint(select);
+    }
+
+    function refreshMeetingCards() {
+        if (!meetingWrap) return;
+        meetingWrap.querySelectorAll('[data-meeting-card]').forEach((card, index) => {
+            prepareMeetingCard(card, index, Number(card.dataset.meetingIndex || index));
+        });
+    }
+
+    if (meetingWrap) {
+        refreshMeetingCards();
+        let pendingMeetingRemoval = null;
+
+        meetingWrap.addEventListener('change', (event) => {
+            const select = event.target.closest('.meeting-point-select');
+            if (select) syncMeetingPoint(select);
+        });
+
+        const removePendingMeeting = () => {
+            if (!pendingMeetingRemoval) return;
+            pendingMeetingRemoval.remove();
+            pendingMeetingRemoval = null;
+            meetingDeleteDialog?.close();
+            refreshMeetingCards();
+        };
+
+        meetingWrap.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-remove-meeting]');
+            if (!removeButton) return;
+            const card = removeButton.closest('[data-meeting-card]');
+            if (!card) return;
+
+            const title = card.querySelector('[data-meeting-title]')?.textContent || 'este punto';
+            const message = `¿Deseas eliminar ${title.toLowerCase()}? El cambio se aplicara cuando guardes el sendero.`;
+            if (meetingDeleteDialog?.showModal) {
+                pendingMeetingRemoval = card;
+                const messageElement = meetingDeleteDialog.querySelector('[data-meeting-delete-message]');
+                if (messageElement) messageElement.textContent = message;
+                meetingDeleteDialog.showModal();
+            } else if (window.confirm(message)) {
+                pendingMeetingRemoval = card;
+                removePendingMeeting();
+            }
+        });
+
+        meetingDeleteDialog?.querySelector('[data-cancel-meeting-delete]')?.addEventListener('click', () => {
+            pendingMeetingRemoval = null;
+            meetingDeleteDialog.close();
+        });
+        meetingDeleteDialog?.querySelector('[data-confirm-meeting-delete]')?.addEventListener('click', removePendingMeeting);
+        meetingDeleteDialog?.addEventListener('cancel', () => {
+            pendingMeetingRemoval = null;
+        });
+    }
+
+    if (addMeetingButton && meetingWrap && meetingTemplate) {
+        addMeetingButton.addEventListener('click', () => {
+            const indexes = Array.from(meetingWrap.querySelectorAll('[data-meeting-card]'))
+                .map((card) => Number(card.dataset.meetingIndex))
+                .filter(Number.isFinite);
+            const index = indexes.length > 0 ? Math.max(...indexes) + 1 : 0;
+            const fragment = meetingTemplate.content.cloneNode(true);
+            const card = fragment.querySelector('[data-meeting-card]');
+            if (!card) return;
+
+            card.dataset.meetingIndex = String(index);
+            meetingWrap.appendChild(card);
+            prepareMeetingCard(card, meetingWrap.querySelectorAll('[data-meeting-card]').length - 1, index);
+            window.feather?.replace();
+            card.querySelector('.meeting-point-select')?.focus();
+        });
+    }
+
+    function prepareInvestmentCard(card, visualIndex, fieldIndex = visualIndex) {
+        const order = visualIndex + 1;
+        if (!card.dataset.investmentIndex) {
+            card.dataset.investmentIndex = String(fieldIndex);
+        }
 
         const replaceTokenAttribute = (element, attribute) => {
             const value = element.getAttribute(attribute);
@@ -335,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             element.setAttribute(
                 attribute,
                 value
-                    .replaceAll('__INDEX__', String(index))
+                    .replaceAll('__INDEX__', String(fieldIndex))
                     .replaceAll('__ORDER__', String(order))
             );
         };
@@ -348,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelectorAll('[data-name-template]').forEach((field) => {
             const template = field.dataset.nameTemplate || '';
             field.name = template
-                .replaceAll('__INDEX__', String(index))
+                .replaceAll('__INDEX__', String(fieldIndex))
                 .replaceAll('__ORDER__', String(order));
             field.removeAttribute('data-name-template');
         });
@@ -363,9 +493,14 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitle.textContent = `Incluye - Inversion ${order}`;
         }
 
-        const orderInput = card.querySelector(`input[name="inversiones[${index}][orden]"]`);
+        const orderInput = card.querySelector('input[name$="[orden]"]');
         if (orderInput) {
             orderInput.value = String(order);
+        }
+
+        const removeButton = card.querySelector('[data-remove-investment]');
+        if (removeButton) {
+            removeButton.setAttribute('aria-label', `Eliminar inversion ${order}`);
         }
     }
 
@@ -387,18 +522,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (investmentWrap) {
         refreshInvestmentCards();
+
+        let pendingInvestmentRemoval = null;
+
+        const removePendingInvestment = () => {
+            if (!pendingInvestmentRemoval) return;
+            pendingInvestmentRemoval.querySelector('.detail-modal')?.remove();
+            pendingInvestmentRemoval.remove();
+            pendingInvestmentRemoval = null;
+            investmentDeleteDialog?.close();
+            refreshInvestmentCards();
+        };
+
+        investmentWrap.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-remove-investment]');
+            if (!removeButton || removeButton.disabled) return;
+
+            const card = removeButton.closest('[data-investment-card]');
+            if (!card) return;
+
+            if (investmentWrap.querySelectorAll('[data-investment-card]').length === 1) {
+                window.alert('El sendero debe conservar al menos una inversion. Puedes desactivarla si no deseas ofrecerla.');
+                return;
+            }
+
+            const title = card.querySelector('[data-investment-title]')?.textContent || 'esta inversion';
+            const message = `¿Deseas eliminar ${title.toLowerCase()}? El cambio se aplicara cuando guardes el sendero.`;
+            if (investmentDeleteDialog?.showModal) {
+                pendingInvestmentRemoval = card;
+                const messageElement = investmentDeleteDialog.querySelector('[data-investment-delete-message]');
+                if (messageElement) messageElement.textContent = message;
+                investmentDeleteDialog.showModal();
+            } else if (window.confirm(message)) {
+                pendingInvestmentRemoval = card;
+                removePendingInvestment();
+            }
+        });
+
+        investmentDeleteDialog?.querySelector('[data-cancel-investment-delete]')?.addEventListener('click', () => {
+            pendingInvestmentRemoval = null;
+            investmentDeleteDialog.close();
+        });
+
+        investmentDeleteDialog?.querySelector('[data-confirm-investment-delete]')?.addEventListener('click', removePendingInvestment);
+
+        investmentDeleteDialog?.addEventListener('cancel', () => {
+            pendingInvestmentRemoval = null;
+        });
     }
 
     if (addInvestmentButton && investmentWrap && investmentTemplate) {
         addInvestmentButton.addEventListener('click', () => {
-            const index = investmentWrap.querySelectorAll('[data-investment-card]').length;
+            const indexes = Array.from(investmentWrap.querySelectorAll('[data-investment-card]'))
+                .map((card) => Number(card.dataset.investmentIndex))
+                .filter(Number.isFinite);
+            const index = indexes.length > 0 ? Math.max(...indexes) + 1 : 0;
             const fragment = investmentTemplate.content.cloneNode(true);
             const card = fragment.querySelector('[data-investment-card]');
             if (!card) return;
 
-            prepareInvestmentCard(card, index);
+            card.dataset.investmentIndex = String(index);
             investmentWrap.appendChild(card);
+            prepareInvestmentCard(card, investmentWrap.querySelectorAll('[data-investment-card]').length - 1, index);
             enableSortableModalLists(card);
+            window.feather?.replace();
             const firstInput = card.querySelector('input[type="text"]');
             firstInput?.focus();
             updateModalCountFromCard(card);

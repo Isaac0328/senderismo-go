@@ -22,11 +22,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 csrf_validate_post(BASE_URL . "pantallas/senderos.php", 'registro_sendero_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/configuracion_sitio.php';
 
 $usuarioId = (int) $_SESSION['usuario_id'];
 $senderoId = (int) ($_POST['sendero_id'] ?? 0);
 $inversionId = (int) ($_POST['inversion_id'] ?? 0);
 $chalecoTallaId = (int) ($_POST['chaleco_talla_id'] ?? 0);
+$senderoPuntoEncuentroId = (int) ($_POST['sendero_punto_encuentro_id'] ?? 0);
 
 function registro_redirect(mysqli $conn, int $senderoId): void
 {
@@ -170,6 +172,10 @@ function obtener_menores_post(): array
             continue;
         }
 
+        $esAlergico = (string) ($menor['es_alergico'] ?? '0') === '1';
+        $tieneEnfermedad = (string) ($menor['tiene_enfermedad'] ?? '0') === '1';
+        $tieneSeguroMedico = (string) ($menor['tiene_seguro_medico'] ?? '0') === '1';
+
         $menores[] = [
             'menor_usuario_id' => (int) ($menor['menor_usuario_id'] ?? 0),
             'nombre' => $nombre,
@@ -177,11 +183,13 @@ function obtener_menores_post(): array
             'telefono' => clean_text((string) ($menor['telefono'] ?? ''), 30),
             'inversion_id' => (int) ($menor['inversion_id'] ?? 0),
             'rango_edad' => clean_text((string) ($menor['rango_edad'] ?? ''), 20),
-            'es_alergico' => (string) ($menor['es_alergico'] ?? '0') === '1' ? 1 : 0,
-            'alergias_detalle' => clean_text((string) ($menor['alergias_detalle'] ?? ''), 255),
+            'es_alergico' => $esAlergico ? 1 : 0,
+            'alergias_detalle' => $esAlergico ? clean_text((string) ($menor['alergias_detalle'] ?? ''), 255) : '',
             'grupo_sanguineo' => clean_text((string) ($menor['grupo_sanguineo'] ?? ''), 10),
-            'enfermedad' => clean_text((string) ($menor['enfermedad'] ?? ''), 255),
-            'seguro_medico' => clean_text((string) ($menor['seguro_medico'] ?? ''), 255),
+            'tiene_enfermedad' => $tieneEnfermedad ? 1 : 0,
+            'enfermedad' => $tieneEnfermedad ? clean_text((string) ($menor['enfermedad'] ?? ''), 255) : 'No',
+            'tiene_seguro_medico' => $tieneSeguroMedico ? 1 : 0,
+            'seguro_medico' => $tieneSeguroMedico ? clean_text((string) ($menor['seguro_medico'] ?? ''), 255) : 'No',
             'experiencia_senderismo' => clean_text((string) ($menor['experiencia_senderismo'] ?? ''), 80),
             'emergencia_nombre' => clean_text((string) ($menor['emergencia_nombre'] ?? ''), 150),
             'emergencia_parentesco' => clean_text((string) ($menor['emergencia_parentesco'] ?? ''), 80),
@@ -222,6 +230,12 @@ function validar_menores(array $menores, array $inversionesValidas): array
         }
         if ((int) $menor['es_alergico'] === 1 && trim((string) $menor['alergias_detalle']) === '') {
             $errores[] = "Especifica la alergia del menor {$numero}.";
+        }
+        if ((int) ($menor['tiene_enfermedad'] ?? 0) === 1 && trim((string) $menor['enfermedad']) === '') {
+            $errores[] = "Especifica la enfermedad del menor {$numero}.";
+        }
+        if ((int) ($menor['tiene_seguro_medico'] ?? 0) === 1 && trim((string) $menor['seguro_medico']) === '') {
+            $errores[] = "Especifica el seguro medico del menor {$numero}.";
         }
     }
 
@@ -387,6 +401,24 @@ while ($rowInversionValida = mysqli_fetch_assoc($resInversionesValidas)) {
 }
 mysqli_stmt_close($stmt);
 
+$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM sendero_puntos_encuentro WHERE sendero_id = ? AND activo = 1");
+mysqli_stmt_bind_param($stmt, "i", $senderoId);
+mysqli_stmt_execute($stmt);
+$totalPuntosEncuentro = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'] ?? 0);
+mysqli_stmt_close($stmt);
+
+$puntoEncuentroValido = $totalPuntosEncuentro === 0;
+if ($totalPuntosEncuentro > 0 && $senderoPuntoEncuentroId > 0) {
+    $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_puntos_encuentro WHERE id = ? AND sendero_id = ? AND activo = 1 LIMIT 1");
+    mysqli_stmt_bind_param($stmt, "ii", $senderoPuntoEncuentroId, $senderoId);
+    mysqli_stmt_execute($stmt);
+    $puntoEncuentroValido = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+}
+if ($totalPuntosEncuentro === 0) {
+    $senderoPuntoEncuentroId = null;
+}
+
 $consentimiento = isset($_POST['consentimiento']);
 $rgpd = isset($_POST['rgpd']);
 
@@ -401,6 +433,7 @@ if ($detalleId <= 0 || !perfil_senderista_completo_registro($detalle ?: [])) {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
         'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
+        'sendero_punto_encuentro_id' => (string) ($senderoPuntoEncuentroId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -418,6 +451,9 @@ if (!$inversionExiste) {
 if (!$tallaChalecoValida) {
     $errores[] = "Selecciona una talla de chaleco salvavidas valida.";
 }
+if (!$puntoEncuentroValido) {
+    $errores[] = "Selecciona un punto de encuentro valido para este sendero.";
+}
 if (!$consentimiento || !$rgpd) {
     $errores[] = "Debes aceptar el consentimiento y el acuerdo RGPD.";
 }
@@ -427,6 +463,7 @@ if (!empty($errores)) {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
         'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
+        'sendero_punto_encuentro_id' => (string) ($senderoPuntoEncuentroId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -454,6 +491,7 @@ try {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
         'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
+        'sendero_punto_encuentro_id' => (string) ($senderoPuntoEncuentroId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,
@@ -467,8 +505,11 @@ $comprobanteNombre = $nuevoComprobante['nombre'] ?? null;
 $comprobanteMime = $nuevoComprobante['mime'] ?? null;
 $comprobanteFecha = $nuevoComprobante['fecha'] ?? null;
 
-$consentimientoTexto = "Estoy de acuerdo que: Yo, siendo mayor de edad, en pleno uso de mis facultades y con total capacidad para comprender el contenido de este documento, declaro que he leido y entiendo completamente la informacion proporcionada en esta pagina sobre la actividad en la que participare. Reconozco que se trata de una actividad fisicamente exigente y que conlleva riesgos inherentes a su naturaleza. Estoy consciente de los posibles desafios y riesgos involucrados, incluyendo aquellos relacionados con el esfuerzo fisico, las condiciones del terreno y cualquier otro factor mencionado en la informacion suministrada. Asimismo, acepto que, en caso de emergencia medica, el acceso a asistencia puede estar sujeto a condiciones y tiempos de respuesta variables. Acepto y doy mi consentimiento a recibir asistencia de primeros auxilios por el personal de la directiva de ser necesario. Comprendo que la organizacion y su personal no son responsables de los riesgos que pudiera enfrentar debido a mi participacion o al incumplimiento de las recomendaciones y medidas de seguridad indicadas. Declaro que participo de manera voluntaria, asumiendo plena responsabilidad por mi bienestar y cualquier consecuencia derivada de mi participacion. Finalmente, autorizo el uso y publicacion de imagenes en las que pueda aparecer durante la actividad, siempre que se respete mi integridad y dignidad.";
-$rgpdTexto = "Doy mi consentimiento para que esta web almacene la informacion que envio para que puedan responder a mi peticion. Politica de Privacidad.";
+$siteConfig = sg_site_config($conn);
+$consentimientoTexto = (string) $siteConfig['consentimiento_informado_texto'];
+$rgpdTexto = (string) $siteConfig['rgpd_texto'];
+$politicaPrivacidadTexto = (string) $siteConfig['politica_privacidad_texto'];
+$rgpdTexto = $rgpdTexto . "\n\nPolitica de privacidad:\n" . $politicaPrivacidadTexto;
 
 mysqli_begin_transaction($conn);
 
@@ -477,13 +518,14 @@ try {
         $conn,
         "INSERT INTO registros_senderos (
             sendero_id, usuario_id, detalle_usuario_id, estado, consentimiento_aceptado,
-            rgpd_aceptado, consentimiento_texto, rgpd_texto, inversion_id, chaleco_talla_id,
+            rgpd_aceptado, consentimiento_texto, rgpd_texto, inversion_id, chaleco_talla_id, sendero_punto_encuentro_id,
             comprobante_pago_ruta, comprobante_pago_nombre, comprobante_pago_mime, comprobante_pago_fecha
-        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, 'registrado', 1, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             detalle_usuario_id = VALUES(detalle_usuario_id),
             inversion_id = VALUES(inversion_id),
             chaleco_talla_id = VALUES(chaleco_talla_id),
+            sendero_punto_encuentro_id = VALUES(sendero_punto_encuentro_id),
             comprobante_pago_ruta = COALESCE(VALUES(comprobante_pago_ruta), comprobante_pago_ruta),
             comprobante_pago_nombre = COALESCE(VALUES(comprobante_pago_nombre), comprobante_pago_nombre),
             comprobante_pago_mime = COALESCE(VALUES(comprobante_pago_mime), comprobante_pago_mime),
@@ -496,7 +538,7 @@ try {
     );
     mysqli_stmt_bind_param(
         $stmt,
-        "iiissiissss",
+        "iiissiiissss",
         $senderoId,
         $usuarioId,
         $detalleId,
@@ -504,6 +546,7 @@ try {
         $rgpdTexto,
         $inversionId,
         $chalecoTallaId,
+        $senderoPuntoEncuentroId,
         $comprobanteRuta,
         $comprobanteNombre,
         $comprobanteMime,
@@ -587,6 +630,7 @@ try {
     guardar_formulario_anterior($senderoId, [
         'inversion_id' => (string) $inversionId,
         'chaleco_talla_id' => (string) ($chalecoTallaId ?? ''),
+        'sendero_punto_encuentro_id' => (string) ($senderoPuntoEncuentroId ?? ''),
         'consentimiento' => $consentimiento ? '1' : '',
         'rgpd' => $rgpd ? '1' : '',
         'menores' => $menores,

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -302,7 +303,9 @@ $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
 $fechaVencida = sendero_fecha_vencida($sendero['fecha_sendero']);
 $esVisitado = ($sendero['estado'] ?? '') === 'visitado' || $fechaVencida;
 $vieneDesdePerfil = isset($_GET['desde']) && $_GET['desde'] === 'perfil';
-$volverUrl = $vieneDesdePerfil ? BASE_URL . 'pantallas/mi_perfil.php' : BASE_URL . 'pantallas/' . ($esVisitado ? 'senderos_visitados.php' : 'senderos.php');
+$volverUrl = $vieneDesdePerfil
+    ? sg_clean_url('pantallas/mi_perfil.php')
+    : sg_clean_url('pantallas/' . ($esVisitado ? 'senderos_visitados.php' : 'senderos.php'));
 $volverTexto = $vieneDesdePerfil ? 'Volver al perfil' : 'Volver a senderos';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
 $horaSalidaPrincipal = null;
@@ -637,7 +640,7 @@ $dificultadClase = dificultad_color_detalle($nivelNumero);
                     <h2>Reserva tu cupo para este sendero</h2>
                     <p>Completa tus datos de participante, salud y contacto de emergencia en una pantalla separada.</p>
                 </div>
-                <a class="register-sendero-btn" href="<?= BASE_URL ?>pantallas/registro_sendero.php?id=<?= (int) $sendero['id'] ?>">
+                <a class="register-sendero-btn" href="<?= htmlspecialchars(sg_clean_url('pantallas/registro_sendero.php?id=' . (int) $sendero['id']), ENT_QUOTES, 'UTF-8') ?>">
                     Registrarme
                     <i data-feather="arrow-right"></i>
                 </a>

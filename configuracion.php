@@ -1,6 +1,11 @@
 <?php
 // configuracion.php (NO debe exponer credenciales en produccion)
 
+// Zona horaria oficial de la aplicacion: Republica Dominicana (UTC-4).
+date_default_timezone_set('America/Santo_Domingo');
+define('APP_TIMEZONE', 'America/Santo_Domingo');
+define('APP_DB_TIMEZONE', '-04:00');
+
 // Detectar entorno: local vs hosting
 $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 
@@ -8,22 +13,22 @@ $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']);
 define('BASE_URL', $isLocal ? '/SG/' : '/');
 
 // DB Config
-define('DB_HOST', $isLocal ? 'localhost' : (getenv('DB_HOST') ?: 'localhost'));
-define('DB_NAME', $isLocal ? 'sgbd' : (getenv('DB_NAME') ?: 'TU_DB_NAME_HOSTINGER'));
-define('DB_USER', $isLocal ? 'root' : (getenv('DB_USER') ?: 'TU_DB_USER_HOSTINGER'));
-define('DB_PASS', $isLocal ? '' : (getenv('DB_PASS') ?: 'TU_DB_PASS_HOSTINGER'));
+define('DB_HOST', $isLocal ? 'localhost' : 'localhost');
+define('DB_NAME', $isLocal ? 'sgbd' : 'u591234109_senderismo');
+define('DB_USER', $isLocal ? 'root' : 'u591234109_adminsg');
+define('DB_PASS', $isLocal ? '' : 'S3nderismo_G0');
 
 // Mostrar errores solo en local
-define('APP_DEBUG', $isLocal);
-ini_set('display_errors', APP_DEBUG ? 1 : 0);
-error_reporting(APP_DEBUG ? E_ALL : 0);
+define('APP_DEBUG', true);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 
-define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.hostinger.com');
-define('SMTP_PORT', (int) (getenv('SMTP_PORT') ?: 465));
-define('SMTP_SECURE', getenv('SMTP_SECURE') ?: 'ssl');
-define('SMTP_USER', getenv('SMTP_USER') ?: 'no-reply@senderismogopro.com');
-define('SMTP_PASS', getenv('SMTP_PASS') ?: 'CAMBIAR_CLAVE_DEL_CORREO');
-define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: 'no-reply@senderismogopro.com');
+define('SMTP_HOST', 'smtp.hostinger.com');
+define('SMTP_PORT', 465);
+define('SMTP_SECURE', 'ssl');
+define('SMTP_USER', 'no-reply@senderismogopro.com');
+define('SMTP_PASS', 'S3nderismo_G0');
+define('SMTP_FROM_EMAIL', 'no-reply@senderismogopro.com');
 define('SMTP_FROM_NAME', 'Senderismo Go');
-define('SMTP_REPLY_TO', getenv('SMTP_REPLY_TO') ?: 'senderismogopro@gmail.com');
+define('SMTP_REPLY_TO', 'senderismogopro@gmail.com');

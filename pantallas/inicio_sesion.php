@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -22,7 +23,7 @@ $jsFiles = [
 ];
 
 if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio.php'));
     exit;
 }
 
@@ -121,7 +122,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </p>
 
                     <p class="mt-2">
-                        <a href="<?= BASE_URL ?>index.php">← Volver al inicio</a>
+                        <a href="<?= BASE_URL ?>">← Volver al inicio</a>
                     </p>
                 </div>
 

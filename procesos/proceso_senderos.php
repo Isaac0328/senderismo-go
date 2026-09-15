@@ -224,6 +224,33 @@ try {
         }
     }
 
+    $puntosInput = $_POST['puntos'] ?? [];
+    $puntosInput = is_array($puntosInput) ? $puntosInput : [];
+    $puntosCatalogoSeleccionados = [];
+    foreach ($puntosInput as $punto) {
+        if (!is_array($punto)) {
+            continue;
+        }
+
+        $puntoCatalogoId = (int) ($punto['punto_encuentro_id'] ?? 0);
+        $horaEncuentroPunto = trim((string) ($punto['hora_encuentro'] ?? ''));
+        $horaSalidaPunto = trim((string) ($punto['hora_salida'] ?? ''));
+        $tieneDatosPunto = $puntoCatalogoId > 0 || $horaEncuentroPunto !== '' || $horaSalidaPunto !== '';
+        if (!$tieneDatosPunto) {
+            continue;
+        }
+
+        if ($puntoCatalogoId <= 0 || $horaEncuentroPunto === '' || $horaSalidaPunto === '') {
+            $_SESSION['senderos_error'] = "Completa el lugar, la hora de llegada y la hora de salida de cada punto de encuentro.";
+            redirect_senderos($conn, $id);
+        }
+        if (in_array($puntoCatalogoId, $puntosCatalogoSeleccionados, true)) {
+            $_SESSION['senderos_error'] = "No puedes agregar el mismo punto de encuentro mas de una vez.";
+            redirect_senderos($conn, $id);
+        }
+        $puntosCatalogoSeleccionados[] = $puntoCatalogoId;
+    }
+
     $inversionBase = $inversionesActivas[0] ?? ($inversiones[0] ?? null);
     $inversionTotal = $inversionBase ? (float) $inversionBase['monto'] : null;
     $fechaLimitePago = $inversionBase['fecha_limite_pago'] ?? '';
@@ -381,8 +408,26 @@ try {
         }
     }
 
-    foreach (array_diff($existingInvestmentIds, $savedInvestmentIds) as $disabledId) {
-        mysqli_query($conn, "UPDATE sendero_inversiones SET activo = 0 WHERE id = " . (int) $disabledId . " AND sendero_id = " . (int) $senderoId);
+    foreach (array_diff($existingInvestmentIds, $savedInvestmentIds) as $removedId) {
+        $removedId = (int) $removedId;
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT
+                (SELECT COUNT(*) FROM registros_senderos WHERE inversion_id = ?) +
+                (SELECT COUNT(*) FROM registro_sendero_menores WHERE inversion_id = ?) AS usos"
+        );
+        mysqli_stmt_bind_param($stmt, "ii", $removedId, $removedId);
+        mysqli_stmt_execute($stmt);
+        $usageResult = mysqli_stmt_get_result($stmt);
+        $usageRow = $usageResult ? mysqli_fetch_assoc($usageResult) : null;
+        mysqli_stmt_close($stmt);
+
+        if ((int) ($usageRow['usos'] ?? 0) > 0) {
+            mysqli_query($conn, "UPDATE sendero_inversiones SET activo = 0 WHERE id = " . $removedId . " AND sendero_id = " . (int) $senderoId);
+            continue;
+        }
+
+        mysqli_query($conn, "DELETE FROM sendero_inversiones WHERE id = " . $removedId . " AND sendero_id = " . (int) $senderoId);
     }
 
     mysqli_query($conn, "DELETE FROM sendero_elementos_incluidos WHERE sendero_id = " . (int) $senderoId);
@@ -396,10 +441,15 @@ try {
         mysqli_stmt_close($stmt);
     }
 
-    mysqli_query($conn, "DELETE FROM sendero_puntos_encuentro WHERE sendero_id = " . (int) $senderoId);
-    $puntos = $_POST['puntos'] ?? [];
+    $puntos = $puntosInput;
+    $puntosConservados = [];
     $orden = 1;
     foreach ($puntos as $punto) {
+        if (!is_array($punto)) {
+            continue;
+        }
+
+        $senderoPuntoId = (int) ($punto['id'] ?? 0);
         $puntoEncuentroId = (int) ($punto['punto_encuentro_id'] ?? 0);
         $nombrePunto = trim($punto['nombre_punto'] ?? '');
         $direccion = trim($punto['direccion_referencia'] ?? '');
@@ -428,17 +478,64 @@ try {
             continue;
         }
 
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT INTO sendero_puntos_encuentro
-             (sendero_id, punto_encuentro_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
-        );
         $puntoEncuentroId = $puntoEncuentroId > 0 ? $puntoEncuentroId : null;
-        mysqli_stmt_bind_param($stmt, "iisssssi", $senderoId, $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+
+        $puntoPerteneceSendero = false;
+        if ($senderoPuntoId > 0) {
+            $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_puntos_encuentro WHERE id = ? AND sendero_id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, "ii", $senderoPuntoId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            $puntoPerteneceSendero = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($puntoPerteneceSendero) {
+            $stmt = mysqli_prepare(
+                $conn,
+                "UPDATE sendero_puntos_encuentro
+                 SET punto_encuentro_id = ?, nombre_punto = ?, direccion_referencia = ?, hora_encuentro = ?,
+                     hora_salida = ?, url_mapa = ?, orden = ?, activo = 1
+                 WHERE id = ? AND sendero_id = ?"
+            );
+            mysqli_stmt_bind_param($stmt, "isssssiii", $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden, $senderoPuntoId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO sendero_puntos_encuentro
+                 (sendero_id, punto_encuentro_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
+            );
+            mysqli_stmt_bind_param($stmt, "iisssssi", $senderoId, $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
+            mysqli_stmt_execute($stmt);
+            $senderoPuntoId = (int) mysqli_insert_id($conn);
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($senderoPuntoId > 0) {
+            $puntosConservados[] = $senderoPuntoId;
+        }
         $orden++;
+    }
+
+    $condicionConservados = $puntosConservados
+        ? " AND id NOT IN (" . implode(',', array_map('intval', $puntosConservados)) . ")"
+        : '';
+    $resPuntosRetirados = mysqli_query(
+        $conn,
+        "SELECT spe.id,
+                (SELECT COUNT(*) FROM registros_senderos rs WHERE rs.sendero_punto_encuentro_id = spe.id) AS uso_count
+         FROM sendero_puntos_encuentro spe
+         WHERE spe.sendero_id = " . (int) $senderoId . " AND spe.activo = 1" . $condicionConservados
+    );
+    while ($resPuntosRetirados && $puntoRetirado = mysqli_fetch_assoc($resPuntosRetirados)) {
+        $puntoRetiradoId = (int) $puntoRetirado['id'];
+        if ((int) $puntoRetirado['uso_count'] > 0) {
+            mysqli_query($conn, "UPDATE sendero_puntos_encuentro SET activo = 0 WHERE id = " . $puntoRetiradoId . " AND sendero_id = " . (int) $senderoId);
+        } else {
+            mysqli_query($conn, "DELETE FROM sendero_puntos_encuentro WHERE id = " . $puntoRetiradoId . " AND sendero_id = " . (int) $senderoId);
+        }
     }
 
     $galleryFiles = uploaded_files_array('galeria');
