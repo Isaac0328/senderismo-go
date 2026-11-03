@@ -9,7 +9,7 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
-$pageTitle = "Reporte Contacto | Senderismo Go!";
+$pageTitle = "Mensajes de contacto";
 $cssFiles = [
     "css/global.css",
     "css/barra_navegacion.css",
@@ -101,7 +101,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <header class="reportes-header">
             <div>
                 <span class="reportes-kicker">Buzon de contacto</span>
-                <h1>Reporte Contacto</h1>
+                <h1>Mensajes de contacto</h1>
                 <p>Consulta los mensajes que completan los visitantes desde la pagina de contacto.</p>
             </div>
             <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="reportes-back">

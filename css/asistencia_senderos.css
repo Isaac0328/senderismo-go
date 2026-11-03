@@ -1,0 +1,1111 @@
+.asis-page {
+    min-height: 100vh;
+    background: var(--app-neutral-150);
+    padding: 88px 20px 28px;
+    overflow-x: hidden;
+}
+
+.asis-page *,
+.asis-page *::before,
+.asis-page *::after {
+    box-sizing: border-box;
+}
+
+.asis-container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.asis-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+
+.asis-kicker,
+.asis-card-head span {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.asis-header h1 {
+    margin: 7px 0 0;
+    color: var(--app-text);
+    font-size: 1.8rem;
+    line-height: 1.1;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-header p {
+    max-width: 780px;
+    margin: 5px 0 0;
+    color: var(--app-neutral-700);
+    line-height: 1.45;
+}
+
+.asis-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    border-radius: 8px;
+    padding: 9px 12px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    border: 1px solid rgba(0, 0, 0, .08);
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.asis-back svg {
+    width: 16px;
+    height: 16px;
+}
+
+.asis-alert {
+    margin-bottom: 12px;
+    padding: 13px 14px;
+    border-radius: 8px;
+    font-weight: 900;
+}
+
+.asis-alert.success {
+    background: var(--app-success-50);
+    color: var(--app-success);
+    border: 1px solid var(--app-success-200);
+}
+
+.asis-alert.error {
+    background: var(--app-danger-50);
+    color: var(--app-danger);
+    border: 1px solid var(--app-danger-200);
+}
+
+.asis-card,
+.asis-route-banner,
+.asis-empty {
+    background: var(--app-surface);
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 8px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
+}
+
+.asis-card {
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.asis-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px 8px;
+}
+
+.asis-card-head h2 {
+    margin: 7px 0 0;
+    color: var(--app-text);
+    font-size: 1rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-card-head > svg {
+    width: 20px;
+    height: 20px;
+    color: var(--app-accent-dark);
+}
+
+.asis-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.asis-card-tools > svg {
+    width: 20px;
+    height: 20px;
+    color: var(--app-accent-dark);
+}
+
+.asis-open-modal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: var(--app-primary-dark);
+    color: var(--app-inverse);
+    font: inherit;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.asis-open-modal svg {
+    width: 16px;
+    height: 16px;
+}
+
+.asis-filter-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    padding: 0 14px 14px;
+}
+
+.asis-filter-form select,
+.asis-note {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 8px;
+    background: var(--app-surface);
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.asis-filter-form button,
+.asis-filter-form a,
+.asis-tools button,
+.asis-sticky-save button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    border-radius: 8px;
+    border: 0;
+    padding: 8px 12px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.asis-filter-form a,
+.asis-tools button {
+    background: var(--app-neutral-50);
+    color: var(--app-text);
+}
+
+.asis-tools button.primary,
+.asis-sticky-save button {
+    background: var(--app-ink);
+    color: var(--app-inverse);
+}
+
+.asis-route-banner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.asis-route-banner span {
+    display: inline-flex;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.asis-route-banner h2 {
+    margin: 9px 0 4px;
+    color: var(--app-text);
+    font-size: 1.25rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-route-banner p {
+    margin: 0;
+    color: var(--app-neutral-700);
+}
+
+.asis-route-side {
+    display: grid;
+    gap: 10px;
+    justify-items: end;
+}
+
+.asis-route-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    border: 1px solid var(--app-primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: var(--app-primary);
+    color: var(--app-inverse);
+    font-size: .85rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.asis-route-link:hover {
+    background: var(--app-primary-dark);
+}
+
+.asis-route-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+.asis-route-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(92px, 1fr));
+    gap: 8px;
+}
+
+.asis-route-stats article {
+    min-width: 92px;
+    border-radius: 10px;
+    background: var(--app-neutral-50);
+    padding: 10px;
+    text-align: center;
+}
+
+.asis-route-stats article.ok {
+    background: var(--app-success-50);
+}
+
+.asis-route-stats article.warn {
+    background: var(--app-warning-100);
+}
+
+.asis-route-stats strong {
+    display: block;
+    color: var(--app-text);
+    font-size: 1.55rem;
+    line-height: 1;
+    font-weight: 950;
+}
+
+.asis-route-stats span {
+    margin-top: 5px;
+    padding: 0;
+    background: transparent;
+    color: var(--app-neutral-700);
+    font-size: .75rem;
+}
+
+.asis-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 14px 14px;
+}
+
+.asis-table-wrap {
+    margin: 0 10px 12px;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+}
+
+.asis-table-search {
+    position: relative;
+    margin: 0 10px 10px;
+}
+
+.asis-table-search svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 17px;
+    height: 17px;
+    color: var(--app-neutral-600);
+    transform: translateY(-50%);
+}
+
+.asis-table-search input {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid rgba(0, 0, 0, .1);
+    border-radius: 9px;
+    background: var(--app-surface);
+    padding: 9px 12px 9px 38px;
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 750;
+    outline: none;
+}
+
+.asis-table-search input:focus {
+    border-color: color-mix(in srgb, var(--app-primary-dark) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary-dark) 12%, transparent);
+}
+
+.asis-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.asis-search-empty {
+    margin: 0 10px 12px;
+    padding: 22px 16px;
+    border: 1px dashed color-mix(in srgb, var(--app-accent-dark) 20%, transparent);
+    border-radius: 8px;
+    background: var(--app-neutral-25);
+    color: var(--app-accent-600);
+    text-align: center;
+    font-weight: 900;
+}
+
+.asis-table-wrap table {
+    width: 100%;
+    min-width: 1080px;
+    border-collapse: collapse;
+}
+
+.asis-table-wrap th,
+.asis-table-wrap td {
+    padding: 10px 11px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    text-align: left;
+    vertical-align: middle;
+    font-size: .84rem;
+}
+
+.asis-table-wrap th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--app-neutral-50);
+    color: var(--app-neutral-800);
+    font-size: .76rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-table-wrap tr.is-present,
+.asis-user-card.is-present {
+    background: var(--app-primary-50);
+}
+
+.asis-table-wrap td strong,
+.asis-table-wrap td span {
+    display: block;
+}
+
+.asis-table-wrap td span {
+    margin-top: 3px;
+    color: var(--app-muted);
+    line-height: 1.35;
+}
+
+.asis-row-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.asis-row-actions.mobile {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 10px;
+}
+
+.asis-mini-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 950;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.asis-mini-action.danger {
+    background: var(--app-danger-100);
+    color: var(--app-danger-600);
+}
+
+.asis-origin-pill {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 8px;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-700);
+    font-size: .72rem;
+    font-weight: 900;
+}
+
+.asis-origin-pill.mobile {
+    margin-top: 10px;
+}
+
+.asis-hidden-form {
+    display: none;
+}
+
+.asis-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.asis-check input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.asis-check span {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 2px solid var(--app-neutral-300);
+    background: var(--app-surface);
+    box-shadow: inset 0 0 0 4px var(--app-surface);
+}
+
+.asis-check input:checked + span {
+    border-color: var(--app-primary);
+    background: var(--app-primary);
+}
+
+.asis-check input:checked + span::after {
+    content: "";
+    display: block;
+    width: 10px;
+    height: 18px;
+    margin: 4px auto 0;
+    border: solid var(--app-surface);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+.asis-empty {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 46px 18px;
+    border-style: dashed;
+}
+
+.asis-empty.compact {
+    margin: 0 10px 12px;
+    padding: 34px 14px;
+}
+
+.asis-empty svg {
+    width: 34px;
+    height: 34px;
+    color: var(--app-accent-dark);
+    margin-bottom: 10px;
+}
+
+.asis-empty h2 {
+    margin: 0 0 6px;
+    color: var(--app-text);
+    font-size: 1.05rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-empty p {
+    margin: 0;
+    max-width: 560px;
+    color: var(--app-neutral-700);
+}
+
+.asis-mobile-list {
+    display: none;
+}
+
+.asis-sticky-save {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, .92);
+    border-top: 1px solid rgba(0, 0, 0, .08);
+    backdrop-filter: blur(8px);
+}
+
+.asis-modal {
+    position: fixed;
+    inset: 0;
+    width: min(760px, calc(100vw - 24px));
+    max-height: min(720px, calc(100dvh - 24px));
+    margin: auto;
+    border: 0;
+    border-radius: 10px;
+    padding: 0;
+    background: var(--app-surface);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .34);
+    overflow: auto;
+}
+
+.asis-modal::backdrop {
+    background: rgba(0, 0, 0, .55);
+}
+
+.asis-modal-box {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 18px;
+}
+
+.asis-field > span b,
+.asis-required-note b {
+    color: var(--app-danger);
+}
+
+.asis-required-note {
+    margin: -4px 0 0;
+    color: var(--app-muted);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.asis-field-error {
+    display: block;
+    margin-top: 5px;
+    color: var(--app-danger);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.asis-field.has-field-error input,
+.asis-field.has-field-error select,
+.asis-existing-field.has-field-error > input,
+.asis-field input[aria-invalid="true"],
+.asis-field select[aria-invalid="true"] {
+    border-color: var(--app-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-danger) 14%, transparent);
+}
+
+.asis-modal-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.asis-modal-head span {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: color-mix(in srgb, var(--app-primary) 12%, transparent);
+    color: var(--app-primary);
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-modal-head h2 {
+    margin: 7px 0 0;
+    color: var(--app-text);
+    font-size: 1.2rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-modal-subtitle {
+    margin: 5px 0 0;
+    color: var(--app-neutral-700);
+    font-weight: 800;
+}
+
+.asis-modal-close {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--app-neutral-100);
+    color: var(--app-text);
+    cursor: pointer;
+}
+
+.asis-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.asis-mode-switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.asis-minors-box,
+.asis-minor-card {
+    display: grid;
+    gap: 10px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: var(--app-neutral-25);
+    padding: 12px;
+}
+
+.asis-minors-head,
+.asis-minor-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.asis-minors-head span {
+    color: var(--app-primary);
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-minors-head strong,
+.asis-minor-card-head strong {
+    display: block;
+    color: var(--app-text);
+    font-weight: 950;
+}
+
+.asis-add-minor,
+.asis-minor-card-head button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--app-primary-dark);
+    color: var(--app-inverse);
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.asis-add-minor svg,
+.asis-minor-card-head svg {
+    width: 16px;
+    height: 16px;
+}
+
+.asis-minor-card-head button {
+    width: 36px;
+    padding: 0;
+    background: var(--app-accent-100);
+    color: var(--app-accent-dark);
+}
+
+.asis-minors-list {
+    display: grid;
+    gap: 10px;
+}
+
+.asis-minor-card {
+    background: var(--app-surface);
+}
+
+.asis-minor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 620px) {
+    .asis-mode-switch,
+    .asis-minor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .asis-minors-head {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+.asis-mode-switch label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: var(--app-neutral-50);
+    padding: 10px 12px;
+    color: var(--app-text);
+    font-weight: 900;
+}
+
+.asis-form-grid,
+.asis-new-fields {
+    display: grid;
+    gap: 11px;
+}
+
+.asis-new-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.asis-field {
+    display: grid;
+    gap: 6px;
+}
+
+.asis-field span {
+    color: var(--app-neutral-800);
+    font-size: .78rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.asis-field input,
+.asis-field select {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid rgba(0, 0, 0, .13);
+    border-radius: 8px;
+    background: var(--app-surface);
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.asis-user-results {
+    display: grid;
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, .1);
+    border-radius: 8px;
+    background: var(--app-surface);
+}
+
+.asis-user-results button {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    background: var(--app-surface);
+    padding: 10px 12px;
+    color: var(--app-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.asis-user-results button:hover,
+.asis-user-results button:focus {
+    outline: none;
+    background: var(--app-primary-50);
+}
+
+.asis-user-results button[hidden] {
+    display: none;
+}
+
+.asis-user-results strong {
+    font-weight: 950;
+}
+
+.asis-user-results span,
+.asis-search-note {
+    color: var(--app-muted);
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.asis-checkline {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: var(--app-neutral-50);
+    padding: 10px 12px;
+    color: var(--app-text);
+    font-weight: 900;
+}
+
+.asis-checkline input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--app-primary);
+}
+
+.asis-modal-note {
+    margin: 0;
+    border-radius: 8px;
+    background: var(--app-primary-50);
+    color: var(--app-primary-600);
+    padding: 10px 12px;
+    font-weight: 800;
+}
+
+.asis-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.asis-modal-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    background: var(--app-primary-dark);
+    color: var(--app-inverse);
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.asis-modal-actions button.secondary {
+    background: var(--app-neutral-100);
+    color: var(--app-text);
+}
+
+@media (max-width: 980px) {
+    .asis-route-banner,
+    .asis-filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .asis-route-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .asis-route-side {
+        justify-items: start;
+    }
+}
+
+@media (max-width: 760px) {
+    .asis-page {
+        padding: 84px 8px 24px;
+    }
+
+    .asis-header {
+        align-items: stretch;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .asis-header h1 {
+        font-size: 1.45rem;
+        overflow-wrap: anywhere;
+    }
+
+    .asis-header p {
+        font-size: .95rem;
+    }
+
+    .asis-back,
+    .asis-filter-form button,
+    .asis-filter-form a,
+    .asis-tools button,
+    .asis-sticky-save button {
+        width: 100%;
+    }
+
+    .asis-card-head {
+        padding: 14px 10px 8px;
+    }
+
+    .asis-card-tools {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .asis-open-modal {
+        width: 100%;
+    }
+
+    .asis-card-head h2 {
+        font-size: .98rem;
+        overflow-wrap: anywhere;
+    }
+
+    .asis-tools {
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 0 10px 12px;
+    }
+
+    .asis-table-wrap {
+        display: none;
+    }
+
+    .asis-mobile-list {
+        display: grid;
+        gap: 10px;
+        padding: 0 10px 12px;
+    }
+
+    .asis-user-card {
+        border: 1px solid rgba(0, 0, 0, .08);
+        border-radius: 8px;
+        background: var(--app-neutral-25);
+        padding: 12px;
+    }
+
+    .asis-user-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .asis-user-head strong,
+    .asis-user-head span {
+        display: block;
+    }
+
+    .asis-user-head strong {
+        color: var(--app-text);
+        font-weight: 950;
+    }
+
+    .asis-user-head div > span,
+    .asis-user-card p,
+    .asis-user-card small {
+        color: var(--app-muted);
+    }
+
+    .asis-user-card p {
+        margin: 8px 0 0;
+        line-height: 1.4;
+    }
+
+    .asis-user-card small {
+        display: block;
+        margin-top: 8px;
+    }
+
+    .asis-user-card .asis-note {
+        margin-top: 10px;
+    }
+
+    .asis-modal-box {
+        padding: 14px;
+    }
+
+    .asis-mode-switch,
+    .asis-new-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .asis-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .asis-modal-actions button {
+        width: 100%;
+    }
+}
+
+/* Estado de pago de cada inscrito (mismo calculo que Ingresos por sendero) */
+.asis-col-pago {
+    white-space: nowrap;
+}
+
+.asis-pago {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    background: color-mix(in srgb, var(--estado, var(--app-neutral-500)) 13%, var(--app-surface));
+    color: color-mix(in srgb, var(--estado, var(--app-neutral-500)) 80%, var(--app-text));
+    font-size: .76rem;
+    font-weight: 900;
+}
+
+.asis-pago::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--estado, var(--app-neutral-500));
+}
+
+.asis-pago.is-muted {
+    --estado: var(--app-neutral-500);
+}
+
+.asis-pago-detalle {
+    display: block;
+    margin-top: 3px;
+    color: var(--app-muted);
+    font-size: .76rem;
+    font-weight: 750;
+}
+
+.asis-pago-detalle.is-debe {
+    color: var(--app-danger-dark);
+    font-weight: 900;
+}
+
+.asis-pago-movil {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+}
+
+.asis-pago-movil .asis-pago-detalle {
+    display: inline;
+    margin: 0;
+}
+
+/* Persona sin cuenta en el modal de asistentes */
+.asis-person-field {
+    grid-column: 1 / -1;
+}
+
+.asis-person-field small {
+    color: var(--app-muted);
+    font-size: .76rem;
+}

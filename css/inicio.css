@@ -1,7 +1,27 @@
 /* ================= HERO ================= */
+.inicio-page {
+    position: relative;
+    width: 100%;
+    background: var(--app-ink);
+}
+
+#hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    min-height: 620px;
+    overflow: hidden;
+    background: var(--app-ink);
+}
+
+#hero > img:first-child {
+    display: block;
+}
+
 #hero h1,
 #hero p {
-    color: var(--color-blanco);
+    color: var(--app-inverse);
 }
 
 #hero p {
@@ -11,25 +31,25 @@
 
 /* Botón CONOCER MÁS en Hero */
 #hero .btn {
-    background: linear-gradient(135deg, #3e6b3e 0%, #4a7c4a 100%);
-    color: var(--color-blanco);
+    background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-primary) 100%);
+    color: var(--app-inverse);
     padding: 0.75rem 2rem;
     border-radius: 9999px;
     font-weight: 600;
     border: 2px solid transparent;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(62, 107, 62, 0.2);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--app-primary) 20%, transparent);
 }
 
 #hero .btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(62, 107, 62, 0.3);
-    border-color: var(--color-blanco);
+    box-shadow: 0 8px 25px color-mix(in srgb, var(--app-primary) 30%, transparent);
+    border-color: var(--app-surface);
 }
 
 #hero .btn:active {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(62, 107, 62, 0.2);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--app-primary) 20%, transparent);
 }
 
 #hero .btn span {
@@ -40,12 +60,56 @@
 #hero .btn:hover span {
     transform: translateY(3px);
 }
+.hero-quick-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1rem;
+    padding: 0.62rem 0.8rem 0.62rem 0.95rem;
+    color: var(--app-inverse) !important;
+    text-decoration: none;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--app-ink) 72%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+    transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+
+.hero-quick-link svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--app-inverse);
+}
+
+.hero-quick-link span {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--app-inverse);
+}
+
+.hero-quick-link strong {
+    padding: 0.32rem 0.6rem;
+    border-radius: 999px;
+    background: var(--app-accent);
+    color: var(--app-inverse);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.hero-quick-link:hover {
+    transform: translateY(-2px);
+    background: rgba(0, 0, 0, 0.72);
+    border-color: rgba(255, 255, 255, 0.62);
+}
 
 /* ================= POR QUÉ ELEGIRNOS ================= */
 #porque-elegirnos {
-    background-color: #5b1a1a;
-    /* rojo oscuro */
-    color: var(--color-blanco);
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--app-primary) 10%, transparent), transparent 30rem),
+        linear-gradient(135deg, var(--app-neutral-25) 0%, var(--app-bg) 100%);
+    color: var(--app-text);
     position: relative;
     overflow: hidden;
 }
@@ -56,16 +120,35 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #3e6b3e, #4a7c4a);
+    height: 5px;
+    background: linear-gradient(90deg, var(--app-accent-900), var(--app-primary), var(--app-primary-400));
     z-index: 1;
 }
 
+#porque-elegirnos .porque-header {
+    position: relative;
+    z-index: 1;
+}
+
+#porque-elegirnos .porque-overline {
+    display: inline-block;
+    margin-bottom: 1rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--app-primary) 11%, transparent);
+    color: var(--app-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
 #porque-elegirnos h2 {
-    color: var(--color-blanco);
+    color: var(--app-accent-900);
     position: relative;
     display: inline-block;
     padding-bottom: 0.5rem;
+    letter-spacing: 0;
 }
 
 #porque-elegirnos h2::after {
@@ -74,19 +157,31 @@
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
+    width: 96px;
     height: 3px;
-    background-color: #3e6b3e;
+    background: linear-gradient(90deg, var(--app-accent-900), var(--app-primary));
     border-radius: 2px;
 }
 
+#porque-elegirnos .porque-header p {
+    max-width: 42rem;
+    margin: 1rem auto 0;
+    color: var(--app-muted);
+    font-weight: 500;
+}
+
+#porque-elegirnos .porque-grid {
+    position: relative;
+    z-index: 1;
+}
+
 #porque-elegirnos .card {
-    background-color: #3e6b3e;
-    /* verde oscuro */
-    padding: 2.5rem;
-    border-radius: 0.75rem;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--app-surface);
+    padding: 2.35rem 2rem;
+    border-radius: 1.25rem;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+    border: 1px solid color-mix(in srgb, var(--app-primary) 10%, transparent);
+    box-shadow: 0 16px 36px color-mix(in srgb, var(--app-ink) 8%, transparent);
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -94,40 +189,71 @@
 }
 
 #porque-elegirnos .card:hover {
-    transform: translateY(-12px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.2);
-    background-color: #457845;
+    transform: translateY(-8px);
+    box-shadow: 0 26px 46px color-mix(in srgb, var(--app-ink) 14%, transparent);
+    border-color: color-mix(in srgb, var(--app-primary) 26%, transparent);
 }
 
-#porque-elegirnos .card i {
-    color: #ffd166;
+#porque-elegirnos .icon-circle {
+    width: 5rem;
+    height: 5rem;
+    align-items: center;
+    border-radius: 999px;
+    background: linear-gradient(145deg, var(--app-bg), var(--app-primary-100));
+    color: var(--app-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-primary) 8%, transparent);
+    transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+#porque-elegirnos .card i,
+#porque-elegirnos .card svg {
+    color: currentColor;
+    stroke: currentColor;
     transition: transform 0.3s ease;
 }
 
-#porque-elegirnos .card:hover i {
-    transform: scale(1.2);
+#porque-elegirnos .card:hover .icon-circle {
+    background: var(--app-primary);
+    color: var(--app-inverse);
+    transform: scale(1.04);
 }
 
 #porque-elegirnos .card h3 {
-    color: #ffd166;
+    color: var(--app-text);
     margin-bottom: 1rem;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    text-transform: none;
 }
 
 #porque-elegirnos .card p {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--app-muted);
     line-height: 1.6;
+    margin-bottom: 0;
+}
+
+#porque-elegirnos .card-divider {
+    width: 3rem;
+    height: 2px;
+    margin-top: 1.35rem;
+    border-radius: 999px;
+    background: var(--app-neutral-200);
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+#porque-elegirnos .card:hover .card-divider {
+    width: 5rem;
+    background: var(--app-primary);
 }
 
 /* ================= GALERÍA ================= */
 #galeria {
-    background-color: var(--color-blanco);
+    background-color: var(--app-surface);
     position: relative;
 }
 
 #galeria h2 {
-    color: #5b1a1a;
+    color: var(--app-accent-900);
     position: relative;
     display: inline-block;
     padding-bottom: 0.5rem;
@@ -141,7 +267,7 @@
     transform: translateX(-50%);
     width: 100px;
     height: 3px;
-    background-color: #3e6b3e;
+    background-color: var(--app-primary);
     border-radius: 2px;
 }
 
@@ -161,8 +287,8 @@
     bottom: 0;
     background: linear-gradient(to bottom,
             transparent 0%,
-            rgba(91, 26, 26, 0.1) 50%,
-            rgba(62, 107, 62, 0.3) 100%);
+            color-mix(in srgb, var(--app-accent-900) 10%, transparent) 50%,
+            color-mix(in srgb, var(--app-primary) 30%, transparent) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: 1;
@@ -192,7 +318,7 @@
 
 /* ================= QUIÉNES SOMOS ================= */
 #quienes-somos {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, var(--app-neutral-25) 0%, var(--app-neutral-100) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -204,28 +330,28 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #5b1a1a, #3e6b3e);
+    background: linear-gradient(90deg, var(--app-accent-900), var(--app-primary));
 }
 
 #quienes-somos h2 {
-    color: #5b1a1a;
+    color: var(--app-accent-900);
 }
 
 #quienes-somos .btn {
-    background: linear-gradient(135deg, #5b1a1a 0%, #7a2c2c 100%);
-    color: var(--color-blanco);
+    background: linear-gradient(135deg, var(--app-accent-900) 0%, var(--app-accent-900) 100%);
+    color: var(--app-inverse);
     padding: 0.75rem 2.5rem;
     border-radius: 9999px;
     font-weight: 600;
     border: 2px solid transparent;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(91, 26, 26, 0.2);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--app-accent-900) 20%, transparent);
 }
 
 #quienes-somos .btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(91, 26, 26, 0.3);
-    background: linear-gradient(135deg, #7a2c2c 0%, #5b1a1a 100%);
+    box-shadow: 0 8px 25px color-mix(in srgb, var(--app-accent-900) 30%, transparent);
+    background: linear-gradient(135deg, var(--app-accent-900) 0%, var(--app-accent-900) 100%);
 }
 
 /* ================= MODAL GALERÍA ================= */
@@ -265,9 +391,9 @@
 
 /* Botones de navegación */
 #galleryModal button {
-    background: rgba(91, 26, 26, 0.8);
+    background: color-mix(in srgb, var(--app-accent-900) 80%, transparent);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    color: white;
+    color: var(--app-inverse);
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -290,7 +416,7 @@
 }
 
 #galleryModal button:hover {
-    background: rgba(62, 107, 62, 0.9);
+    background: color-mix(in srgb, var(--app-primary) 90%, transparent);
     transform: scale(1.1);
     border-color: rgba(255, 255, 255, 0.4);
 }
@@ -316,7 +442,7 @@
 #galleryModal button:first-of-type {
     top: 30px;
     right: 30px;
-    background: rgba(91, 26, 26, 0.9);
+    background: color-mix(in srgb, var(--app-accent-900) 90%, transparent);
     font-size: 2.5rem;
     width: 50px;
     height: 50px;
@@ -344,7 +470,7 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    color: white;
+    color: var(--app-inverse);
     font-size: 1.2rem;
     background: rgba(0, 0, 0, 0.6);
     padding: 10px 20px;
@@ -377,11 +503,11 @@
 
 /* Botón cerrar */
 #galleryModal button:first-of-type {
-    background: rgba(91, 26, 26, 0.7);
+    background: color-mix(in srgb, var(--app-accent-900) 70%, transparent);
 }
 
 #galleryModal button:first-of-type:hover {
-    background: rgba(91, 26, 26, 0.9);
+    background: color-mix(in srgb, var(--app-accent-900) 90%, transparent);
 }
 
 /* ================= ANIMACIONES GENERALES ================= */
@@ -469,6 +595,20 @@ img[src=""] {
     #hero .btn {
         padding: 0.5rem 1.5rem;
         font-size: 0.9rem;
+    }
+    .hero-quick-link {
+        max-width: min(92vw, 320px);
+        padding: 0.58rem 0.68rem 0.58rem 0.78rem;
+        gap: 0.5rem;
+    }
+
+    .hero-quick-link span {
+        font-size: 0.82rem;
+    }
+
+    .hero-quick-link strong {
+        font-size: 0.66rem;
+        padding: 0.28rem 0.5rem;
     }
 
     #galeria img {

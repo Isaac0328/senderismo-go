@@ -1,0 +1,122 @@
+.bal-page{max-width:1480px;margin:0 auto;padding:112px 24px 64px;color:var(--app-text);letter-spacing:0;font-family:'Montserrat',Arial,sans-serif}
+.bal-page,.bal-page *{box-sizing:border-box}
+.bal-page .bal-tabs,.bal-page .bal-subtabs,.bal-page .bal-pagination{position:static;inset:auto;z-index:auto;width:auto;min-height:0;box-shadow:none;backdrop-filter:none;background:transparent!important;animation:none;opacity:1;transform:none}
+.bal-icon svg+.bal-icon-fallback{display:none}.bal-icon-fallback{font:24px/1 Arial,sans-serif}
+.bal-account-fields{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border:0;border-top:1px solid var(--app-line);padding:16px 0 0;margin:0;min-width:0}
+.bal-account-fields legend{padding:0 8px 0 0;font-size:13px;font-weight:700}
+.bal-field-help{grid-column:1/-1;margin:0;padding:10px 12px;border:1px solid var(--app-primary-200);border-radius:5px;background:var(--app-bg);font-size:13px;line-height:1.45}
+@media(max-width:620px){.bal-account-fields{grid-template-columns:1fr}}
+.bal-page a:not(.panel-item):not(.nav-link):not(.btn):not(.dropdown-item){color:var(--app-primary);text-decoration:none}
+.bal-page .bal-tabs a.active,.bal-page .bal-subtabs a.active{color:var(--app-primary)}
+.bal-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.bal-heading h1{font-size:28px;font-weight:800;margin:4px 0}.bal-eyebrow{color:var(--app-muted);font-size:12px;font-weight:700;text-transform:uppercase}.bal-page a{color:var(--app-primary)}.bal-page svg{width:17px;height:17px;flex:none}
+.bal-tabs,.bal-subtabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--app-neutral-200);margin-bottom:20px}.bal-tabs a,.bal-subtabs a{display:flex;align-items:center;gap:6px;white-space:nowrap;padding:13px 15px;color:var(--app-muted);font-weight:650;font-size:13px;border-bottom:3px solid transparent}.bal-tabs .active,.bal-subtabs .active{color:var(--app-primary);border-bottom-color:var(--app-primary);background:var(--app-bg)}
+.bal-page button,.bal-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--app-neutral-200);background:var(--app-surface);color:var(--app-primary-dark);border-radius:6px;padding:9px 12px;font-size:13px;font-weight:700;min-height:38px;cursor:pointer}.bal-page button:hover,.bal-button:hover{background:var(--app-bg)}.bal-page button:disabled{opacity:.55;cursor:wait}.bal-page .bal-primary{background:var(--app-primary-600);border-color:var(--app-primary-600);color:var(--app-inverse)}.bal-page .bal-primary:hover{background:var(--app-primary-600)}.bal-page :focus-visible{outline:3px solid var(--app-primary-400);outline-offset:2px}
+.bal-page input,.bal-page select{border:1px solid var(--app-neutral-300);border-radius:5px;background:var(--app-surface);color:var(--app-text);padding:9px 10px;min-height:40px;width:100%;font-size:14px;box-sizing:border-box}.bal-page input[type=checkbox]{width:17px;min-height:17px;accent-color:var(--app-primary)}.bal-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px;padding-bottom:22px}.bal-filters label{display:grid;gap:6px;font-size:12px;font-weight:650;min-width:145px;max-width:250px;flex:1}.bal-filters>a{padding:10px;font-size:13px}
+.bal-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-block:1px solid var(--app-neutral-200);margin:8px 0 28px;background:var(--app-surface)}.bal-metrics>div{padding:20px 16px;border-right:1px solid var(--app-neutral-150);min-width:0}.bal-metrics span{font-size:12px;display:block;color:var(--app-muted)}.bal-metrics strong{font-size:21px;display:block;overflow-wrap:anywhere;margin-top:7px}.bal-metrics>div:nth-child(2) strong{color:var(--app-accent-600)}.bal-metrics>div:nth-child(3) strong{color:var(--app-primary)}
+.bal-section{margin-bottom:28px}.bal-section>header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0}.bal-section h2{font-size:18px;font-weight:750;margin:0}.bal-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.bal-actions a{font-size:13px}.bal-table-wrap{overflow:auto;border:1px solid var(--app-primary-200);border-radius:6px;background:var(--app-surface)}.bal-page table{border-collapse:collapse;width:100%;font-size:13px;text-align:left}.bal-page th{background:var(--app-bg);font-size:11px;text-transform:uppercase;color:var(--app-muted);font-weight:750;padding:12px;white-space:nowrap}.bal-page td{padding:13px 12px;border-top:1px solid var(--app-neutral-150);min-width:90px;max-width:360px;overflow-wrap:anywhere;vertical-align:top}.bal-page tbody tr:hover{background:var(--app-neutral-25)}.bal-page small{display:block;font-size:11px;color:var(--app-muted);margin-top:4px}.bal-positive{color:var(--app-success-600);font-weight:750;white-space:nowrap}.bal-negative{color:var(--app-danger-600);font-weight:750;white-space:nowrap}.bal-page .bal-empty{text-align:center;padding:36px;color:var(--app-muted)}.bal-pagination{display:flex;gap:20px;justify-content:end;font-size:13px}
+.bal-dialog{width:660px;max-width:calc(100vw - 28px);max-height:88vh;border:1px solid var(--app-neutral-200);border-radius:8px;padding:0;color:var(--app-text);background:var(--app-surface);margin:auto;box-shadow:0 24px 70px #0004}.bal-dialog::backdrop{background:color-mix(in srgb, var(--app-ink) 76.9%, transparent)}.bal-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 20px;border-bottom:1px solid var(--app-primary-100);position:sticky;top:0;background:var(--app-surface);z-index:1}.bal-dialog h2{font-size:19px;font-weight:750;overflow-wrap:anywhere}.bal-dialog .bal-icon{padding:8px;width:36px;height:36px;flex:none}.bal-form{padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.bal-form label{display:grid;align-content:start;gap:7px;min-width:0;font-size:12px;font-weight:650}.bal-form-footer{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--app-primary-200);padding-top:16px;gap:16px}.bal-form-footer>span{font-size:11px;color:var(--app-muted)}.bal-form .bal-check{display:flex;align-items:center;grid-column:1/-1}.bal-notice,.bal-form-error{padding:12px;border:1px solid var(--app-primary-300);background:var(--app-bg);color:var(--app-primary);border-radius:5px;margin:12px 0}.bal-form-error,.bal-notice.error{grid-column:1/-1;color:var(--app-danger-600);border-color:var(--app-danger-300);background:var(--app-danger-50)}.bal-dialog-note{padding:15px 20px 0;font-size:13px}.bal-page [hidden]{display:none!important}.bal-page pre{white-space:pre-wrap;font-size:11px;max-width:500px}.bal-page summary{cursor:pointer;color:var(--app-primary)}
+.bal-notice.success{color:var(--app-success-dark,var(--app-success-600));border-color:var(--app-success-300);background:var(--app-success-50)}.bal-registro-feedback{margin:0 0 18px}
+@media(max-width:1050px){.bal-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.bal-section>header{align-items:flex-start;flex-wrap:wrap}}
+@media(max-width:620px){.bal-page{padding:100px 12px 40px}.bal-heading h1{font-size:23px}.bal-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bal-metrics strong{font-size:18px}.bal-form{grid-template-columns:1fr}.bal-filters label{max-width:none}.bal-tabs a{padding:11px}.bal-heading>a{font-size:12px}.bal-page td{min-width:110px}.bal-dialog{max-height:90dvh}.bal-form-footer{position:sticky;bottom:0;background:var(--app-surface);padding-bottom:calc(12px + env(safe-area-inset-bottom))}.bal-section h2{font-size:17px}}
+.bal-section-help{color:var(--app-muted);font-size:12px;margin:5px 0 0}.bal-bulk-form{border:1px solid var(--app-neutral-200);background:var(--app-bg);border-radius:6px;padding:12px;margin:14px 0}.bal-bulk-selection{display:flex;align-items:center;gap:12px;font-size:13px;margin-bottom:10px}.bal-bulk-selection strong{margin-right:auto}.bal-link-button{border:0!important;background:transparent!important;padding:4px!important;min-height:0!important;color:var(--app-primary)!important;text-decoration:underline}.bal-bulk-fields{display:flex;align-items:end;gap:10px;flex-wrap:wrap}.bal-bulk-fields label{display:grid;gap:5px;font-size:11px;font-weight:700;min-width:200px;flex:1;max-width:290px}.bal-bulk-fields select,.bal-bulk-fields input{min-height:38px}.bal-check-cell{width:42px;min-width:42px!important;text-align:center!important}.bal-check-cell input{width:17px!important;height:17px;min-height:17px!important;accent-color:var(--app-primary)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Notas de ayuda dentro de los formularios: todo el ancho */
+.bal-form .bal-dialog-note,.bal-form .bal-check{grid-column:1/-1}
+
+/* Senderos sin cuadrar en la pestana Senderos */
+.bal-cuadre-pendiente{margin:0 0 16px;padding:12px 14px;border:1px solid var(--app-warning-200);border-radius:10px;background:var(--app-warning-50);color:var(--app-text);font-size:13px}
+.bal-cuadre-pendiente strong{display:flex;align-items:center;gap:7px;color:var(--app-warning-dark)}
+.bal-cuadre-pendiente ul{display:flex;flex-wrap:wrap;gap:6px 18px;margin:8px 0 0;padding:0;list-style:none}
+
+/* Registrar gasto / Registrar ingreso */
+.bal-registro{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.bal-registro-principal{border:1px solid var(--app-primary-200);border-radius:8px;background:var(--app-surface);padding:4px 20px 0}
+.bal-registro-form.bal-form{display:block;padding:0}
+.bal-registro-paso{border:0;border-top:1px solid var(--app-neutral-150);margin:0;padding:18px 0;min-width:0}
+.bal-registro-paso:first-of-type{border-top:0}
+.bal-registro-paso[hidden]{display:none}
+.bal-registro-paso legend{display:flex;align-items:center;gap:9px;float:left;width:100%;margin:0 0 14px;padding:0;font-size:14px;font-weight:750}
+.bal-registro-paso legend+*{clear:both}
+.bal-registro-paso legend span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--app-primary-600);color:var(--app-inverse);font-size:12px}
+.bal-registro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.bal-registro-ancho{grid-column:1/-1}
+.bal-registro-grid [hidden]{display:none!important}
+.bal-registro-modos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bal-registro-modo{position:relative;display:block!important;cursor:pointer}
+.bal-registro-modo input{position:absolute;opacity:0;width:1px;min-height:0}
+.bal-registro-modo>span{display:grid;gap:5px;height:100%;padding:14px;border:1px solid var(--app-neutral-200);border-radius:8px;background:var(--app-surface);transition:border-color .15s,background .15s}
+.bal-registro-modo strong{font-size:14px}
+.bal-registro-modo small{color:var(--app-muted);font-size:12px;font-weight:500;line-height:1.4}
+.bal-registro-modo svg{color:var(--app-primary)}
+.bal-registro-modo input:checked+span{border-color:var(--app-primary-600);background:var(--app-bg);box-shadow:inset 0 0 0 1px var(--app-primary-600)}
+.bal-registro-modo input:focus-visible+span{outline:2px solid var(--app-primary);outline-offset:2px}
+.bal-registro-modo input:disabled+span{opacity:.5;cursor:not-allowed}
+.bal-registro-resumen{margin:14px 0 0;font-size:13px;color:var(--app-muted)}
+.bal-registro-resumen:empty{display:none}
+.bal-registro-resumen strong{color:var(--app-text)}
+.bal-registro-form .bal-form-footer{padding-bottom:18px}
+.bal-registro-recientes{border:1px solid var(--app-neutral-200);border-radius:8px;background:var(--app-surface);padding:4px 16px 16px}
+.bal-registro-recientes ul{list-style:none;margin:0 0 12px;padding:0}
+.bal-registro-recientes li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--app-neutral-150);font-size:13px}
+.bal-registro-recientes li small{display:block;color:var(--app-muted);font-size:11px;margin-top:3px}
+.bal-registro-recientes>a{display:block;font-size:13px;margin-top:6px}
+@media(max-width:1050px){.bal-registro{grid-template-columns:1fr}}
+@media(max-width:620px){.bal-registro-modos,.bal-registro-grid{grid-template-columns:1fr}.bal-registro-principal{padding:0 14px}}
+
+/* Totales del filtro en Movimientos */
+.bal-metrics.bal-metrics-compact{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 14px}
+.bal-metrics-compact strong.bal-positive{color:var(--app-success-dark,var(--app-success))}
+.bal-metrics-compact strong.bal-negative{color:var(--app-danger-dark,var(--app-danger))}
+@media(max-width:620px){.bal-metrics.bal-metrics-compact{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Sugerencias de concepto y referencia por persona o entidad */
+.bal-sugeridos{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:-8px}
+.bal-sugeridos[hidden]{display:none}
+.bal-sugeridos span{font-size:12px;color:var(--app-muted);font-weight:700}
+.bal-sugeridos button{max-width:100%;padding:5px 10px;border:1px solid var(--app-primary-200);border-radius:999px;background:var(--app-primary-50);color:var(--app-primary-dark);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bal-sugeridos button:hover{background:var(--app-primary-100)}
+
+/* Registrar gasto/ingreso dividido en Crear y Consultar */
+.bal-registro-tabs{margin-bottom:18px}
+.bal-registro-tabs a svg{width:16px;height:16px}
+.bal-registro-solo{grid-template-columns:minmax(0,1fr)}
+.bal-registro-consulta{padding-bottom:16px}
+.bal-metrics.bal-metrics-tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.bal-registro-enlaces{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0 0;padding:0 4px;font-size:13px}
+@media(max-width:620px){.bal-metrics.bal-metrics-tres{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Consultar gastos/ingresos: estado, editar y cancelar */
+.bal-estado{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800}
+.bal-estado.is-valido{background:var(--app-success-50);color:var(--app-success-dark,var(--app-success))}
+.bal-estado.is-cancelado{background:var(--app-neutral-100);color:var(--app-muted)}
+.bal-registro-consulta tr.is-cancelado td{color:var(--app-muted)}
+.bal-registro-consulta tr.is-cancelado .bal-registro-importe{text-decoration:line-through}
+.bal-registro-acciones{white-space:nowrap}
+.bal-registro-acciones form{display:inline}
+.bal-row-action{display:inline-flex;align-items:center;gap:5px;margin:2px 4px 2px 0;padding:6px 10px;border:1px solid var(--app-neutral-200);border-radius:6px;background:var(--app-surface);color:var(--app-text);font:inherit;font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer}
+.bal-row-action:hover{border-color:var(--app-primary-300);background:var(--app-primary-50)}
+.bal-row-action svg{width:14px;height:14px}
+.bal-row-action.is-danger{color:var(--app-danger-dark,var(--app-danger))}
+.bal-row-action.is-danger:hover{border-color:var(--app-danger-200);background:var(--app-danger-50)}
+.bal-cancelar-edicion{margin-left:auto;margin-right:12px;font-weight:700;font-size:14px}
+
+/* Estados de cuentas por cobrar y por pagar */
+.bal-estado.is-vencida{background:var(--app-danger-50);color:var(--app-danger-dark,var(--app-danger))}
+.bal-estado.is-pendiente{background:var(--app-warning-50);color:var(--app-warning-dark,var(--app-text))}
+.bal-registro-consulta td small{display:block;color:var(--app-muted);font-size:11px;margin-top:3px}
+
+/* Nombre de la persona en los cobros automaticos de senderos */
+.bal-registro-consulta .bal-persona{display:block;font-size:15px;font-weight:700;line-height:1.3;color:var(--app-text)}
+
+/* Crear factura de un cobro de sendero */
+.bal-factura-resumen{display:grid;gap:3px;padding:16px 20px;border-bottom:1px solid var(--app-neutral-150);background:var(--app-bg)}
+.bal-factura-resumen strong{font-size:16px}
+.bal-factura-resumen span{color:var(--app-muted);font-size:13px}
+.bal-factura-resumen b{margin-top:4px;color:var(--app-primary-dark)}
+.bal-factura-form{padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.bal-factura-form label{display:grid;align-content:start;gap:7px;min-width:0;font-size:12px;font-weight:650}
+.bal-factura-form input{width:100%}
+.bal-factura-ancho{grid-column:1/-1}
+.bal-factura-form .bal-form-footer{gap:10px}
+.bal-factura-form .bal-form-footer>span{margin-right:auto}
+@media(max-width:620px){.bal-factura-form{grid-template-columns:1fr}.bal-factura-form .bal-form-footer{flex-wrap:wrap}}

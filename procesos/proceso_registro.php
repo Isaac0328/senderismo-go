@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+csrf_validate_post(BASE_URL . "pantallas/registro.php", 'error_message');
+
 // Capturar y limpiar
 $nombre = trim($_POST['nombre'] ?? '');
 $apellido = trim($_POST['apellido'] ?? '');
@@ -21,6 +25,28 @@ $user = trim($_POST['user'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm = $_POST['confirm_password'] ?? '';
+$terms = (string) ($_POST['terms'] ?? '');
+$telefonoRaw = trim((string) ($_POST['telefono'] ?? ''));
+$telefono = sg_only_digits($telefonoRaw);
+$rangoEdad = trim((string) ($_POST['rango_edad'] ?? ''));
+$identificacion = trim((string) ($_POST['identificacion'] ?? ''));
+$esAlergicoRaw = (string) ($_POST['es_alergico'] ?? '');
+$esAlergico = $esAlergicoRaw === '1' ? 1 : 0;
+$alergiasDetalle = $esAlergico === 1 ? trim((string) ($_POST['alergias_detalle'] ?? '')) : '';
+$grupoSanguineo = trim((string) ($_POST['grupo_sanguineo'] ?? ''));
+$tieneEnfermedadRaw = (string) ($_POST['tiene_enfermedad'] ?? '');
+$tieneEnfermedad = $tieneEnfermedadRaw === '1';
+$enfermedad = $tieneEnfermedad ? trim((string) ($_POST['enfermedad'] ?? '')) : 'No';
+$tieneSeguroMedicoRaw = (string) ($_POST['tiene_seguro_medico'] ?? '');
+$tieneSeguroMedico = $tieneSeguroMedicoRaw === '1';
+$seguroMedico = $tieneSeguroMedico ? trim((string) ($_POST['seguro_medico'] ?? '')) : 'No';
+$experiencia = trim((string) ($_POST['experiencia_senderismo'] ?? ''));
+$viaEntero = trim((string) ($_POST['via_entero'] ?? ''));
+$referidoNombre = $viaEntero === 'Amigos' ? trim((string) ($_POST['referido_nombre'] ?? '')) : '';
+$emergenciaNombre = trim((string) ($_POST['emergencia_nombre'] ?? ''));
+$emergenciaParentesco = trim((string) ($_POST['emergencia_parentesco'] ?? ''));
+$emergenciaTelefonoRaw = trim((string) ($_POST['emergencia_telefono'] ?? ''));
+$emergenciaTelefono = sg_only_digits($emergenciaTelefonoRaw);
 
 // Para repoblar el form si falla
 $_SESSION['reg_old'] = [
@@ -28,11 +54,99 @@ $_SESSION['reg_old'] = [
     'apellido' => $apellido,
     'user' => $user,
     'email' => $email,
+    'telefono' => $telefono,
+    'rango_edad' => $rangoEdad,
+    'identificacion' => $identificacion,
+    'es_alergico' => (string) $esAlergico,
+    'alergias_detalle' => $alergiasDetalle,
+    'grupo_sanguineo' => $grupoSanguineo,
+    'tiene_enfermedad' => $tieneEnfermedad ? '1' : '0',
+    'enfermedad' => $enfermedad,
+    'tiene_seguro_medico' => $tieneSeguroMedico ? '1' : '0',
+    'seguro_medico' => $seguroMedico,
+    'experiencia_senderismo' => $experiencia,
+    'via_entero' => $viaEntero,
+    'referido_nombre' => $referidoNombre,
+    'emergencia_nombre' => $emergenciaNombre,
+    'emergencia_parentesco' => $emergenciaParentesco,
+    'emergencia_telefono' => $emergenciaTelefono,
 ];
 
 // Validaciones server-side
 if ($nombre === '' || $apellido === '' || $user === '' || $email === '' || $password === '' || $confirm === '') {
     $_SESSION['error_message'] = "Por favor completa todos los campos.";
+    header("Location: " . BASE_URL . "pantallas/registro.php");
+    exit;
+}
+
+if (sg_contains_digits($nombre) || sg_contains_digits($apellido)) {
+    $_SESSION['error_message'] = "El nombre y apellido no pueden contener numeros.";
+    header("Location: " . BASE_URL . "pantallas/registro.php");
+    exit;
+}
+
+if ($terms !== '1') {
+    $_SESSION['error_message'] = "Debes aceptar los terminos y condiciones para registrarte.";
+    header("Location: " . BASE_URL . "pantallas/registro.php");
+    exit;
+}
+
+$rangosPermitidos = ['0-18', '19-30', '31-40', '41-50', '51-60', '61+'];
+$gruposPermitidos = ['O+', 'O-', 'A+', 'A-', 'AB+', 'AB-', 'B+', 'B-'];
+$experienciasPermitidas = ['Primera vez', 'Principiante', 'Intermedio', 'Avanzado'];
+$viasPermitidas = ['Instagram', 'Facebook', 'TikTok', 'WhatsApp', 'Google', 'Amigos', 'Otro'];
+
+$erroresDetalle = [];
+if (!sg_is_digits_between($telefonoRaw, 10, 15)) {
+    $erroresDetalle[] = "El telefono debe contener solo numeros, entre 10 y 15 digitos.";
+}
+if (!in_array($rangoEdad, $rangosPermitidos, true)) {
+    $erroresDetalle[] = "Selecciona un rango de edad valido.";
+}
+if ($identificacion === '') {
+    $erroresDetalle[] = "La identificacion es obligatoria.";
+}
+if (!in_array($esAlergicoRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si eres alergico.";
+}
+if ($esAlergico === 1 && $alergiasDetalle === '') {
+    $erroresDetalle[] = "Especifica a que eres alergico.";
+}
+if (!in_array($grupoSanguineo, $gruposPermitidos, true)) {
+    $erroresDetalle[] = "Selecciona un grupo sanguineo valido.";
+}
+if (!in_array($tieneEnfermedadRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si padeces alguna enfermedad.";
+}
+if ($tieneEnfermedad && $enfermedad === '') {
+    $erroresDetalle[] = "Especifica la enfermedad que padeces.";
+}
+if (!in_array($tieneSeguroMedicoRaw, ['0', '1'], true)) {
+    $erroresDetalle[] = "Selecciona si tienes seguro medico.";
+}
+if ($tieneSeguroMedico && $seguroMedico === '') {
+    $erroresDetalle[] = "Especifica el seguro medico que tienes.";
+}
+if (!in_array($experiencia, $experienciasPermitidas, true)) {
+    $erroresDetalle[] = "Selecciona tu experiencia haciendo senderismo.";
+}
+if (!in_array($viaEntero, $viasPermitidas, true)) {
+    $erroresDetalle[] = "Selecciona por cual via te enteraste.";
+}
+if ($viaEntero === 'Amigos' && $referidoNombre === '') {
+    $erroresDetalle[] = "Escribe el nombre del amigo por quien te enteraste.";
+}
+if ($referidoNombre !== '' && sg_contains_digits($referidoNombre)) {
+    $erroresDetalle[] = "El nombre de referido no puede contener numeros.";
+}
+if ($emergenciaNombre !== '' && sg_contains_digits($emergenciaNombre)) {
+    $erroresDetalle[] = "El nombre del contacto de emergencia no puede contener numeros.";
+}
+if ($emergenciaNombre === '' || $emergenciaParentesco === '' || !sg_is_digits_between($emergenciaTelefonoRaw, 10, 15)) {
+    $erroresDetalle[] = "Completa correctamente el contacto de emergencia.";
+}
+if (!empty($erroresDetalle)) {
+    $_SESSION['error_message'] = implode(' ', $erroresDetalle);
     header("Location: " . BASE_URL . "pantallas/registro.php");
     exit;
 }
@@ -91,8 +205,6 @@ $data = $res ? mysqli_fetch_assoc($res) : null;
 $codigo = (int) ($data['codigo'] ?? 99);
 $mensaje = $data['mensaje'] ?? 'No se pudo completar el registro.';
 
-mysqli_close($conn);
-
 // Respuesta
 if ($codigo !== 0) {
     $_SESSION['error_message'] = $mensaje;
@@ -100,7 +212,62 @@ if ($codigo !== 0) {
     exit;
 }
 
+$stmt = mysqli_prepare($conn, "SELECT id FROM usuarios WHERE user = ? OR email = ? ORDER BY id DESC LIMIT 1");
+mysqli_stmt_bind_param($stmt, "ss", $user, $email);
+mysqli_stmt_execute($stmt);
+$usuarioCreado = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+$usuarioId = (int) ($usuarioCreado['id'] ?? 0);
+
+if ($usuarioId > 0) {
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO detalles_usuarios (
+            usuario_id, telefono, rango_edad, identificacion, es_alergico, alergias_detalle,
+            grupo_sanguineo, enfermedad, seguro_medico, experiencia_senderismo, via_entero,
+            referido_nombre, emergencia_nombre, emergencia_parentesco, emergencia_telefono
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            telefono = VALUES(telefono),
+            rango_edad = VALUES(rango_edad),
+            identificacion = VALUES(identificacion),
+            es_alergico = VALUES(es_alergico),
+            alergias_detalle = VALUES(alergias_detalle),
+            grupo_sanguineo = VALUES(grupo_sanguineo),
+            enfermedad = VALUES(enfermedad),
+            seguro_medico = VALUES(seguro_medico),
+            experiencia_senderismo = VALUES(experiencia_senderismo),
+            via_entero = VALUES(via_entero),
+            referido_nombre = VALUES(referido_nombre),
+            emergencia_nombre = VALUES(emergencia_nombre),
+            emergencia_parentesco = VALUES(emergencia_parentesco),
+            emergencia_telefono = VALUES(emergencia_telefono)"
+    );
+    mysqli_stmt_bind_param(
+        $stmt,
+        "isssissssssssss",
+        $usuarioId,
+        $telefono,
+        $rangoEdad,
+        $identificacion,
+        $esAlergico,
+        $alergiasDetalle,
+        $grupoSanguineo,
+        $enfermedad,
+        $seguroMedico,
+        $experiencia,
+        $viaEntero,
+        $referidoNombre,
+        $emergenciaNombre,
+        $emergenciaParentesco,
+        $emergenciaTelefono
+    );
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+}
+
 // OK
+mysqli_close($conn);
 unset($_SESSION['reg_old']);
 $_SESSION['success_message'] = "✅ Cuenta creada. Ahora inicia sesión.";
 header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");

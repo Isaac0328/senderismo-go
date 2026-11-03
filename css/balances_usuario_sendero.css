@@ -1,0 +1,6 @@
+/* Cargar a usuario y referencia a sendero en Balances. */
+.bal-form [hidden] { display: none !important; }
+.bal-form label.bal-cu-check { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; cursor: pointer; }
+.bal-form label.bal-cu-check input { width: 18px; height: 18px; margin: 0; grid-row: 1; grid-column: 1; }
+.bal-form label.bal-cu-check span { grid-row: 1; grid-column: 2; font-weight: 800; }
+.bal-form label.bal-cu-check small { grid-row: 2; grid-column: 2; color: var(--app-muted, #5f6b63); font-size: .8rem; }

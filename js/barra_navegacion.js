@@ -2,31 +2,136 @@ document.addEventListener('DOMContentLoaded', function () {
   // ================= MENÚ MÓVIL =================
   const menuBtn = document.getElementById('menuBtn');
   const mobileMenu = document.getElementById('mobileMenu');
-  const icon = menuBtn ? menuBtn.querySelector('i') : null;
-
   function safeFeatherReplace() {
     if (typeof feather !== 'undefined') feather.replace();
   }
 
-  if (menuBtn && mobileMenu && icon) {
-    menuBtn.addEventListener('click', function () {
-      mobileMenu.classList.toggle('hidden');
+  function setMobileMenuState(isOpen) {
+    if (!menuBtn || !mobileMenu) return;
 
-      icon.setAttribute(
-        'data-feather',
-        mobileMenu.classList.contains('hidden') ? 'menu' : 'x'
-      );
+    mobileMenu.classList.toggle('hidden', !isOpen);
+    mobileMenu.classList.toggle('is-open', isOpen);
+    menuBtn.classList.toggle('is-open', isOpen);
+    menuBtn.setAttribute('aria-expanded', String(isOpen));
+    menuBtn.setAttribute('aria-label', isOpen ? 'Cerrar menu' : 'Abrir menu');
+  }
 
-      safeFeatherReplace();
+  window.toggleMobileMenu = function (event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    setMobileMenuState(mobileMenu ? mobileMenu.classList.contains('hidden') : false);
+    return false;
+  };
+
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener('click', function (event) {
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMobileMenuState(mobileMenu.classList.contains('hidden'));
     });
 
     mobileMenu.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
-        mobileMenu.classList.add('hidden');
-        icon.setAttribute('data-feather', 'menu');
-        safeFeatherReplace();
+        setMobileMenuState(false);
       });
     });
+  }
+
+  const notices = document.querySelector('[data-notifications]');
+  if (notices) {
+    const toggle = notices.querySelector('[data-notifications-toggle]');
+    const panel = notices.querySelector('[data-notifications-panel]');
+    const badge = notices.querySelector('[data-notifications-badge]');
+    const count = notices.querySelector('[data-notifications-count]');
+    const items = [...notices.querySelectorAll('[data-notification-item]')];
+    const empty = notices.querySelector('[data-notifications-empty]');
+    const error = notices.querySelector('[data-notifications-error]');
+    const allButton = notices.querySelector('[data-notifications-read-all]');
+    let filter = 'all';
+
+    const update = () => {
+      let shown = 0;
+      const unread = items.filter(item => item.dataset.read === '0').length;
+      items.forEach(item => {
+        item.hidden = (filter === 'unread' && item.dataset.read === '1') ||
+          (filter === 'important' && item.dataset.important !== '1');
+        if (!item.hidden) shown++;
+      });
+      empty.hidden = shown > 0;
+      badge.hidden = unread === 0;
+      badge.textContent = unread > 99 ? '99+' : String(unread);
+      toggle.setAttribute('aria-label', `Notificaciones, ${unread} sin leer`);
+      count.textContent = `${unread} sin leer`;
+      if (allButton) allButton.disabled = unread === 0;
+    };
+    const setOpen = (open) => {
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        setMobileMenuState(false);
+        update();
+      }
+    };
+    const mark = async (action, key = '') => {
+      error.hidden = true;
+      const form = new URLSearchParams({action, key, csrf_token: document.querySelector('meta[name="csrf-token"]')?.content || ''});
+      const response = await fetch(notices.dataset.endpoint, {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+        body: form.toString()
+      });
+      if (!response.ok || !(await response.json()).ok) throw new Error('No se pudo guardar la lectura');
+      items.filter(item => action === 'read_all' || item.dataset.key === key).forEach(item => {
+        item.dataset.read = '1';
+        item.classList.add('is-read');
+        item.querySelector('[data-notification-read]')?.remove();
+      });
+      update();
+    };
+    toggle.addEventListener('click', () => setOpen(panel.hidden));
+    notices.querySelector('[data-notifications-close]').addEventListener('click', () => {
+      setOpen(false);
+      toggle.focus();
+    });
+    notices.querySelectorAll('[data-notifications-filter]').forEach(button => button.addEventListener('click', () => {
+      filter = button.dataset.notificationsFilter;
+      notices.querySelectorAll('[data-notifications-filter]').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
+      update();
+    }));
+    notices.querySelectorAll('[data-notification-read]').forEach(button => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try { await mark('read', button.closest('[data-notification-item]').dataset.key); }
+      catch (_) { button.disabled = false; error.hidden = false; }
+    }));
+    allButton?.addEventListener('click', async () => {
+      allButton.disabled = true;
+      try { await mark('read_all'); }
+      catch (_) { allButton.disabled = false; error.hidden = false; }
+    });
+    notices.querySelectorAll('[data-notification-link]').forEach(link => link.addEventListener('click', async (event) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      const destination = link.href;
+      const item = link.closest('[data-notification-item]');
+      if (item.dataset.read === '0') {
+        try { await mark('read', item.dataset.key); } catch (_) {}
+      }
+      window.location.assign(destination);
+    }));
+    document.addEventListener('click', event => {
+      if (!notices.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !panel.hidden) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    update();
   }
 
   // ================= MENÚ DESPLEGABLE DE USUARIO =================
@@ -91,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ================= MENÃš DESPLEGABLE DE SENDEROS =================
+  // ================= MENÚ DESPLEGABLE DE SENDEROS =================
   const senderosDropdown = document.querySelector('.nav-dropdown');
   const senderosToggle = document.querySelector('.nav-dropdown-toggle');
 
@@ -163,9 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Cerrar menú móvil
     if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
-      mobileMenu.classList.add('hidden');
-      if (icon) icon.setAttribute('data-feather', 'menu');
-      safeFeatherReplace();
+      setMobileMenuState(false);
     }
   });
 
@@ -195,17 +298,16 @@ document.addEventListener('DOMContentLoaded', function () {
 window.closeMobileMenu = function () {
   const mobileMenu = document.getElementById('mobileMenu');
   const menuBtn = document.getElementById('menuBtn');
-  const icon = menuBtn ? menuBtn.querySelector('i') : null;
 
   if (mobileMenu) {
     mobileMenu.classList.add('hidden');
+    mobileMenu.classList.remove('is-open');
   }
 
-  if (icon) {
-    icon.setAttribute('data-feather', 'menu');
-    if (typeof feather !== 'undefined') {
-      feather.replace();
-    }
+  if (menuBtn) {
+    menuBtn.classList.remove('is-open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    menuBtn.setAttribute('aria-label', 'Abrir menu');
   }
 };
 

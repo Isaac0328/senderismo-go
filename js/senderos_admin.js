@@ -6,6 +6,251 @@ document.addEventListener('DOMContentLoaded', () => {
     const galleryHelp = document.getElementById('galleryHelp');
     const dateInput = document.getElementById('fecha_sendero');
     const datePreview = document.getElementById('fechaSenderoPreview');
+    const investmentWrap = document.getElementById('investmentOptionsAdmin');
+    const investmentTemplate = document.getElementById('investmentOptionTemplate');
+    const addInvestmentButton = document.getElementById('addInvestmentOption');
+    const minorInvestmentWrap = document.getElementById('minorInvestmentOptionsAdmin');
+    const addMinorInvestmentButton = document.getElementById('addMinorInvestmentOption');
+    const minorInvestmentConfig = document.querySelector('[data-minor-investment-config]');
+    const menoresModo = () => document.querySelector('input[name="menores_modo"]:checked')?.value || 'igual';
+    const investmentDeleteDialog = document.querySelector('[data-investment-delete-dialog]');
+    const meetingWrap = document.getElementById('meetingPointsAdmin');
+    const meetingTemplate = document.getElementById('meetingPointTemplate');
+    const addMeetingButton = document.getElementById('addMeetingPoint');
+    const meetingDeleteDialog = document.querySelector('[data-meeting-delete-dialog]');
+    const senderoForm = document.querySelector('form.senderos-form');
+    const senderoSections = Array.from(document.querySelectorAll('[data-sendero-section]'));
+
+    const openSenderoSection = (element) => {
+        const section = element?.closest('[data-sendero-section]');
+        if (!section) return;
+        section.classList.remove('is-collapsed');
+        const toggle = section.querySelector('[data-sendero-section-toggle]');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    };
+
+    const reportSenderoFieldError = (field, message) => {
+        if (!field) return;
+        field.setCustomValidity(message);
+        openSenderoSection(field);
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => field.reportValidity(), 180);
+    };
+
+    if (senderoForm && investmentWrap) {
+        senderoForm.addEventListener('input', (event) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) {
+                event.target.setCustomValidity('');
+            }
+        });
+
+        senderoForm.addEventListener('submit', (event) => {
+            const state = senderoForm.querySelector('[name="estado"]')?.value || 'pendiente';
+            const investmentCards = Array.from(investmentWrap.querySelectorAll('[data-investment-card]'));
+            const activeCards = investmentCards.filter((card) => card.querySelector('input[name$="[activo]"]')?.checked);
+
+            if (state === 'pendiente' && activeCards.length === 0) {
+                event.preventDefault();
+                const activeField = investmentCards[0]?.querySelector('input[name$="[activo]"]');
+                reportSenderoFieldError(activeField, 'Activa al menos una inversion para este sendero.');
+                return;
+            }
+
+            for (const card of activeCards) {
+                const amountField = card.querySelector('input[name$="[monto]"]');
+                const amount = Number(amountField?.value || 0);
+                if (!amountField || !Number.isFinite(amount) || amount <= 0) {
+                    event.preventDefault();
+                    reportSenderoFieldError(amountField, 'Coloca un monto mayor a cero para esta inversion activa.');
+                    return;
+                }
+            }
+
+            // El precio de menor es opcional (vacio = igual al adulto, 0 = gratis); solo las
+            // inversiones propias de menores son obligatorias, y solo en ese modo.
+            if (menoresModo() === 'propias') {
+                const minorCards = Array.from(minorInvestmentWrap?.querySelectorAll('[data-investment-card]') || []);
+                const activeMinorCards = minorCards.filter((card) => card.querySelector('input[name$="[activo]"]')?.checked);
+                if (state === 'pendiente' && activeMinorCards.length === 0) {
+                    event.preventDefault();
+                    reportSenderoFieldError(minorCards[0]?.querySelector('input[name$="[activo]"]'), 'Agrega y activa al menos una inversion para menores.');
+                    return;
+                }
+                for (const card of activeMinorCards) {
+                    const amountField = card.querySelector('input[name$="[monto]"]');
+                    const amount = Number(amountField?.value || 0);
+                    if (!amountField || !Number.isFinite(amount) || amount <= 0) {
+                        event.preventDefault();
+                        reportSenderoFieldError(amountField, 'Coloca un monto mayor a cero para esta inversion de menores.');
+                        return;
+                    }
+                }
+            }
+
+            const selectedMeetingIds = new Set();
+            const meetingCards = Array.from(meetingWrap?.querySelectorAll('[data-meeting-card]') || []);
+            for (const card of meetingCards) {
+                const pointField = card.querySelector('.meeting-point-select');
+                const arrivalField = card.querySelector('input[name$="[hora_encuentro]"]');
+                const departureField = card.querySelector('input[name$="[hora_salida]"]');
+                const hasData = Boolean(pointField?.value || arrivalField?.value || departureField?.value);
+                if (!hasData) continue;
+
+                if (!pointField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(pointField, 'Selecciona el lugar de este punto de encuentro.');
+                    return;
+                }
+                if (selectedMeetingIds.has(pointField.value)) {
+                    event.preventDefault();
+                    reportSenderoFieldError(pointField, 'Este punto de encuentro ya fue agregado.');
+                    return;
+                }
+                selectedMeetingIds.add(pointField.value);
+
+                if (!arrivalField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(arrivalField, 'Indica la hora de llegada a este punto.');
+                    return;
+                }
+                if (!departureField?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(departureField, 'Indica la hora de salida desde este punto.');
+                    return;
+                }
+            }
+
+            if (state === 'pendiente') {
+                const senderoDate = senderoForm.querySelector('[name="fecha_sendero"]');
+                if (!senderoDate?.value) {
+                    event.preventDefault();
+                    reportSenderoFieldError(senderoDate, 'Selecciona la fecha del proximo sendero.');
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const selectedDate = new Date(`${senderoDate.value}T00:00:00`);
+                if (selectedDate < today) {
+                    event.preventDefault();
+                    reportSenderoFieldError(senderoDate, 'La fecha debe ser de hoy o posterior.');
+                }
+            }
+        });
+    }
+
+    const sortableGallery = document.querySelector('[data-sortable-gallery]');
+    const galleryOrderForm = document.querySelector('[data-gallery-order-form]');
+    const gallerySaveOrder = document.querySelector('[data-gallery-save-order]');
+    const galleryOrderStatus = document.querySelector('[data-gallery-order-status]');
+
+    if (sortableGallery && galleryOrderForm) {
+        let draggedItem = null;
+
+        const galleryItems = () => Array.from(sortableGallery.querySelectorAll('[data-gallery-item]'));
+
+        const syncGalleryOrder = () => {
+            const items = galleryItems();
+            items.forEach((item, index) => {
+                const number = item.querySelector('[data-gallery-order-number]');
+                const left = item.querySelector('[data-gallery-move="left"]');
+                const right = item.querySelector('[data-gallery-move="right"]');
+                if (number) number.textContent = String(index + 1);
+                if (left) left.disabled = index === 0;
+                if (right) right.disabled = index === items.length - 1;
+            });
+        };
+
+        const markGalleryDirty = () => {
+            galleryOrderForm.classList.add('is-dirty');
+            if (gallerySaveOrder) gallerySaveOrder.disabled = false;
+            if (galleryOrderStatus) galleryOrderStatus.textContent = 'Hay cambios pendientes. Guarda el nuevo orden.';
+            syncGalleryOrder();
+        };
+
+        sortableGallery.addEventListener('dragstart', (event) => {
+            const item = event.target.closest('[data-gallery-item]');
+            if (!item) return;
+            draggedItem = item;
+            item.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.imageId || '');
+        });
+
+        sortableGallery.addEventListener('dragover', (event) => {
+            if (!draggedItem) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            const target = event.target.closest('[data-gallery-item]');
+            galleryItems().forEach((item) => item.classList.toggle('is-drag-target', item === target && item !== draggedItem));
+        });
+
+        sortableGallery.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const target = event.target.closest('[data-gallery-item]');
+            if (!draggedItem || !target || target === draggedItem) return;
+
+            const items = galleryItems();
+            const fromIndex = items.indexOf(draggedItem);
+            const targetIndex = items.indexOf(target);
+            sortableGallery.insertBefore(draggedItem, fromIndex < targetIndex ? target.nextSibling : target);
+            markGalleryDirty();
+        });
+
+        sortableGallery.addEventListener('dragend', () => {
+            galleryItems().forEach((item) => item.classList.remove('is-dragging', 'is-drag-target'));
+            draggedItem = null;
+        });
+
+        sortableGallery.addEventListener('click', (event) => {
+            const moveButton = event.target.closest('[data-gallery-move]');
+            if (moveButton) {
+                const item = moveButton.closest('[data-gallery-item]');
+                if (!item) return;
+                if (moveButton.dataset.galleryMove === 'left' && item.previousElementSibling) {
+                    sortableGallery.insertBefore(item, item.previousElementSibling);
+                    markGalleryDirty();
+                }
+                if (moveButton.dataset.galleryMove === 'right' && item.nextElementSibling) {
+                    sortableGallery.insertBefore(item.nextElementSibling, item);
+                    markGalleryDirty();
+                }
+                return;
+            }
+
+            const deleteButton = event.target.closest('[data-gallery-delete-form]');
+            if (!deleteButton) return;
+            const deleteForm = document.getElementById(deleteButton.dataset.galleryDeleteForm || '');
+            if (deleteForm && window.confirm('¿Quitar esta imagen de la galeria?')) {
+                deleteForm.submit();
+            }
+        });
+
+        galleryOrderForm.addEventListener('submit', () => {
+            if (gallerySaveOrder) {
+                gallerySaveOrder.disabled = true;
+                gallerySaveOrder.textContent = 'Guardando...';
+            }
+        });
+
+        syncGalleryOrder();
+    }
+
+    senderoSections.forEach((section) => {
+        const toggle = section.querySelector('[data-sendero-section-toggle]');
+        if (!toggle) return;
+
+        const syncSectionState = () => {
+            toggle.setAttribute('aria-expanded', section.classList.contains('is-collapsed') ? 'false' : 'true');
+        };
+
+        syncSectionState();
+
+        toggle.addEventListener('click', () => {
+            section.classList.toggle('is-collapsed');
+            syncSectionState();
+        });
+    });
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {
@@ -122,6 +367,399 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTotal();
     });
 
+    function syncMeetingPoint(select) {
+        const card = select.closest('.meeting-card');
+        if (!card) return;
+
+        const selectedOption = select.options[select.selectedIndex];
+        const addressInput = card.querySelector('[data-meeting-address]');
+        const mapInput = card.querySelector('[data-meeting-map]');
+
+        if (addressInput) {
+            addressInput.value = selectedOption?.dataset.direccion || '';
+        }
+        if (mapInput) {
+            mapInput.value = selectedOption?.dataset.url || '';
+        }
+    }
+
+    function prepareMeetingCard(card, visualIndex, fieldIndex = visualIndex) {
+        const order = visualIndex + 1;
+        if (!card.dataset.meetingIndex) {
+            card.dataset.meetingIndex = String(fieldIndex);
+        }
+
+        card.querySelectorAll('[data-name-template]').forEach((field) => {
+            field.name = (field.dataset.nameTemplate || '')
+                .replaceAll('__INDEX__', String(fieldIndex))
+                .replaceAll('__ORDER__', String(order));
+            field.removeAttribute('data-name-template');
+        });
+
+        const title = card.querySelector('[data-meeting-title]');
+        if (title) title.textContent = `Punto ${order}`;
+
+        const removeButton = card.querySelector('[data-remove-meeting]');
+        if (removeButton) removeButton.setAttribute('aria-label', `Eliminar punto ${order}`);
+
+        const select = card.querySelector('.meeting-point-select');
+        if (select) syncMeetingPoint(select);
+    }
+
+    function refreshMeetingCards() {
+        if (!meetingWrap) return;
+        meetingWrap.querySelectorAll('[data-meeting-card]').forEach((card, index) => {
+            prepareMeetingCard(card, index, Number(card.dataset.meetingIndex || index));
+        });
+    }
+
+    if (meetingWrap) {
+        refreshMeetingCards();
+        let pendingMeetingRemoval = null;
+
+        meetingWrap.addEventListener('change', (event) => {
+            const select = event.target.closest('.meeting-point-select');
+            if (select) syncMeetingPoint(select);
+        });
+
+        const removePendingMeeting = () => {
+            if (!pendingMeetingRemoval) return;
+            pendingMeetingRemoval.remove();
+            pendingMeetingRemoval = null;
+            meetingDeleteDialog?.close();
+            refreshMeetingCards();
+        };
+
+        meetingWrap.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-remove-meeting]');
+            if (!removeButton) return;
+            const card = removeButton.closest('[data-meeting-card]');
+            if (!card) return;
+
+            const title = card.querySelector('[data-meeting-title]')?.textContent || 'este punto';
+            const message = `¿Deseas eliminar ${title.toLowerCase()}? El cambio se aplicara cuando guardes el sendero.`;
+            if (meetingDeleteDialog?.showModal) {
+                pendingMeetingRemoval = card;
+                const messageElement = meetingDeleteDialog.querySelector('[data-meeting-delete-message]');
+                if (messageElement) messageElement.textContent = message;
+                meetingDeleteDialog.showModal();
+            } else if (window.confirm(message)) {
+                pendingMeetingRemoval = card;
+                removePendingMeeting();
+            }
+        });
+
+        meetingDeleteDialog?.querySelector('[data-cancel-meeting-delete]')?.addEventListener('click', () => {
+            pendingMeetingRemoval = null;
+            meetingDeleteDialog.close();
+        });
+        meetingDeleteDialog?.querySelector('[data-confirm-meeting-delete]')?.addEventListener('click', removePendingMeeting);
+        meetingDeleteDialog?.addEventListener('cancel', () => {
+            pendingMeetingRemoval = null;
+        });
+    }
+
+    if (addMeetingButton && meetingWrap && meetingTemplate) {
+        addMeetingButton.addEventListener('click', () => {
+            const indexes = Array.from(meetingWrap.querySelectorAll('[data-meeting-card]'))
+                .map((card) => Number(card.dataset.meetingIndex))
+                .filter(Number.isFinite);
+            const index = indexes.length > 0 ? Math.max(...indexes) + 1 : 0;
+            const fragment = meetingTemplate.content.cloneNode(true);
+            const card = fragment.querySelector('[data-meeting-card]');
+            if (!card) return;
+
+            card.dataset.meetingIndex = String(index);
+            meetingWrap.appendChild(card);
+            prepareMeetingCard(card, meetingWrap.querySelectorAll('[data-meeting-card]').length - 1, index);
+            window.feather?.replace();
+            card.querySelector('.meeting-point-select')?.focus();
+        });
+    }
+
+    function prepareInvestmentCard(card, visualIndex, fieldIndex = visualIndex, prefix = 'inversiones') {
+        const order = visualIndex + 1;
+        if (!card.dataset.investmentIndex) {
+            card.dataset.investmentIndex = String(fieldIndex);
+        }
+
+        const replaceTokenAttribute = (element, attribute) => {
+            const value = element.getAttribute(attribute);
+            if (!value) return;
+
+            element.setAttribute(
+                attribute,
+                value
+                    .replaceAll('__PREFIX__', prefix)
+                    .replaceAll('__INDEX__', String(fieldIndex))
+                    .replaceAll('__ORDER__', String(order))
+            );
+        };
+
+        card.querySelectorAll('[id]').forEach((element) => replaceTokenAttribute(element, 'id'));
+        card.querySelectorAll('[for]').forEach((element) => replaceTokenAttribute(element, 'for'));
+        card.querySelectorAll('[data-modal-target]').forEach((element) => replaceTokenAttribute(element, 'data-modal-target'));
+        card.querySelectorAll('[data-count-target]').forEach((element) => replaceTokenAttribute(element, 'data-count-target'));
+
+        card.querySelectorAll('[data-name-template]').forEach((field) => {
+            const template = field.dataset.nameTemplate || '';
+            field.name = template
+                .replaceAll('__PREFIX__', prefix)
+                .replaceAll('__INDEX__', String(fieldIndex))
+                .replaceAll('__ORDER__', String(order));
+            field.removeAttribute('data-name-template');
+        });
+
+        const title = card.querySelector('[data-investment-title]');
+        if (title) {
+            title.textContent = `${prefix === 'inversiones_menores' ? 'Inversion menor' : 'Inversion'} ${order}`;
+        }
+
+        const modalTitle = card.querySelector('[data-investment-modal-title]');
+        if (modalTitle) {
+            modalTitle.textContent = `Incluye - ${prefix === 'inversiones_menores' ? 'Inversion menor' : 'Inversion'} ${order}`;
+        }
+
+        if (prefix === 'inversiones_menores') {
+            card.querySelectorAll('[data-shared-minor-amount]').forEach((field) => field.remove());
+            const amountLabel = card.querySelector('[data-adult-amount-label]');
+            if (amountLabel) amountLabel.textContent = 'Monto (RD$) *';
+        }
+
+        const orderInput = card.querySelector('input[name$="[orden]"]');
+        if (orderInput) {
+            orderInput.value = String(order);
+        }
+
+        const removeButton = card.querySelector('[data-remove-investment]');
+        if (removeButton) {
+            removeButton.setAttribute('aria-label', `Eliminar inversion ${order}`);
+        }
+    }
+
+    function refreshInvestmentCards(wrap, prefix) {
+        if (!wrap) return;
+
+        wrap.querySelectorAll('[data-investment-card]').forEach((card, index) => {
+            prepareInvestmentCard(card, index, Number(card.dataset.investmentIndex || index), prefix);
+            updateModalCountFromCard(card);
+        });
+    }
+
+    function updateModalCountFromCard(card) {
+        const modal = card.querySelector('.detail-modal');
+        if (modal) {
+            updateModalCount(modal);
+        }
+    }
+
+    function setupInvestmentGroup(wrap, addButton, prefix, kind, requiresOne) {
+        if (!wrap) return;
+        let pendingInvestmentRemoval = null;
+
+        const removePendingInvestment = () => {
+            if (!pendingInvestmentRemoval) return;
+            pendingInvestmentRemoval.querySelector('.detail-modal')?.remove();
+            pendingInvestmentRemoval.remove();
+            pendingInvestmentRemoval = null;
+            investmentDeleteDialog?.close();
+            refreshInvestmentCards(wrap, prefix);
+        };
+
+        wrap.addEventListener('click', (event) => {
+            const removeButton = event.target.closest('[data-remove-investment]');
+            if (!removeButton || removeButton.disabled) return;
+
+            const card = removeButton.closest('[data-investment-card]');
+            if (!card) return;
+
+            if (requiresOne && wrap.querySelectorAll('[data-investment-card]').length === 1) {
+                window.alert('El sendero debe conservar al menos una inversion adulta. Puedes desactivarla si no deseas ofrecerla.');
+                return;
+            }
+
+            const title = card.querySelector('[data-investment-title]')?.textContent || 'esta inversion';
+            const message = `¿Deseas eliminar ${title.toLowerCase()}? El cambio se aplicara cuando guardes el sendero.`;
+            if (investmentDeleteDialog?.showModal) {
+                pendingInvestmentRemoval = card;
+                const messageElement = investmentDeleteDialog.querySelector('[data-investment-delete-message]');
+                if (messageElement) messageElement.textContent = message;
+                investmentDeleteDialog.showModal();
+            } else if (window.confirm(message)) {
+                pendingInvestmentRemoval = card;
+                removePendingInvestment();
+            }
+        });
+
+        investmentDeleteDialog?.querySelector('[data-cancel-investment-delete]')?.addEventListener('click', () => {
+            pendingInvestmentRemoval = null;
+            investmentDeleteDialog.close();
+        });
+
+        investmentDeleteDialog?.querySelector('[data-confirm-investment-delete]')?.addEventListener('click', removePendingInvestment);
+
+        investmentDeleteDialog?.addEventListener('cancel', () => {
+            pendingInvestmentRemoval = null;
+        });
+        if (addButton && investmentTemplate) {
+            addButton.addEventListener('click', () => {
+            const indexes = Array.from(wrap.querySelectorAll('[data-investment-card]'))
+                .map((card) => Number(card.dataset.investmentIndex))
+                .filter(Number.isFinite);
+            const index = indexes.length > 0 ? Math.max(...indexes) + 1 : 0;
+            const fragment = investmentTemplate.content.cloneNode(true);
+            const card = fragment.querySelector('[data-investment-card]');
+            if (!card) return;
+
+            card.dataset.investmentIndex = String(index);
+            card.dataset.investmentKind = kind;
+            wrap.appendChild(card);
+            prepareInvestmentCard(card, wrap.querySelectorAll('[data-investment-card]').length - 1, index, prefix);
+            enableSortableModalLists(card);
+            window.feather?.replace();
+            const firstInput = card.querySelector('input[type="text"]');
+            firstInput?.focus();
+            updateModalCountFromCard(card);
+            syncMinorInvestmentConfig();
+        });
+        }
+    }
+
+    refreshInvestmentCards(investmentWrap, 'inversiones');
+    refreshInvestmentCards(minorInvestmentWrap, 'inversiones_menores');
+    setupInvestmentGroup(investmentWrap, addInvestmentButton, 'inversiones', 'adult', true);
+    setupInvestmentGroup(minorInvestmentWrap, addMinorInvestmentButton, 'inversiones_menores', 'minor', false);
+
+    // "Menores de edad": las inversiones propias solo se ven en ese modo y el precio de
+    // menor de cada inversion del adulto solo en "Mismo paquete, precio de menor".
+    const syncMinorInvestmentConfig = () => {
+        const modo = menoresModo();
+        if (minorInvestmentConfig) minorInvestmentConfig.hidden = modo !== 'propias';
+        investmentWrap?.querySelectorAll('[data-shared-minor-amount]').forEach((field) => {
+            field.hidden = modo !== 'precio';
+            const input = field.querySelector('input');
+            if (input) input.required = false;
+        });
+    };
+    document.querySelectorAll('input[name="menores_modo"]').forEach((radio) => radio.addEventListener('change', syncMinorInvestmentConfig));
+    // Las inversiones agregadas despues tambien respetan el modo.
+    addInvestmentButton?.addEventListener('click', () => setTimeout(syncMinorInvestmentConfig, 0));
+    syncMinorInvestmentConfig();
+
+    function getDragAfterElement(list, y) {
+        const items = [...list.querySelectorAll('.modal-check-item:not(.is-dragging)')];
+
+        return items.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset, element: child };
+            }
+
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function enableSortableModalList(list) {
+        if (!list || list.dataset.sortReady === '1') return;
+        list.dataset.sortReady = '1';
+
+        let draggedItem = null;
+        let pressTimer = null;
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
+        let activePointerId = null;
+
+        function clearPressTimer() {
+            if (pressTimer) {
+                window.clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        }
+
+        function finishDrag(event) {
+            clearPressTimer();
+
+            if (draggedItem) {
+                draggedItem.classList.remove('is-dragging');
+                if (activePointerId !== null && draggedItem.hasPointerCapture?.(activePointerId)) {
+                    draggedItem.releasePointerCapture(activePointerId);
+                }
+            }
+
+            draggedItem = null;
+            isDragging = false;
+            activePointerId = null;
+        }
+
+        function startDrag() {
+            if (!draggedItem || isDragging) return;
+
+            isDragging = true;
+            draggedItem.classList.add('is-dragging');
+
+            if (activePointerId !== null) {
+                try {
+                    draggedItem.setPointerCapture?.(activePointerId);
+                } catch (error) {
+                    // Some browsers only allow capture on the original target; reordering still works without it.
+                }
+            }
+        }
+
+        list.addEventListener('pointerdown', (event) => {
+            const handle = event.target.closest('.modal-drag-handle');
+            const item = handle?.closest('.modal-check-item');
+            if (!handle || !item || !list.contains(item)) return;
+
+            event.preventDefault();
+            draggedItem = item;
+            activePointerId = event.pointerId;
+            startX = event.clientX;
+            startY = event.clientY;
+
+            pressTimer = window.setTimeout(startDrag, 180);
+        });
+
+        list.addEventListener('pointermove', (event) => {
+            if (!draggedItem) return;
+
+            const moved = Math.hypot(event.clientX - startX, event.clientY - startY);
+            if (!isDragging && moved > 4) {
+                startDrag();
+            }
+
+            if (!isDragging) return;
+
+            event.preventDefault();
+            const afterElement = getDragAfterElement(list, event.clientY);
+
+            if (afterElement == null) {
+                list.appendChild(draggedItem);
+            } else {
+                list.insertBefore(draggedItem, afterElement);
+            }
+        });
+
+        list.addEventListener('pointerup', finishDrag);
+        list.addEventListener('pointercancel', finishDrag);
+        list.addEventListener('lostpointercapture', finishDrag);
+        list.addEventListener('dragstart', (event) => event.preventDefault());
+        list.addEventListener('click', (event) => {
+            if (event.target.closest('.modal-drag-handle')) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    function enableSortableModalLists(scope = document) {
+        scope.querySelectorAll('[data-sortable-modal-list]').forEach(enableSortableModalList);
+    }
+
+    enableSortableModalLists();
+
     function updateModalCount(modal) {
         const list = modal.querySelector('[data-count-target]');
         if (!list) return;
@@ -137,34 +775,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.detail-modal').forEach((modal) => {
         updateModalCount(modal);
-
-        modal.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-            checkbox.addEventListener('change', () => updateModalCount(modal));
-        });
     });
 
-    document.querySelectorAll('.detail-modal-trigger').forEach((button) => {
-        button.addEventListener('click', () => {
-            const modalId = button.dataset.modalTarget;
-            const modal = modalId ? document.getElementById(modalId) : null;
+    document.addEventListener('change', (event) => {
+        const checkbox = event.target.closest('.detail-modal input[type="checkbox"]');
+        if (!checkbox) return;
 
-            if (!modal) return;
-
-            modal.classList.add('is-open');
-            modal.setAttribute('aria-hidden', 'false');
-        });
-    });
-
-    document.querySelectorAll('[data-modal-close]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.detail-modal');
-
-            if (!modal) return;
-
-            modal.classList.remove('is-open');
-            modal.setAttribute('aria-hidden', 'true');
+        const modal = checkbox.closest('.detail-modal');
+        if (modal) {
             updateModalCount(modal);
-        });
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const moveButton = event.target.closest('[data-modal-move]');
+        if (!moveButton) return;
+
+        event.preventDefault();
+        const item = moveButton.closest('.modal-check-item');
+        const list = item?.closest('[data-sortable-modal-list]');
+        if (!item || !list) return;
+
+        if (moveButton.dataset.modalMove === 'up' && item.previousElementSibling) {
+            list.insertBefore(item, item.previousElementSibling);
+        }
+
+        if (moveButton.dataset.modalMove === 'down' && item.nextElementSibling) {
+            list.insertBefore(item.nextElementSibling, item);
+        }
+
+        item.classList.add('is-reordered');
+        window.setTimeout(() => item.classList.remove('is-reordered'), 220);
+    });
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('.detail-modal-trigger');
+        if (!trigger) return;
+
+        const modalId = trigger.dataset.modalTarget;
+        const modal = modalId ? document.getElementById(modalId) : null;
+
+        if (!modal) return;
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+    });
+
+    document.addEventListener('click', (event) => {
+        const closeButton = event.target.closest('[data-modal-close]');
+        if (!closeButton) return;
+
+        const modal = closeButton.closest('.detail-modal');
+
+        if (!modal) return;
+
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        updateModalCount(modal);
     });
 
     document.addEventListener('keydown', (event) => {
@@ -174,6 +841,67 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.remove('is-open');
             modal.setAttribute('aria-hidden', 'true');
             updateModalCount(modal);
+        });
+    });
+});
+
+// Reutilizar una imagen ya cargada del sendero como principal, flyer o catalogo.
+document.addEventListener('DOMContentLoaded', () => {
+    const dialog = document.querySelector('[data-image-picker-dialog]');
+    if (!dialog) {
+        return;
+    }
+    const titulo = dialog.querySelector('[data-image-picker-title]');
+    let campoActual = '';
+
+    const bloque = (campo) => document.querySelector('[data-image-pick="' + campo + '"]');
+    const limpiar = (campo) => {
+        const b = bloque(campo);
+        if (!b) return;
+        b.querySelector('input[type="hidden"]').value = '';
+        b.querySelector('[data-image-pick-chosen]').hidden = true;
+    };
+
+    document.querySelectorAll('[data-open-image-picker]').forEach((boton) => {
+        boton.addEventListener('click', () => {
+            campoActual = boton.dataset.openImagePicker;
+            titulo.textContent = 'Elegir: ' + boton.dataset.slotLabel;
+            const actual = bloque(campoActual)?.querySelector('input[type="hidden"]').value || '';
+            dialog.querySelectorAll('[data-pick-image]').forEach((item) => item.classList.toggle('is-selected', actual !== '' && item.dataset.ruta === actual));
+            dialog.showModal();
+        });
+    });
+
+    dialog.querySelectorAll('[data-pick-image]').forEach((item) => {
+        item.addEventListener('click', () => {
+            const b = bloque(campoActual);
+            if (b) {
+                b.querySelector('input[type="hidden"]').value = item.dataset.ruta;
+                const elegido = b.querySelector('[data-image-pick-chosen]');
+                elegido.querySelector('img').src = item.dataset.src;
+                elegido.hidden = false;
+                // Si ya habia un archivo nuevo en el campo, se quita para que no compita con la eleccion.
+                const archivo = document.getElementById(campoActual);
+                if (archivo) archivo.value = '';
+            }
+            dialog.close();
+        });
+    });
+
+    dialog.querySelector('[data-close-image-picker]')?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (evento) => {
+        if (evento.target === dialog) dialog.close();
+    });
+
+    document.querySelectorAll('[data-image-pick-clear]').forEach((boton) => {
+        boton.addEventListener('click', () => limpiar(boton.closest('[data-image-pick]').dataset.imagePick));
+    });
+
+    // Si se elige un archivo nuevo, ese manda y se descarta la imagen elegida de las ya cargadas.
+    document.querySelectorAll('[data-image-pick]').forEach((b) => {
+        const archivo = document.getElementById(b.dataset.imagePick);
+        archivo?.addEventListener('change', () => {
+            if (archivo.files && archivo.files.length) limpiar(b.dataset.imagePick);
         });
     });
 });

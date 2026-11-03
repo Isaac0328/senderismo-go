@@ -1,20 +1,11 @@
 :root {
-    --contact-green: #255f38;
-    --contact-green-dark: #102617;
-    --contact-moss: #708c3f;
-    --contact-sky: #d9edf0;
-    --contact-rust: #b65322;
-    --contact-ink: #18221c;
-    --contact-muted: #5c6b61;
-    --contact-line: rgba(24, 34, 28, 0.12);
-    --contact-soft: #f3f6ef;
-    --contact-white: #ffffff;
-    --contact-shadow: 0 22px 60px rgba(16, 38, 23, 0.15);
+    --contact-sky: var(--app-info-100);
+    --contact-shadow: 0 22px 60px color-mix(in srgb, var(--app-primary-dark) 15%, transparent);
 }
 
 .contact-page {
-    background: var(--contact-soft);
-    color: var(--contact-ink);
+    background: var(--app-bg);
+    color: var(--app-text);
     min-height: 100vh;
 }
 
@@ -41,8 +32,8 @@
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(12, 25, 15, 0.84), rgba(12, 25, 15, 0.58) 48%, rgba(12, 25, 15, 0.18)),
-        linear-gradient(0deg, rgba(12, 25, 15, 0.48), transparent 45%);
+        linear-gradient(90deg, color-mix(in srgb, var(--app-ink) 84%, transparent), color-mix(in srgb, var(--app-ink) 58%, transparent) 48%, color-mix(in srgb, var(--app-ink) 18%, transparent)),
+        linear-gradient(0deg, color-mix(in srgb, var(--app-ink) 48%, transparent), transparent 45%);
     z-index: -1;
 }
 
@@ -50,7 +41,7 @@
     width: min(1160px, calc(100% - 40px));
     margin: 0 auto;
     padding: 120px 0 90px;
-    color: var(--contact-white);
+    color: var(--app-inverse);
 }
 
 .contact-eyebrow,
@@ -59,7 +50,7 @@
     align-items: center;
     gap: 8px;
     width: fit-content;
-    color: var(--contact-rust);
+    color: var(--app-accent-dark);
     font-size: 0.78rem;
     font-weight: 900;
     letter-spacing: 0;
@@ -67,7 +58,7 @@
 }
 
 .contact-eyebrow {
-    color: #f6d49a;
+    color: var(--app-warning-300);
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.22);
     padding: 9px 14px;
@@ -121,14 +112,17 @@
 }
 
 .contact-primary-action {
-    background: #ffffff;
-    color: var(--contact-green-dark);
+    background: var(--app-surface);
+    color: var(--app-accent-dark) !important;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
 }
 
 .contact-secondary-action {
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--app-inverse) !important;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+    background: color-mix(in srgb, var(--app-ink) 58%, transparent);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
 }
 
 .contact-primary-action:hover,
@@ -140,6 +134,10 @@
 .contact-secondary-action svg {
     width: 18px;
     height: 18px;
+}
+
+.contact-secondary-action svg {
+    stroke: var(--app-inverse);
 }
 
 .contact-main {
@@ -163,10 +161,10 @@
     gap: 14px;
     min-height: 96px;
     padding: 18px;
-    background: var(--contact-white);
-    border: 1px solid var(--contact-line);
+    background: var(--app-surface);
+    border: 1px solid var(--app-line);
     border-radius: 8px;
-    box-shadow: 0 14px 36px rgba(16, 38, 23, 0.10);
+    box-shadow: 0 14px 36px color-mix(in srgb, var(--app-primary-dark) 10%, transparent);
 }
 
 .contact-summary article > span {
@@ -176,7 +174,7 @@
     place-items: center;
     flex: 0 0 44px;
     border-radius: 8px;
-    color: var(--contact-green);
+    color: var(--app-primary);
     background: var(--contact-sky);
 }
 
@@ -187,7 +185,7 @@
 
 .contact-summary p {
     margin: 0 0 5px;
-    color: var(--contact-muted);
+    color: var(--app-muted);
     font-size: 0.76rem;
     font-weight: 900;
     text-transform: uppercase;
@@ -195,7 +193,7 @@
 
 .contact-summary strong {
     display: block;
-    color: var(--contact-ink);
+    color: var(--app-text);
     font-size: 0.95rem;
     line-height: 1.35;
 }
@@ -209,8 +207,8 @@
 }
 
 .contact-panel {
-    background: var(--contact-white);
-    border: 1px solid var(--contact-line);
+    background: var(--app-surface);
+    border: 1px solid var(--app-line);
     border-radius: 8px;
     box-shadow: var(--contact-shadow);
 }
@@ -222,7 +220,7 @@
 .contact-panel-info h2,
 .form-heading h2 {
     margin: 8px 0 12px;
-    color: var(--contact-green-dark);
+    color: var(--app-primary-dark);
     font-size: clamp(1.8rem, 3vw, 2.55rem);
     line-height: 1.05;
     font-weight: 950;
@@ -232,7 +230,7 @@
 .contact-panel-info > p,
 .form-heading p {
     margin: 0;
-    color: var(--contact-muted);
+    color: var(--app-muted);
     line-height: 1.7;
 }
 
@@ -250,16 +248,16 @@
     padding: 14px;
     color: inherit;
     text-decoration: none;
-    background: #f8faf6;
-    border: 1px solid var(--contact-line);
+    background: var(--app-bg);
+    border: 1px solid var(--app-line);
     border-radius: 8px;
     transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .contact-channel:hover {
     transform: translateX(4px);
-    border-color: rgba(37, 95, 56, 0.35);
-    background: #ffffff;
+    border-color: color-mix(in srgb, var(--app-primary) 35%, transparent);
+    background: var(--app-surface);
 }
 
 .channel-icon {
@@ -268,15 +266,17 @@
     display: grid;
     place-items: center;
     border-radius: 8px;
+    color: var(--app-primary);
+    background: var(--contact-sky);
 }
 
 .channel-icon.whatsapp {
     color: #128c4a;
-    background: #e2f6e9;
+    background: var(--app-primary-100);
 }
 
 .channel-icon.email {
-    color: var(--contact-green);
+    color: var(--app-primary);
     background: var(--contact-sky);
 }
 
@@ -296,7 +296,7 @@
 }
 
 .contact-channel small {
-    color: var(--contact-muted);
+    color: var(--app-muted);
     font-size: 0.82rem;
 }
 
@@ -305,8 +305,8 @@
     gap: 13px;
     margin-top: 26px;
     padding: 18px;
-    color: #ffffff;
-    background: var(--contact-green-dark);
+    color: var(--app-inverse);
+    background: var(--app-primary-dark);
     border-radius: 8px;
 }
 
@@ -314,7 +314,7 @@
     width: 22px;
     height: 22px;
     flex: 0 0 auto;
-    color: #f6d49a;
+    color: var(--app-warning-300);
 }
 
 .contact-note p {
@@ -347,15 +347,15 @@
 }
 
 .contact-alert-success {
-    color: #23643b;
-    background: #e5f5eb;
-    border: 1px solid #b6dec4;
+    color: var(--app-success-600);
+    background: var(--app-success-100);
+    border: 1px solid var(--app-success-300);
 }
 
 .contact-alert-error {
-    color: #8d1f12;
-    background: #fff0ec;
-    border: 1px solid #efc1b6;
+    color: var(--app-danger-600);
+    background: var(--app-danger-50);
+    border: 1px solid var(--app-danger-200);
 }
 
 .contact-form {
@@ -375,7 +375,7 @@
 }
 
 .contact-field span {
-    color: var(--contact-green-dark);
+    color: var(--app-primary-dark);
     font-size: 0.8rem;
     font-weight: 950;
     text-transform: uppercase;
@@ -386,10 +386,10 @@
 .contact-field textarea {
     width: 100%;
     min-height: 48px;
-    border: 1px solid #d9e1d5;
+    border: 1px solid var(--app-primary-200);
     border-radius: 8px;
-    background: #fbfcfa;
-    color: var(--contact-ink);
+    background: var(--app-neutral-25);
+    color: var(--app-text);
     padding: 12px 13px;
     font: inherit;
     outline: none;
@@ -404,14 +404,14 @@
 .contact-field input:focus,
 .contact-field select:focus,
 .contact-field textarea:focus {
-    border-color: var(--contact-green);
-    box-shadow: 0 0 0 4px rgba(37, 95, 56, 0.12);
-    background: #ffffff;
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 12%, transparent);
+    background: var(--app-surface);
 }
 
 .field-hint {
     margin: -7px 0 0;
-    color: var(--contact-muted);
+    color: var(--app-muted);
     font-size: 0.8rem;
 }
 
@@ -423,8 +423,8 @@
     padding: 0 18px;
     border: 0;
     border-radius: 8px;
-    color: #ffffff;
-    background: var(--contact-green-dark);
+    color: var(--app-inverse);
+    background: var(--app-primary-dark);
     font-weight: 950;
     text-transform: uppercase;
     cursor: pointer;
@@ -433,8 +433,8 @@
 
 .contact-submit:hover {
     transform: translateY(-2px);
-    background: var(--contact-green);
-    box-shadow: 0 14px 28px rgba(16, 38, 23, 0.20);
+    background: var(--app-primary);
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--app-primary-dark) 20%, transparent);
 }
 
 .contact-submit:disabled {
@@ -458,7 +458,7 @@
     width: 17px;
     height: 17px;
     border: 2px solid rgba(255, 255, 255, 0.38);
-    border-top-color: #ffffff;
+    border-top-color: var(--app-surface);
     border-radius: 50%;
     animation: contact-spin 0.75s linear infinite;
 }
@@ -475,7 +475,7 @@
     justify-content: center;
     gap: 7px;
     margin: 0;
-    color: var(--contact-muted);
+    color: var(--app-muted);
     font-size: 0.82rem;
     text-align: center;
 }

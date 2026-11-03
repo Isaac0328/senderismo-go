@@ -8,8 +8,11 @@ if (session_status() === PHP_SESSION_NONE) {
 $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 
-$pageTitle = "Reportes | Senderismo Go!";
+sg_actualizar_senderos_vencidos($conn);
+
+$pageTitle = "Reportes";
 $cssFiles = [
     "css/global.css",
     "css/barra_navegacion.css",
@@ -337,6 +340,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <th>Estado</th>
                                 <th>Registros</th>
                                 <th>7 dias</th>
+                                <th>Accion</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -347,6 +351,9 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <td><?= h($row['estado']) ?></td>
                                     <td><?= (int) $row['registros'] ?></td>
                                     <td><?= (int) $row['registros_7'] ?></td>
+                                    <td>
+                                        <a class="report-row-link" href="<?= BASE_URL ?>pantallas/reporte_usuarios_sendero.php?sendero_id=<?= (int) $row['id'] ?>">Ver usuarios</a>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

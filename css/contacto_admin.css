@@ -1,6 +1,6 @@
 .contacto-admin-page {
     min-height: 100vh;
-    background: #e6e6e6;
+    background: var(--app-neutral-150);
     padding: 92px 20px 34px;
 }
 
@@ -23,8 +23,8 @@
     align-items: center;
     border-radius: 999px;
     padding: 4px 9px;
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
     font-size: .72rem;
     font-weight: 900;
     text-transform: uppercase;
@@ -32,7 +32,7 @@
 
 .contacto-admin-header h1 {
     margin: 7px 0 0;
-    color: #111;
+    color: var(--app-text);
     font-size: 1.85rem;
     font-weight: 900;
 }
@@ -40,7 +40,7 @@
 .contacto-admin-header p {
     max-width: 720px;
     margin: 5px 0 0;
-    color: #555;
+    color: var(--app-neutral-700);
     line-height: 1.45;
 }
 
@@ -57,15 +57,15 @@
     min-height: 38px;
     border-radius: 8px;
     padding: 9px 12px;
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
     font-weight: 900;
     text-decoration: none;
 }
 
 .contacto-admin-link.soft {
-    background: #fff;
-    color: #111;
+    background: var(--app-surface);
+    color: var(--app-text);
     border: 1px solid rgba(0, 0, 0, .08);
 }
 
@@ -77,15 +77,15 @@
 }
 
 .contacto-alert.success {
-    background: #e5f5eb;
-    color: #23643b;
-    border: 1px solid #b6dec4;
+    background: var(--app-success-100);
+    color: var(--app-success-600);
+    border: 1px solid var(--app-success-300);
 }
 
 .contacto-alert.error {
-    background: #fff0ec;
-    color: #8d1f12;
-    border: 1px solid #efc1b6;
+    background: var(--app-danger-50);
+    color: var(--app-danger-600);
+    border: 1px solid var(--app-danger-200);
 }
 
 .contacto-admin-grid {
@@ -96,7 +96,7 @@
 }
 
 .contacto-admin-card {
-    background: #fff;
+    background: var(--app-surface);
     border: 1px solid rgba(0, 0, 0, .06);
     border-radius: 8px;
     box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
@@ -119,22 +119,22 @@
 
 .contacto-card-head h2 {
     margin: 0;
-    color: #111;
+    color: var(--app-text);
     font-size: 1.05rem;
     font-weight: 900;
 }
 
 .contacto-card-head p {
     margin: 4px 0 0;
-    color: #666;
+    color: var(--app-muted);
     line-height: 1.4;
 }
 
 .contacto-card-head > span {
     border-radius: 999px;
     padding: 5px 8px;
-    background: #f3f3f3;
-    color: #555;
+    background: var(--app-neutral-50);
+    color: var(--app-neutral-700);
     font-size: .72rem;
     font-weight: 900;
 }
@@ -154,32 +154,34 @@
 }
 
 .contacto-admin-form label span {
-    color: #111;
+    color: var(--app-text);
     font-size: .78rem;
     font-weight: 900;
     text-transform: uppercase;
 }
 
 .contacto-admin-form input,
-.contacto-admin-form textarea {
+.contacto-admin-form textarea,
+.contacto-admin-form select {
     width: 100%;
-    border: 1px solid #d7d7d7;
+    border: 1px solid var(--app-neutral-200);
     border-radius: 8px;
-    background: #fafafa;
+    background: var(--app-neutral-25);
     padding: 11px 12px;
     font: inherit;
     outline: none;
 }
 
 .contacto-admin-form input:focus,
-.contacto-admin-form textarea:focus {
-    border-color: #111;
-    background: #fff;
+.contacto-admin-form textarea:focus,
+.contacto-admin-form select:focus {
+    border-color: var(--app-ink);
+    background: var(--app-surface);
     box-shadow: 0 0 0 4px rgba(0, 0, 0, .08);
 }
 
 .contacto-admin-form small {
-    color: #666;
+    color: var(--app-muted);
 }
 
 .contacto-submit {
@@ -190,8 +192,8 @@
     min-height: 44px;
     border: 0;
     border-radius: 8px;
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
     font-weight: 900;
     cursor: pointer;
 }
@@ -199,6 +201,176 @@
 .contacto-submit svg {
     width: 17px;
     height: 17px;
+}
+
+.contacto-section-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--app-accent-dark);
+    font-size: .76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.contacto-section-line::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: rgba(0, 0, 0, .08);
+}
+
+.contacto-blocks-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, .55fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+    margin-top: 14px;
+}
+
+.contacto-check {
+    display: inline-flex !important;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px !important;
+}
+
+.contacto-check input {
+    width: auto;
+}
+
+.contacto-check span {
+    text-transform: none !important;
+    font-size: .9rem !important;
+}
+
+.contacto-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.contacto-form-actions .contacto-submit,
+.contacto-form-actions .contacto-admin-link {
+    min-height: 42px;
+}
+
+.contacto-list-card {
+    padding: 16px;
+}
+
+.contacto-block-list {
+    display: grid;
+    gap: 10px;
+}
+
+.contacto-block-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: var(--app-surface);
+}
+
+.contacto-block-item.inactive {
+    background: var(--app-neutral-50);
+    opacity: .78;
+}
+
+.contacto-block-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
+}
+
+.contacto-block-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.contacto-block-copy {
+    min-width: 0;
+}
+
+.contacto-block-copy > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.contacto-block-copy strong {
+    color: var(--app-text);
+    font-weight: 900;
+}
+
+.contacto-block-copy span {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 3px 8px;
+    background: var(--app-neutral-50);
+    color: var(--app-neutral-700);
+    font-size: .72rem;
+    font-weight: 900;
+}
+
+.contacto-block-copy p,
+.contacto-block-copy small {
+    display: block;
+    margin: 4px 0 0;
+    color: var(--app-neutral-700);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.contacto-block-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.contacto-block-actions form {
+    margin: 0;
+}
+
+.contacto-small-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: var(--app-neutral-150);
+    color: var(--app-text);
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.contacto-small-action.warn {
+    background: var(--app-warning-200);
+    color: var(--app-warning-900);
+}
+
+.contacto-small-action.ok {
+    background: var(--app-success-100);
+    color: var(--app-success-600);
+}
+
+.contacto-small-action.danger {
+    background: var(--app-danger-100);
+    color: var(--app-danger-600);
 }
 
 .preview-card img {
@@ -214,7 +386,7 @@
 
 .preview-copy h3 {
     margin: 0 0 8px;
-    color: #111;
+    color: var(--app-text);
     font-size: 1.35rem;
     font-weight: 900;
     line-height: 1.1;
@@ -222,7 +394,7 @@
 
 .preview-copy p {
     margin: 0 0 15px;
-    color: #555;
+    color: var(--app-neutral-700);
     line-height: 1.55;
 }
 
@@ -238,14 +410,14 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #333;
+    color: var(--app-neutral-800);
     font-weight: 800;
 }
 
 .preview-copy svg {
     width: 17px;
     height: 17px;
-    color: #b90000;
+    color: var(--app-accent-dark);
     flex: 0 0 auto;
 }
 
@@ -261,7 +433,28 @@
     }
 
     .contacto-admin-grid,
+    .contacto-blocks-layout,
     .form-grid.two {
         grid-template-columns: 1fr;
+    }
+
+    .contacto-admin-page {
+        padding-left: 10px;
+        padding-right: 10px;
+        overflow-x: hidden;
+    }
+
+    .contacto-block-item {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .contacto-block-actions {
+        grid-column: 1 / -1;
+        justify-content: stretch;
+    }
+
+    .contacto-block-actions form,
+    .contacto-block-actions .contacto-small-action {
+        flex: 1 1 120px;
     }
 }

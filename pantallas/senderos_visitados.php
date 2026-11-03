@@ -6,8 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 
-$pageTitle = "Senderos Visitados | Senderismo Go!";
+sg_actualizar_senderos_vencidos($conn);
+
+$pageTitle = "Senderos Visitados";
 
 $cssFiles = [
     "css/global.css",
@@ -75,7 +78,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <span class="senderos-badge">Rutas realizadas</span>
             <h1 class="senderos-title">Senderos visitados</h1>
             <p class="senderos-subtitle">
-                Conoce las rutas que Senderismo Go ha recorrido y que tambien pueden coordinarse para servicios privados.
+                Conoce las rutas que nuestra comunidad ha recorrido y que tambien pueden coordinarse para servicios privados.
             </p>
         </div>
     </section>

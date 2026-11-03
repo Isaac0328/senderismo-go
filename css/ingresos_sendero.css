@@ -1,0 +1,1142 @@
+/* Ingresos por sendero: lista de inscritos y panel de cobro.
+   Usa los colores de la paleta (css/global.css); los estados toman su color del catalogo. */
+
+.ing-page .fin-container {
+    max-width: 1320px;
+}
+
+/* ---------- Cabecera del sendero y resumen ---------- */
+.ing-cabecera {
+    padding: 16px;
+}
+
+.ing-sendero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.ing-sendero h2 {
+    margin: 8px 0 2px;
+    color: var(--app-text);
+    font-size: 1.25rem;
+    font-weight: 950;
+}
+
+.ing-sendero p {
+    margin: 0;
+    color: var(--app-muted);
+    font-weight: 700;
+}
+
+.ing-sendero-estado {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.ing-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ing-kpi {
+    display: grid;
+    gap: 3px;
+    align-content: start;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+    background: var(--app-neutral-50);
+}
+
+.ing-kpi span {
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.ing-kpi strong {
+    color: var(--app-text);
+    font-size: 1.15rem;
+    font-weight: 950;
+    overflow-wrap: anywhere;
+}
+
+.ing-kpi small {
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.ing-kpi.is-main {
+    border-color: var(--app-primary-200);
+    background: var(--app-primary-50);
+}
+
+.ing-kpi.is-main strong {
+    color: var(--app-primary-dark);
+}
+
+.ing-kpi.is-alert {
+    border-color: var(--app-danger-200);
+    background: var(--app-danger-50);
+}
+
+.ing-kpi.is-alert strong {
+    color: var(--app-danger-dark);
+}
+
+.ing-detalle {
+    margin-top: 10px;
+}
+
+.ing-detalle summary {
+    width: fit-content;
+    cursor: pointer;
+    color: var(--app-primary);
+    font-weight: 850;
+}
+
+.ing-detalle dl {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin: 10px 0 0;
+}
+
+.ing-detalle dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px dashed var(--app-line);
+    padding-bottom: 4px;
+}
+
+.ing-detalle dt {
+    color: var(--app-muted);
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.ing-detalle dd {
+    margin: 0;
+    color: var(--app-text);
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+/* ---------- Barra, filtros y botones ---------- */
+.ing-lista {
+    padding-top: 12px;
+}
+
+.ing-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+}
+
+.ing-barra .fin-table-search {
+    flex: 1 1 320px;
+    margin: 0;
+}
+
+.ing-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ing-btn,
+.ing-mini {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 850;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ing-btn {
+    min-height: 40px;
+    padding: 8px 14px;
+}
+
+.ing-mini {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: .8rem;
+}
+
+.ing-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.ing-btn:hover,
+.ing-mini:hover {
+    border-color: var(--app-primary-300);
+    background: var(--app-primary-50);
+}
+
+.ing-btn.is-primary {
+    border-color: var(--app-primary);
+    background: var(--app-primary);
+    color: var(--app-inverse);
+}
+
+.ing-btn.is-primary:hover {
+    background: var(--app-primary-dark);
+}
+
+.ing-btn:disabled,
+.ing-mini:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.ing-btn:focus-visible,
+.ing-mini:focus-visible,
+.ing-filtro:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--app-primary) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.ing-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px;
+}
+
+.ing-filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 5px 12px;
+    border: 1px solid var(--app-line);
+    border-radius: 999px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.ing-filtro span {
+    min-width: 22px;
+    border-radius: 999px;
+    padding: 1px 7px;
+    background: var(--app-neutral-150);
+    font-size: .76rem;
+    text-align: center;
+}
+
+.ing-filtro.is-active {
+    border-color: var(--app-primary);
+    background: var(--app-primary);
+    color: var(--app-inverse);
+}
+
+.ing-filtro.is-active span {
+    background: color-mix(in srgb, var(--app-inverse) 25%, transparent);
+}
+
+.ing-filtro.is-warning {
+    border-color: var(--app-warning-300);
+    color: var(--app-warning-dark);
+}
+
+.ing-filtro.is-warning.is-active {
+    background: var(--app-warning-dark);
+    color: var(--app-inverse);
+}
+
+/* ---------- Tabla ---------- */
+.ing-tabla-wrap {
+    margin: 0 12px 12px;
+    overflow-x: auto;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+}
+
+.ing-tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ing-tabla th {
+    padding: 10px 12px;
+    background: var(--app-neutral-50);
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ing-tabla td {
+    padding: 11px 12px;
+    border-top: 1px solid var(--app-line);
+    color: var(--app-text);
+    vertical-align: middle;
+}
+
+.ing-tabla tbody tr:hover {
+    background: var(--app-neutral-25);
+}
+
+.ing-tabla td strong {
+    display: block;
+    font-weight: 900;
+}
+
+.ing-tabla td small {
+    display: block;
+    margin-top: 2px;
+    color: var(--app-muted);
+    font-size: .78rem;
+    font-weight: 650;
+}
+
+.ing-col-asis {
+    width: 64px;
+    text-align: center;
+}
+
+.ing-col-persona {
+    min-width: 220px;
+}
+
+.ing-col-num {
+    white-space: nowrap;
+}
+
+.ing-col-accion {
+    width: 1%;
+    text-align: right;
+}
+
+.ing-col-accion .ing-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+}
+
+.ing-muted {
+    color: var(--app-muted);
+    font-size: .84rem;
+}
+
+.ing-vacio {
+    margin: 0;
+    padding: 22px;
+    color: var(--app-muted);
+    font-weight: 750;
+    text-align: center;
+}
+
+.ing-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.ing-chip {
+    display: inline-flex;
+    gap: 4px;
+    border-radius: 6px;
+    padding: 3px 8px;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-700);
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ing-chip b {
+    color: var(--app-text);
+    font-weight: 900;
+}
+
+.ing-chip.is-credit {
+    background: var(--app-info-50);
+    color: var(--app-info-dark);
+}
+
+.ing-chip.is-refund {
+    background: var(--app-warning-50);
+    color: var(--app-warning-dark);
+}
+
+.ing-balance {
+    display: inline-flex;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: .82rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ing-balance.is-ok {
+    background: var(--app-success-50);
+    color: var(--app-success-dark);
+}
+
+.ing-balance.is-debt {
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+}
+
+.ing-balance.is-pending {
+    background: var(--app-warning-50);
+    color: var(--app-warning-dark);
+}
+
+.ing-balance.is-muted {
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-600);
+}
+
+.ing-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: color-mix(in srgb, var(--estado) 13%, var(--app-surface));
+    color: color-mix(in srgb, var(--estado) 80%, var(--app-text));
+    font-size: .78rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ing-estado::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--estado);
+}
+
+.ing-revisar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+    color: var(--app-warning-dark);
+    font-size: .76rem;
+    font-weight: 900;
+    cursor: help;
+}
+
+.ing-revisar svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Interruptor de asistencia */
+.ing-switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.ing-switch input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.ing-switch span {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: var(--app-neutral-300);
+    transition: background .15s;
+}
+
+.ing-switch span::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--app-surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+    transition: transform .15s;
+}
+
+.ing-switch input:checked + span {
+    background: var(--app-primary);
+}
+
+.ing-switch input:checked + span::after {
+    transform: translateX(18px);
+}
+
+.ing-switch input:focus-visible + span {
+    outline: 3px solid color-mix(in srgb, var(--app-primary) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.ing-switch input:disabled + span {
+    opacity: .5;
+}
+
+/* ---------- Panel de cobro ---------- */
+.ing-panel {
+    width: min(700px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 14px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+}
+
+.ing-panel-chico {
+    width: min(520px, calc(100vw - 24px));
+}
+
+.ing-panel::backdrop {
+    background: rgba(15, 23, 42, .5);
+}
+
+.ing-panel form {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 24px);
+}
+
+.ing-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--app-line);
+}
+
+.ing-panel-head h2 {
+    margin: 6px 0 2px;
+    font-size: 1.2rem;
+    font-weight: 950;
+}
+
+.ing-panel-head p {
+    margin: 0;
+    color: var(--app-muted);
+    font-size: .86rem;
+    font-weight: 650;
+}
+
+.ing-cerrar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    cursor: pointer;
+}
+
+.ing-cerrar svg {
+    width: 18px;
+    height: 18px;
+}
+
+.ing-panel-cuerpo {
+    display: grid;
+    gap: 10px;
+    padding: 14px 18px;
+    overflow-y: auto;
+}
+
+.ing-panel-pie {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--app-line);
+    background: var(--app-neutral-25);
+    border-radius: 0 0 14px 14px;
+}
+
+.ing-paso {
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+}
+
+.ing-paso[hidden] {
+    display: none;
+}
+
+.ing-paso h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 900;
+}
+
+.ing-paso h3 b {
+    font-weight: 900;
+}
+
+.ing-paso h3 > span {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--app-primary);
+    color: var(--app-inverse);
+    font-size: .75rem;
+}
+
+.ing-reparto {
+    border-color: var(--app-warning-300);
+    background: var(--app-warning-50);
+}
+
+.ing-reparto h3 > span {
+    background: var(--app-warning-dark);
+}
+
+.ing-segmento {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ing-segmento label {
+    position: relative;
+    flex: 1 1 120px;
+}
+
+.ing-segmento input {
+    position: absolute;
+    opacity: 0;
+}
+
+.ing-segmento span {
+    display: block;
+    padding: 7px 10px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    font-weight: 850;
+    text-align: center;
+    cursor: pointer;
+}
+
+.ing-segmento input:checked + span {
+    border-color: var(--app-primary);
+    background: var(--app-primary-50);
+    color: var(--app-primary-dark);
+    box-shadow: inset 0 0 0 1px var(--app-primary);
+}
+
+.ing-segmento input:focus-visible + span {
+    outline: 3px solid color-mix(in srgb, var(--app-primary) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.ing-campo {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.ing-campo[hidden] {
+    display: none;
+}
+
+.ing-campo label {
+    color: var(--app-neutral-700);
+    font-size: .84rem;
+    font-weight: 850;
+}
+
+.ing-campo label em {
+    color: var(--app-muted);
+    font-style: normal;
+    font-weight: 700;
+}
+
+.ing-campo input,
+.ing-campo select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 750;
+}
+
+.ing-campo input[data-dinero] {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ing-campo input:focus,
+.ing-campo select:focus {
+    border-color: var(--app-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 15%, transparent);
+}
+
+.ing-campo input:disabled {
+    background: var(--app-neutral-100);
+    color: var(--app-muted);
+}
+
+.ing-campo [aria-invalid="true"] {
+    border-color: var(--app-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-danger) 12%, transparent);
+}
+
+.ing-grupo {
+    display: flex;
+    gap: 6px;
+}
+
+.ing-grupo input {
+    flex: 1;
+}
+
+.ing-dos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ing-dos[hidden] {
+    display: none;
+}
+
+.ing-linea {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--app-neutral-700);
+    font-weight: 750;
+}
+
+.ing-linea strong {
+    color: var(--app-text);
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+}
+
+.ing-linea.is-total {
+    padding-top: 8px;
+    border-top: 1px solid var(--app-line);
+    font-size: 1.05rem;
+}
+
+.ing-atajos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ing-atajos [hidden] {
+    display: none;
+}
+
+.ing-ayuda,
+.ing-nota {
+    margin: 0;
+    color: var(--app-neutral-700);
+    font-size: .84rem;
+    font-weight: 650;
+}
+
+.ing-ayuda[hidden],
+.ing-nota[hidden] {
+    display: none;
+}
+
+.ing-resultado {
+    padding: 12px 14px;
+    border-left: 4px solid var(--app-primary);
+    border-radius: 8px;
+    background: var(--app-primary-50);
+    color: var(--app-text);
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.ing-errores {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ing-errores li {
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+    font-size: .86rem;
+    font-weight: 800;
+}
+
+.ing-lista-nombres {
+    display: grid;
+    gap: 3px;
+    max-height: 220px;
+    margin: 0;
+    padding: 8px 12px 8px 28px;
+    overflow-y: auto;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    font-size: .88rem;
+    font-weight: 700;
+}
+
+.ing-lista-nombres:empty {
+    display: none;
+}
+
+/* Aviso flotante */
+.ing-aviso {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 60;
+    max-width: min(460px, calc(100vw - 36px));
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--app-success-dark);
+    color: var(--app-inverse);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+    font-weight: 800;
+}
+
+.ing-aviso[data-tipo="error"] {
+    background: var(--app-danger-dark);
+}
+
+/* ---------- Pantallas medianas y telefonos ---------- */
+@media (max-width: 1080px) {
+    .ing-kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ing-detalle dl {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .ing-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ing-kpi.is-main {
+        grid-column: 1 / -1;
+    }
+
+    .ing-detalle dl,
+    .ing-dos {
+        grid-template-columns: 1fr;
+    }
+
+    .ing-acciones {
+        width: 100%;
+    }
+
+    .ing-acciones .ing-btn {
+        flex: 1;
+    }
+
+    /* La tabla pasa a tarjetas */
+    .ing-tabla-wrap {
+        border: 0;
+    }
+
+    .ing-tabla thead {
+        display: none;
+    }
+
+    .ing-tabla,
+    .ing-tabla tbody {
+        display: block;
+    }
+
+    .ing-tabla tr[data-fila] {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
+        grid-auto-flow: row dense;
+        align-items: start;
+        gap: 8px 12px;
+        margin-bottom: 10px;
+        padding: 12px;
+        border: 1px solid var(--app-line);
+        border-radius: 10px;
+    }
+
+    .ing-tabla tr[data-fila][hidden] {
+        display: none;
+    }
+
+    .ing-tabla td {
+        padding: 0;
+        border: 0;
+    }
+
+    .ing-col-asis,
+    .ing-col-accion {
+        width: auto;
+    }
+
+    .ing-col-persona {
+        grid-column: 2 / -1;
+        min-width: 0;
+    }
+
+    .ing-col-num,
+    .ing-col-estado {
+        grid-column: 1 / 3;
+    }
+
+    .ing-col-balance,
+    .ing-col-accion {
+        grid-column: 3;
+    }
+
+    .ing-col-pago {
+        grid-column: 1 / -1;
+        grid-row: 3;
+    }
+
+    .ing-balance {
+        white-space: normal;
+    }
+
+    .ing-col-estado,
+    .ing-col-accion {
+        align-self: end;
+    }
+
+    .ing-tabla td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 3px;
+        color: var(--app-muted);
+        font-size: .7rem;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .ing-col-accion {
+        text-align: left;
+    }
+
+    .ing-col-accion .ing-btn {
+        width: 100%;
+    }
+
+    .ing-sendero {
+        flex-direction: column;
+    }
+
+    .ing-panel {
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: auto 0 0;
+        border-radius: 14px 14px 0 0;
+    }
+
+    .ing-panel form {
+        max-height: 92vh;
+    }
+}
+
+/* ---------- Pago rapido ---------- */
+.ing-metodo-rapido {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--app-neutral-700);
+    font-size: .84rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.ing-metodo-rapido select {
+    min-height: 40px;
+    padding: 6px 10px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 800;
+}
+
+.ing-botones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+@media (max-width: 760px) {
+    .ing-metodo-rapido {
+        width: 100%;
+    }
+
+    .ing-metodo-rapido select {
+        flex: 1;
+    }
+
+    .ing-col-accion {
+        grid-column: 1 / -1;
+    }
+
+    .ing-botones .ing-btn {
+        flex: 1;
+    }
+}
+
+/* ---------- Guardado automatico y accion peligrosa ---------- */
+.ing-sendero-lado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+.ing-guardado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 11px;
+    background: var(--app-success-50);
+    color: var(--app-success-dark);
+    font-size: .8rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.ing-guardado svg {
+    width: 15px;
+    height: 15px;
+}
+
+.ing-guardado[data-estado="guardando"] {
+    background: var(--app-info-50);
+    color: var(--app-info-dark);
+}
+
+.ing-guardado[data-estado="error"] {
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+}
+
+.ing-btn.is-danger {
+    border-color: var(--app-danger);
+    background: var(--app-danger);
+    color: var(--app-inverse);
+}
+
+.ing-btn.is-danger:hover {
+    background: var(--app-danger-dark);
+}
+
+@media (max-width: 760px) {
+    .ing-sendero-lado {
+        justify-content: flex-start;
+    }
+}
+
+.ing-btn.is-icono {
+    width: 38px;
+    padding: 6px;
+}
+
+.ing-col-persona {
+    min-width: 180px;
+}
+
+@media (max-width: 760px) {
+    .ing-botones .ing-btn.is-icono {
+        flex: 0 0 44px;
+    }
+}
+
+/* Deshacer el cobro desde el panel: a la izquierda y en rojo */
+.ing-btn.is-peligro {
+    margin-right: auto;
+    border-color: var(--app-danger-300);
+    color: var(--app-danger-dark);
+}
+
+.ing-btn.is-peligro:hover {
+    background: var(--app-danger-50);
+}
+
+.ing-btn[hidden] {
+    display: none;
+}
+
+/* Atajo sugerido cuando el credito o la devolucion deben ir como descuento */
+.ing-mini.is-sugerido {
+    border-color: var(--app-primary);
+    background: var(--app-primary-50);
+    color: var(--app-primary-dark);
+}
+
+/* Cuenta por cobrar a otro usuario (cargar el cobro de una inscripcion a otra persona). */
+.ing-cargo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--app-line, #d8ddd9); }
+.ing-cargo label.ing-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 800; }
+.ing-cargo label.ing-check input { width: 18px; height: 18px; margin: 0; flex-shrink: 0; }
+.ing-cargo [hidden] { display: none !important; }

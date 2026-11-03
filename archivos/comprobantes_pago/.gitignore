@@ -1,0 +1,5 @@
+# Los comprobantes contienen información personal y se conservan solo en el almacenamiento local/producción.
+*
+!.gitignore
+!.htaccess
+!index.php

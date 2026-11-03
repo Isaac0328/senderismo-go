@@ -1,0 +1,287 @@
+/* ==========================================================================
+   ESTILO COMUN DEL PANEL ADMINISTRATIVO
+
+   Se carga despues de las hojas de cada pantalla (ver componentes/encabezado.php).
+   Cada mantenimiento conserva su hoja propia; aqui solo se igualan las piezas
+   que se repiten en todos: el encabezado (etiqueta, titulo, descripcion y
+   botones) y las tablas, que en telefonos pasan a tarjetas.
+
+   Para sumar una pantalla nueva basta agregar la clase de su encabezado o de
+   la caja de su tabla a las listas de abajo.
+   ========================================================================== */
+
+/* ---------- 1. Encabezado de pantalla ---------- */
+
+/* Colores iguales en cualquier ancho; los tamanos se ajustan mas abajo. */
+:root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+    .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+    .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+    .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > span:first-child {
+    border-radius: 999px;
+    background: var(--app-primary-100);
+    color: var(--app-primary);
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+:root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+    .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+    .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+    .finance-dashboard-header, .reportes-header, .survey-report-hero) > :not(div:first-child) a:not(.senderos-new-link),
+:root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+    .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+    .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+    .finance-dashboard-header, .reportes-header, .survey-report-hero) > a {
+    border: 1px solid color-mix(in srgb, var(--app-ink) 12%, transparent);
+    background: var(--app-surface);
+    box-shadow: none;
+    color: var(--app-text) !important;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+@media (min-width: 761px) {
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--app-primary-100);
+        color: var(--app-primary);
+        font-size: .7rem;
+        font-weight: 900;
+        letter-spacing: .03em;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > h1 {
+        margin: 7px 0 0;
+        color: var(--app-text);
+        font-size: 1.9rem;
+        font-weight: 950;
+        letter-spacing: 0;
+        line-height: 1.08;
+        text-transform: uppercase;
+    }
+
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > p {
+        max-width: 760px;
+        margin: 6px 0 0;
+        color: var(--app-muted);
+        font-size: .92rem;
+        line-height: 1.45;
+    }
+
+    /* Botones del encabezado (volver, ver pagina publica, exportar): todos iguales.
+       Los que crean algo nuevo conservan su color propio. */
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > :not(div:first-child) a:not(.senderos-new-link),
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        width: auto;
+        min-height: 40px;
+        padding: 9px 14px;
+        border: 1px solid color-mix(in srgb, var(--app-ink) 12%, transparent);
+        border-radius: 9px;
+        background: var(--app-surface);
+        box-shadow: none;
+        color: var(--app-text) !important;
+        font-size: .86rem;
+        font-weight: 900;
+        line-height: 1.2;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) a:not(.senderos-new-link):hover {
+        border-color: var(--app-primary-300);
+        background: var(--app-primary-50);
+        color: var(--app-primary) !important;
+    }
+
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) a svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (max-width: 760px) {
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > h1 {
+        font-size: 1.3rem;
+        line-height: 1.12;
+        text-transform: uppercase;
+    }
+
+    :root :is(.updates-header, .asis-header, .bal-heading, .fin-header, .contacto-admin-header, .detalles-header,
+        .survey-admin-hero, .inicio-admin-header, .nosotros-admin-header, .notice-settings-head, .passport-admin-header,
+        .roles-header, .senderos-admin-header, .tema-admin-header, .usuarios-header, .mus-header, .site-config-header,
+        .finance-dashboard-header, .reportes-header, .survey-report-hero) > div:first-child > p {
+        font-size: .84rem;
+        line-height: 1.35;
+    }
+}
+
+/* ---------- 2. Tablas como tarjetas en telefonos ---------- */
+/* js/admin_comun.js copia el titulo de cada columna en data-label. */
+
+@media (max-width: 640px) {
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) {
+        max-height: none;
+        overflow: visible;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) :is(table, tbody, tfoot) {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) thead {
+        display: none;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 12px;
+        margin-bottom: 8px;
+        padding: 10px;
+        border: 1px solid var(--app-line);
+        border-radius: 10px;
+        background: var(--app-surface);
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) tr[hidden] {
+        display: none;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td {
+        position: static;
+        display: block;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        font-size: .84rem;
+        line-height: 1.35;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 1px;
+        color: var(--app-muted);
+        font-size: .64rem;
+        font-weight: 900;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+    }
+
+    /* La primera celda titula la tarjeta; las acciones y los avisos usan todo el ancho. */
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td:is(:first-child, [colspan], [data-acciones]) {
+        grid-column: 1 / -1;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td:first-child {
+        font-size: .92rem;
+        font-weight: 900;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td[data-acciones] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 8px;
+        border-top: 1px solid var(--app-line);
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td:empty {
+        display: none;
+    }
+}
+
+/* Usuarios no tenia etiqueta propia */
+.usuarios-kicker { display: inline-flex; align-items: center; min-height: 24px; padding: 4px 10px; font-size: .7rem; }
+
+@media (max-width: 640px) {
+    /* Las filas y celdas no conservan altos fijos de la tabla, y las etiquetas de estado no se estiran. */
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) :is(tr, td) {
+        height: auto;
+        min-height: 0;
+    }
+
+    :root :is(.fin-catalog-table-wrap, .bal-table-wrap, .passport-table-wrap, .roles-table-wrap,
+        .usuarios-page .table-wrap, .table-wrap-report) td :is([class*="pill"], [class*="badge"], [class*="state"], [class*="status"]) {
+        display: inline-flex;
+        width: auto;
+    }
+}
+
+/* ---------- Cuadre de cobros o gastos de un sendero ---------- */
+.sg-cuadre-sendero{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0}
+.sg-cuadre-estado{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.78rem;font-weight:900}
+.sg-cuadre-estado svg{width:14px;height:14px}
+.sg-cuadre-sendero.is-abierto .sg-cuadre-estado{background:var(--app-warning-50);color:var(--app-warning-dark)}
+.sg-cuadre-sendero.is-cuadrado .sg-cuadre-estado{background:var(--app-success-100);color:var(--app-success-600)}
+.sg-cuadre-boton{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:7px 12px;border:0;border-radius:9px;background:var(--app-primary-dark);color:var(--app-inverse);font:inherit;font-size:.82rem;font-weight:900;cursor:pointer}
+.sg-cuadre-boton.is-soft{border:1px solid color-mix(in srgb,var(--app-ink) 12%,transparent);background:var(--app-surface);color:var(--app-text)}
+.sg-cuadre-boton svg{width:15px;height:15px}
+.sg-cuadre-boton:disabled{cursor:not-allowed;opacity:.55}
+.sg-cuadre-nota{flex-basis:100%;color:var(--app-muted);font-size:.78rem;text-align:right}
+.sg-cuadre-nota a{color:var(--app-primary);font-weight:800}
+.sg-cuadre-alerta{display:flex;align-items:center;gap:7px;flex-basis:100%;margin:0 0 6px;padding:8px 12px;border:1px solid var(--app-danger-200);border-radius:9px;background:var(--app-danger-50);color:var(--app-danger-600);font-size:.82rem;font-weight:800}
+.sg-cuadre-alerta svg{width:15px;height:15px;flex:0 0 auto}
+
+/* Estado de cuadre en la lista de senderos del filtro */
+.sgf-cuadre{display:inline-flex;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:.68rem;font-style:normal;font-weight:900;vertical-align:middle;white-space:nowrap}
+.sgf-cuadre.is-ok{background:var(--app-success-100);color:var(--app-success-600)}
+.sgf-cuadre.is-pendiente{background:var(--app-warning-50);color:var(--app-warning-dark)}

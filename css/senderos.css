@@ -1,6 +1,6 @@
 .senderos-page {
     min-height: 100vh;
-    background: #f3f4f1;
+    background: var(--app-bg);
     padding-bottom: 56px;
 }
 
@@ -16,7 +16,7 @@
     align-items: flex-end;
     overflow: hidden;
     padding: 128px 0 84px;
-    background: #111;
+    background: var(--app-ink);
 }
 
 .senderos-hero-img {
@@ -39,7 +39,7 @@
 .senderos-hero-content {
     position: relative;
     z-index: 2;
-    color: #fff;
+    color: var(--app-inverse);
 }
 
 .senderos-badge,
@@ -59,19 +59,20 @@
 .senderos-badge {
     background: rgba(255, 255, 255, .16);
     border: 1px solid rgba(255, 255, 255, .28);
-    color: #fff;
+    color: var(--app-inverse);
     backdrop-filter: blur(8px);
 }
 
 .section-eyebrow {
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface));
+    color: var(--app-accent-dark);
+    border: 1px solid color-mix(in srgb, var(--app-accent) 18%, transparent);
 }
 
 .senderos-title {
     max-width: 820px;
     margin: 14px 0 12px;
-    color: #fff;
+    color: var(--app-inverse);
     font-size: clamp(2.1rem, 4.5vw, 4.05rem);
     line-height: .98;
     font-weight: 900;
@@ -98,7 +99,7 @@
     gap: 0;
     width: min(100%, 900px);
     margin: 0 auto;
-    background: #fff;
+    background: var(--app-surface);
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, .06);
@@ -107,8 +108,10 @@
 
 .featured-media {
     position: relative;
+    display: block;
     height: clamp(280px, 28vw, 360px);
-    background: #111;
+    background: var(--app-ink);
+    overflow: hidden;
 }
 
 .featured-media img {
@@ -116,6 +119,23 @@
     height: 100%;
     object-fit: contain;
     display: block;
+    transition: transform .3s ease, opacity .3s ease;
+}
+
+.featured-media-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.featured-media-link:hover img {
+    transform: scale(1.02);
+    opacity: .94;
+}
+
+.featured-media-link:focus-visible {
+    outline: 3px solid var(--app-accent);
+    outline-offset: -3px;
 }
 
 .featured-date {
@@ -129,8 +149,8 @@
     min-width: 58px;
     min-height: 58px;
     border-radius: 8px;
-    background: #e10600;
-    color: #fff;
+    background: var(--app-accent);
+    color: var(--app-inverse);
     font-size: 1.28rem;
     font-weight: 900;
     line-height: 1;
@@ -152,7 +172,7 @@
 
 .featured-content h2 {
     margin: 12px 0 10px;
-    color: #111;
+    color: var(--app-text);
     font-size: clamp(1.4rem, 2vw, 2rem);
     line-height: 1.05;
     font-weight: 900;
@@ -161,7 +181,7 @@
 
 .featured-desc {
     margin: 0;
-    color: #4c4c4c;
+    color: var(--app-neutral-700);
     font-size: .9rem;
     line-height: 1.5;
     display: -webkit-box;
@@ -193,7 +213,7 @@
 }
 
 .featured-meta span {
-    color: #2d2d2d;
+    color: var(--app-neutral-800);
     font-weight: 800;
     line-height: 1.35;
 }
@@ -219,13 +239,14 @@
 }
 
 .btn-primary-sendero {
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse) !important;
 }
 
 .btn-primary-sendero:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, .18);
+    color: var(--app-inverse) !important;
 }
 
 .days-chip {
@@ -234,8 +255,8 @@
     min-height: 38px;
     border-radius: 999px;
     padding: 8px 12px;
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
     font-size: .82rem;
     font-weight: 900;
 }
@@ -255,7 +276,7 @@
 
 .section-title {
     margin: 8px 0 6px;
-    color: #111;
+    color: var(--app-text);
     font-size: clamp(1.55rem, 2.4vw, 2.45rem);
     line-height: 1.08;
     font-weight: 900;
@@ -265,21 +286,21 @@
 .section-description {
     max-width: 760px;
     margin: 0;
-    color: #555;
+    color: var(--app-neutral-700);
     font-size: .98rem;
     line-height: 1.65;
 }
 
 .section-link {
     flex: 0 0 auto;
-    background: #fff;
-    color: #111;
+    background: var(--app-surface);
+    color: var(--app-text);
     border: 1px solid rgba(0, 0, 0, .08);
 }
 
 .section-link:hover {
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
 }
 
 .senderos-grid {
@@ -289,8 +310,131 @@
     gap: 16px;
 }
 
+.senderos-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.senderos-explorer-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+}
+
+.senderos-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(360px, 100%);
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid rgba(0, 0, 0, .13);
+    border-radius: 7px;
+    background: var(--app-surface);
+    color: var(--app-muted);
+}
+
+.senderos-search:focus-within {
+    outline: 3px solid color-mix(in srgb, var(--app-info) 24%, transparent);
+    border-color: var(--app-info);
+}
+
+.senderos-search svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+.senderos-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 0;
+    border: 0;
+    background: transparent;
+    color: var(--app-text);
+    font: inherit;
+    font-size: .86rem;
+}
+
+.senderos-search input:focus {
+    outline: 0;
+    box-shadow: none !important;
+}
+
+.senderos-select-wrap select {
+    min-height: 44px;
+    max-width: 100%;
+    padding: 0 34px 0 12px;
+    border: 1px solid rgba(0, 0, 0, .13);
+    border-radius: 7px;
+    background: var(--app-surface);
+    color: var(--app-neutral-800);
+    font: inherit;
+    font-size: .84rem;
+}
+
+.senderos-result-count {
+    margin-left: auto;
+    color: var(--app-muted);
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.senderos-no-results {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 620px;
+    margin: 18px auto 0;
+    padding: 24px;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    background: var(--app-surface);
+}
+
+.senderos-no-results > svg {
+    width: 28px;
+    height: 28px;
+    color: var(--app-muted);
+    flex: 0 0 auto;
+}
+
+.senderos-no-results h3 {
+    margin: 0 0 7px;
+    font-size: .96rem;
+    font-weight: 900;
+    text-transform: none;
+}
+
+.senderos-no-results button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--app-primary);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.senderos-no-results button:hover {
+    text-decoration: underline;
+}
+
+.visited-section .senderos-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 14px;
+}
+
 .sendero-card {
-    background: #fff;
+    background: var(--app-surface);
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, .12);
@@ -300,7 +444,7 @@
 
 .sendero-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(185, 0, 0, .22);
+    border-color: color-mix(in srgb, var(--app-accent-dark) 22%, transparent);
     box-shadow: 0 18px 36px rgba(0, 0, 0, .18);
 }
 
@@ -316,7 +460,7 @@
     position: relative;
     height: clamp(190px, 22vw, 245px);
     overflow: hidden;
-    background: #111;
+    background: var(--app-ink);
     border-bottom: 1px solid rgba(0, 0, 0, .10);
 }
 
@@ -340,8 +484,8 @@
     place-items: center;
     align-content: center;
     gap: 8px;
-    background: #efefef;
-    color: #777;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-600);
     border: 1px dashed rgba(0, 0, 0, .18);
     text-align: center;
     font-weight: 900;
@@ -350,7 +494,7 @@
 .sendero-no-image svg {
     width: 30px;
     height: 30px;
-    color: #aaa;
+    color: var(--app-neutral-400);
 }
 
 .featured-no-image {
@@ -364,7 +508,7 @@
     border-radius: 999px;
     padding: 7px 10px;
     background: rgba(0, 0, 0, .74);
-    color: #fff;
+    color: var(--app-inverse);
     font-size: .75rem;
     font-weight: 900;
 }
@@ -386,7 +530,7 @@
 
 .sendero-fecha {
     margin: 0;
-    color: #b90000;
+    color: var(--app-accent-dark);
     font-size: .78rem;
     font-weight: 900;
     line-height: 1.3;
@@ -396,15 +540,15 @@
     flex: 0 0 auto;
     border-radius: 999px;
     padding: 5px 8px;
-    background: #f1f1f1;
-    color: #333;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-800);
     font-size: .72rem;
     font-weight: 900;
 }
 
 .sendero-nombre {
     margin: 0 0 7px;
-    color: #111;
+    color: var(--app-text);
     font-size: 1.04rem;
     line-height: 1.15;
     font-weight: 900;
@@ -417,7 +561,7 @@
 
 .sendero-lugar {
     margin: 0 0 8px;
-    color: #555;
+    color: var(--app-neutral-700);
     font-size: .8rem;
     line-height: 1.35;
     font-weight: 700;
@@ -425,13 +569,35 @@
 
 .sendero-card-desc {
     margin: 0 0 10px;
-    color: #555;
+    color: var(--app-neutral-700);
     font-size: .8rem;
     line-height: 1.45;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+.visited-card .sendero-image-wrap {
+    height: clamp(145px, 13vw, 185px);
+}
+
+.visited-card .sendero-card-body {
+    padding: 11px 12px 12px;
+}
+
+.visited-card .sendero-nombre {
+    font-size: .93rem;
+    line-height: 1.18;
+}
+
+.visited-card .sendero-card-desc {
+    font-size: .76rem;
+}
+
+.visited-card .sendero-info-row span {
+    padding: 4px 6px;
+    font-size: .66rem;
 }
 
 .sendero-info-row {
@@ -444,8 +610,8 @@
 .sendero-info-row span {
     border-radius: 999px;
     padding: 5px 7px;
-    background: #f3f4f1;
-    color: #333;
+    background: var(--app-bg);
+    color: var(--app-neutral-800);
     font-size: .7rem;
     font-weight: 800;
 }
@@ -466,7 +632,7 @@
     border: 1px solid rgba(0, 0, 0, .08);
     border-radius: 999px;
     padding: 4px 7px;
-    color: #555;
+    color: var(--app-neutral-700);
     font-size: .68rem;
     font-weight: 800;
 }
@@ -477,7 +643,7 @@
     min-height: 260px;
     text-align: center;
     border-radius: 8px;
-    background: #fff;
+    background: var(--app-surface);
     border: 1px dashed rgba(0, 0, 0, .16);
     padding: 28px;
 }
@@ -485,19 +651,19 @@
 .empty-senderos svg {
     width: 36px;
     height: 36px;
-    color: #b90000;
+    color: var(--app-accent-dark);
 }
 
 .empty-senderos h3 {
     margin: 12px 0 4px;
     font-size: 1.2rem;
-    color: #111;
+    color: var(--app-text);
 }
 
 .empty-senderos p {
     max-width: 520px;
     margin: 0;
-    color: #555;
+    color: var(--app-neutral-700);
 }
 
 .calendar-section {
@@ -510,7 +676,7 @@
 .calendar-copy {
     position: sticky;
     top: 96px;
-    background: #fff;
+    background: var(--app-surface);
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, .06);
     box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
@@ -518,7 +684,7 @@
 }
 
 .calendar-card {
-    background: #fff;
+    background: var(--app-surface);
     border-radius: 8px;
     padding: 14px;
     border: 1px solid rgba(0, 0, 0, .06);
@@ -537,7 +703,7 @@
 }
 
 .calendar-weekdays div {
-    color: #555;
+    color: var(--app-neutral-700);
     font-size: .76rem;
     font-weight: 900;
     text-align: center;
@@ -547,8 +713,8 @@
 .calendar-day {
     min-height: 88px;
     border-radius: 8px;
-    border: 1px solid #e6e6e6;
-    background: #fafafa;
+    border: 1px solid var(--app-neutral-150);
+    background: var(--app-neutral-25);
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -556,7 +722,7 @@
 }
 
 .calendar-day span {
-    color: #111;
+    color: var(--app-text);
     font-size: .82rem;
     font-weight: 900;
 }
@@ -566,16 +732,16 @@
 }
 
 .calendar-day.has-event {
-    border-color: rgba(225, 6, 0, .25);
-    background: rgba(225, 6, 0, .05);
+    border-color: color-mix(in srgb, var(--app-accent) 34%, var(--app-surface));
+    background: color-mix(in srgb, var(--app-accent) 8%, var(--app-surface));
 }
 
 .calendar-event-name {
     display: inline-block;
     border-radius: 6px;
     padding: 6px 7px;
-    background: #111;
-    color: #fff;
+    background: var(--app-primary-dark);
+    color: var(--app-inverse) !important;
     font-size: .68rem;
     font-weight: 800;
     line-height: 1.2;
@@ -596,6 +762,10 @@
 @media (max-width: 1100px) {
     .senderos-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .visited-section .senderos-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .featured-sendero {
@@ -647,6 +817,60 @@
         grid-template-columns: 1fr;
     }
 
+    .visited-section .senderos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .visited-card .sendero-image-wrap {
+        height: 120px;
+    }
+
+    .visited-card .sendero-card-body {
+        padding: 9px;
+    }
+
+    .visited-card .sendero-card-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 7px;
+    }
+
+    .visited-card .sendero-fecha {
+        font-size: .66rem;
+    }
+
+    .visited-card .sendero-days {
+        padding: 4px 6px;
+        font-size: .62rem;
+    }
+
+    .visited-card .sendero-nombre {
+        font-size: .78rem;
+        line-height: 1.12;
+        -webkit-line-clamp: 3;
+    }
+
+    .visited-card .sendero-lugar,
+    .visited-card .sendero-card-desc {
+        font-size: .68rem;
+        line-height: 1.28;
+    }
+
+    .visited-card .sendero-card-desc {
+        -webkit-line-clamp: 2;
+    }
+
+    .visited-card .sendero-info-row {
+        gap: 4px;
+    }
+
+    .visited-card .sendero-info-row span {
+        font-size: .58rem;
+        padding: 4px 5px;
+    }
+
     .calendar-card {
         overflow-x: auto;
     }
@@ -679,9 +903,13 @@
     }
 
     .featured-content,
-    .calendar-copy,
-    .calendar-card {
+    .calendar-copy {
         padding: 16px;
+    }
+
+    .calendar-card {
+        padding: 10px;
+        overflow-x: visible;
     }
 
     .sendero-card-top {
@@ -689,8 +917,75 @@
         flex-direction: column;
     }
 
+    .visited-section .section-heading-row {
+        margin-bottom: 14px;
+    }
+
+    .visited-section .section-title {
+        font-size: 1.15rem;
+        line-height: 1.05;
+    }
+
+    .visited-section .section-description {
+        font-size: .82rem;
+        line-height: 1.4;
+    }
+
+    .visited-card .sendero-image-wrap {
+        height: 108px;
+    }
+
+    .visited-card .sendero-level {
+        left: 8px;
+        bottom: 8px;
+        padding: 5px 7px;
+        font-size: .6rem;
+    }
+
+    .visited-card .sendero-lugar svg,
+    .visited-card .sendero-info-row svg {
+        width: 11px;
+        height: 11px;
+    }
+
     .calendar-weekdays,
     .calendar-grid {
-        min-width: 560px;
+        min-width: 0;
+        gap: 4px;
+    }
+
+    .calendar-weekdays {
+        margin-bottom: 5px;
+    }
+
+    .calendar-weekdays div {
+        font-size: .62rem;
+    }
+
+    .calendar-day {
+        min-height: 46px;
+        border-radius: 7px;
+        padding: 5px;
+        gap: 3px;
+    }
+
+    .calendar-day span {
+        font-size: .74rem;
+    }
+
+    .calendar-event-name {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        padding: 0;
+        overflow: hidden;
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+    }
+
+    .calendar-day.has-event {
+        background: color-mix(in srgb, var(--app-accent) 8%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-accent) 16%, transparent);
     }
 }

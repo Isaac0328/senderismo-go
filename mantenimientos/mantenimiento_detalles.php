@@ -5,16 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
-if ((int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
-    exit;
-}
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
 
-$pageTitle = "Mantenimiento Detalles | Senderismo Go!";
+$PERMISO_REQUERIDO = 'operaciones.detalles';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
+
+$pageTitle = "Catálogos del sendero";
 
 $cssFiles = [
     "css/global.css",
@@ -29,10 +26,18 @@ $jsFiles = [
 
 require_once __DIR__ . '/../bd/conexion.php';
 
-function fetch_catalog(mysqli $conn, string $table): array
+function fetch_catalog(mysqli $conn, string $table, bool $withLevel = false, bool $withOrder = false): array
 {
     $items = [];
-    $res = mysqli_query($conn, "SELECT id, nombre, descripcion, activo, created_at FROM {$table} ORDER BY activo DESC, nombre ASC");
+    $fields = $withLevel
+        ? "id, nombre, descripcion, nivel_numero, activo, created_at"
+        : ($withOrder
+            ? "id, nombre, descripcion, orden, activo, created_at"
+            : "id, nombre, descripcion, activo, created_at");
+    $order = $withLevel
+        ? "activo DESC, nivel_numero ASC, nombre ASC"
+        : ($withOrder ? "activo DESC, orden ASC, nombre ASC" : "activo DESC, nombre ASC");
+    $res = mysqli_query($conn, "SELECT {$fields} FROM {$table} ORDER BY {$order}");
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
             $items[] = $row;
@@ -47,6 +52,7 @@ $catalogs = [
         'subtitle' => 'Escalas usadas para clasificar cada sendero.',
         'table' => 'niveles_dificultad',
         'placeholder' => 'Ej: Basico, Intermedio, Avanzado',
+        'with_level' => true,
     ],
     'terreno' => [
         'title' => 'Tipos de terreno',
@@ -72,10 +78,22 @@ $catalogs = [
         'table' => 'elementos_incluidos',
         'placeholder' => 'Ej: Staff y guias certificados',
     ],
+    'tallas_chalecos' => [
+        'title' => 'Tallas de chalecos',
+        'subtitle' => 'Tallas disponibles para los chalecos salvavidas.',
+        'table' => 'tallas_chalecos_salvavidas',
+        'placeholder' => 'Ej: S, M, L o Infantil',
+        'with_order' => true,
+    ],
 ];
 
 foreach ($catalogs as $key => $config) {
-    $catalogs[$key]['items'] = fetch_catalog($conn, $config['table']);
+    $catalogs[$key]['items'] = fetch_catalog(
+        $conn,
+        $config['table'],
+        !empty($config['with_level']),
+        !empty($config['with_order'])
+    );
 }
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -87,7 +105,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <div class="detalles-header">
             <div>
                 <span class="detalles-kicker">Catalogos del sendero</span>
-                <h1 class="detalles-title">Mantenimiento Detalles</h1>
+                <h1 class="detalles-title">Catálogos del sendero</h1>
                 <p class="detalles-subtitle">Administra terrenos, anotaciones importantes y elementos incluidos.</p>
             </div>
             <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="detalles-link">Volver al panel</a>
@@ -141,6 +159,22 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <textarea name="descripcion" maxlength="255" rows="3" placeholder="Detalle opcional que ayuda a explicar este item." data-desc-field="<?= $key ?>"></textarea>
                             </div>
 
+                            <?php if (!empty($config['with_level'])): ?>
+                                <div class="field">
+                                    <label>Nivel de dificultad (0 a 100) *</label>
+                                    <input type="number" name="nivel_numero" min="0" max="100" required value="50" data-level-field="<?= $key ?>">
+                                    <small class="field-note">Este numero define el color de la carita en el detalle del sendero.</small>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($config['with_order'])): ?>
+                                <div class="field">
+                                    <label>Orden *</label>
+                                    <input type="number" name="orden" min="0" max="999" required value="0" data-order-field="<?= $key ?>">
+                                    <small class="field-note">Define la posicion de la talla en la lista desplegable.</small>
+                                </div>
+                            <?php endif; ?>
+
                             <label class="active-row">
                                 <input type="checkbox" name="activo" value="1" checked data-active-field="<?= $key ?>">
                                 <span>Activo</span>
@@ -166,6 +200,12 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                             <span class="<?= (int) $item['activo'] === 1 ? 'pill active' : 'pill inactive' ?>">
                                                 <?= (int) $item['activo'] === 1 ? 'Activo' : 'Inactivo' ?>
                                             </span>
+                                            <?php if (!empty($config['with_level'])): ?>
+                                                <span class="pill level">Nivel <?= (int) ($item['nivel_numero'] ?? 50) ?>/100</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($config['with_order'])): ?>
+                                                <span class="pill level">Orden <?= (int) ($item['orden'] ?? 0) ?></span>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="catalog-item-actions">
                                             <button type="button"
@@ -174,6 +214,8 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 data-id="<?= (int) $item['id'] ?>"
                                                 data-nombre="<?= htmlspecialchars($item['nombre']) ?>"
                                                 data-descripcion="<?= htmlspecialchars($item['descripcion'] ?? '') ?>"
+                                                data-nivel="<?= (int) ($item['nivel_numero'] ?? 50) ?>"
+                                                data-orden="<?= (int) ($item['orden'] ?? 0) ?>"
                                                 data-activo="<?= (int) $item['activo'] ?>">
                                                 Editar
                                             </button>
@@ -186,6 +228,17 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                     <?= (int) $item['activo'] === 1 ? 'Inactivar' : 'Activar' ?>
                                                 </button>
                                             </form>
+                                            <?php if ((int) $item['activo'] === 0): ?>
+                                                <form method="POST"
+                                                      action="<?= BASE_URL ?>procesos/proceso_detalles.php"
+                                                      class="inline-form"
+                                                      onsubmit="return confirm('¿Seguro que deseas eliminar este registro? Esta accion no se puede deshacer.');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="catalog" value="<?= $key ?>">
+                                                    <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+                                                    <button type="submit" class="btn-mini danger">Eliminar</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </div>
                                     </article>
                                 <?php endforeach; ?>

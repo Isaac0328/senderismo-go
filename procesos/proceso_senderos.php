@@ -1,20 +1,30 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
+require_once __DIR__ . '/../componentes/helpers.php';
+require_once __DIR__ . '/../componentes/provincias.php';
+require_once __DIR__ . '/../componentes/menores_sendero.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in']) || (int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'operaciones.senderos';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $_SESSION['senderos_error'] = "Metodo no permitido.";
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_senderos.php");
     exit;
 }
+
+if (($_POST['action'] ?? '') === 'save') {
+    $_SESSION['senderos_old_input'] = [
+        'id' => (int) ($_POST['id'] ?? 0),
+        'data' => $_POST,
+    ];
+}
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_senderos.php", 'senderos_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 
@@ -27,6 +37,9 @@ function redirect_senderos(mysqli $conn, ?int $editId = null): void
     $url = BASE_URL . "mantenimientos/mantenimiento_senderos.php";
     if ($editId && $editId > 0) {
         $url .= "?edit=" . $editId;
+    } elseif (($_POST['action'] ?? '') === 'save' && empty($_SESSION['senderos_success'])) {
+        // Un sendero nuevo que no se pudo guardar vuelve a su formulario, no a la lista.
+        $url .= "?nuevo=1";
     }
     header("Location: " . $url);
     exit;
@@ -34,15 +47,7 @@ function redirect_senderos(mysqli $conn, ?int $editId = null): void
 
 function slugify_sendero(string $text): string
 {
-    $map = [
-        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
-        'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ñ' => 'n'
-    ];
-    $text = strtr($text, $map);
-    $text = strtolower($text);
-    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
-    $text = trim((string) $text, '-');
-    return $text !== '' ? $text : 'sendero';
+    return sg_slugify($text, 'sendero');
 }
 
 function unique_sendero_slug(mysqli $conn, string $nombre, int $id): string
@@ -70,88 +75,121 @@ function unique_sendero_slug(mysqli $conn, string $nombre, int $id): string
 
 function save_uploaded_image(array $file, string $slug, string $prefix): ?string
 {
-    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-        return null;
+    return sg_save_uploaded_image($file, 'imagenes/senderos/' . $slug, $prefix);
+}
+
+// Rutas de imagen que este sendero ya tiene (las tres principales y la galeria activa): son las unicas que se pueden reutilizar.
+function sendero_imagenes_reutilizables(mysqli $conn, int $senderoId): array
+{
+    $rutas = [];
+    $stmt = mysqli_prepare($conn, "SELECT imagen_principal, imagen_flyer, imagen_catalogo FROM senderos WHERE id = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $fila = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt)) ?: [];
+    mysqli_stmt_close($stmt);
+    foreach ($fila as $ruta) {
+        if (trim((string) $ruta) !== '') {
+            $rutas[] = trim((string) $ruta);
+        }
     }
-
-    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-        throw new RuntimeException("No se pudo cargar una imagen.");
+    $stmt = mysqli_prepare($conn, "SELECT ruta_imagen FROM sendero_imagenes WHERE sendero_id = ? AND activo = 1");
+    mysqli_stmt_bind_param($stmt, 'i', $senderoId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    while ($res && $fila = mysqli_fetch_assoc($res)) {
+        if (trim((string) $fila['ruta_imagen']) !== '') {
+            $rutas[] = trim((string) $fila['ruta_imagen']);
+        }
     }
-
-    $tmp = $file['tmp_name'] ?? '';
-    if (!is_uploaded_file($tmp) || getimagesize($tmp) === false) {
-        throw new RuntimeException("El archivo cargado no es una imagen valida.");
-    }
-
-    $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
-    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-    if (!in_array($ext, $allowed, true)) {
-        throw new RuntimeException("Solo se permiten imagenes JPG, PNG o WEBP.");
-    }
-
-    $folder = __DIR__ . '/../imagenes/senderos/' . $slug;
-    if (!is_dir($folder) && !mkdir($folder, 0775, true)) {
-        throw new RuntimeException("No se pudo crear la carpeta del sendero.");
-    }
-
-    $filename = $prefix . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-    $dest = $folder . '/' . $filename;
-
-    if (!move_uploaded_file($tmp, $dest)) {
-        throw new RuntimeException("No se pudo guardar la imagen cargada.");
-    }
-
-    return 'imagenes/senderos/' . $slug . '/' . $filename;
+    mysqli_stmt_close($stmt);
+    return array_values(array_unique($rutas));
 }
 
 function uploaded_files_array(string $field): array
 {
-    if (empty($_FILES[$field]) || !is_array($_FILES[$field]['name'])) {
-        return [];
-    }
-
-    $files = [];
-    $count = count($_FILES[$field]['name']);
-
-    for ($i = 0; $i < $count; $i++) {
-        $files[] = [
-            'name' => $_FILES[$field]['name'][$i],
-            'type' => $_FILES[$field]['type'][$i],
-            'tmp_name' => $_FILES[$field]['tmp_name'][$i],
-            'error' => $_FILES[$field]['error'][$i],
-            'size' => $_FILES[$field]['size'][$i],
-        ];
-    }
-
-    return $files;
+    return sg_uploaded_files_array($field);
 }
 
 function normalizar_fecha_sendero(string $fechaIso, string $fechaVisual = ''): string
 {
-    $fechaVisual = trim($fechaVisual);
+    return sg_fecha_visual_a_sql($fechaIso, $fechaVisual);
+}
 
-    if ($fechaVisual !== '') {
-        $dt = DateTime::createFromFormat('d/m/Y', $fechaVisual);
-        $errores = DateTime::getLastErrors();
-        $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
-        if ($dt && $sinErrores) {
-            return $dt->format('Y-m-d');
+function normalizar_inversiones_sendero(array $items, bool $esMenor = false): array
+{
+    $inversiones = [];
+    foreach ($items as $idx => $inversion) {
+        if (!is_array($inversion)) {
+            continue;
         }
-        return '';
-    }
 
-    $fechaIso = trim($fechaIso);
-    $dt = DateTime::createFromFormat('Y-m-d', $fechaIso);
-    $errores = DateTime::getLastErrors();
-    $sinErrores = $errores === false || ((int) ($errores['warning_count'] ?? 0) === 0 && (int) ($errores['error_count'] ?? 0) === 0);
-    if ($dt && $sinErrores) {
-        return $dt->format('Y-m-d');
-    }
+        $orden = max(1, (int) ($inversion['orden'] ?? ((int) $idx + 1)));
+        $nombre = trim((string) ($inversion['nombre'] ?? ''));
+        $monto = ($inversion['monto'] ?? '') !== '' ? max(0, (float) $inversion['monto']) : null;
+        $montoMenor = !$esMenor && ($inversion['monto_menor'] ?? '') !== ''
+            ? max(0, (float) $inversion['monto_menor'])
+            : null;
+        if ($nombre === '' && $monto === null) {
+            continue;
+        }
 
-    return '';
+        $inversiones[] = [
+            'id' => (int) ($inversion['id'] ?? 0),
+            'nombre' => $nombre !== '' ? $nombre : 'Inversion ' . $orden,
+            'descripcion' => trim((string) ($inversion['descripcion'] ?? '')),
+            'monto' => $monto ?? 0,
+            'monto_menor' => $montoMenor,
+            'fecha_limite_pago' => normalizar_fecha_sendero((string) ($inversion['fecha_limite_pago'] ?? '')),
+            'orden' => $orden,
+            'activo' => isset($inversion['activo']) ? 1 : 0,
+            'es_menor' => $esMenor ? 1 : 0,
+            'incluye' => array_values(array_unique(array_filter(array_map('intval', $inversion['incluye'] ?? [])))),
+        ];
+    }
+    return $inversiones;
 }
 
 try {
+    if ($action === 'reorder_images') {
+        $orderIds = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['gallery_order'] ?? [])))));
+        if ($id <= 0 || empty($orderIds)) {
+            $_SESSION['senderos_error'] = "No se recibio un orden de galeria valido.";
+            redirect_senderos($conn, $id);
+        }
+
+        $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_imagenes WHERE sendero_id = ? AND activo = 1 ORDER BY orden ASC, id ASC");
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $activeIds = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $activeIds[] = (int) $row['id'];
+        }
+        mysqli_stmt_close($stmt);
+
+        $received = $orderIds;
+        $expected = $activeIds;
+        sort($received);
+        sort($expected);
+        if ($received !== $expected) {
+            $_SESSION['senderos_error'] = "La galeria cambio mientras se organizaba. Recarga la pagina e intenta nuevamente.";
+            redirect_senderos($conn, $id);
+        }
+
+        mysqli_begin_transaction($conn);
+        $stmt = mysqli_prepare($conn, "UPDATE sendero_imagenes SET orden = ? WHERE id = ? AND sendero_id = ? AND activo = 1");
+        foreach ($orderIds as $index => $imageId) {
+            $order = $index + 1;
+            mysqli_stmt_bind_param($stmt, "iii", $order, $imageId, $id);
+            mysqli_stmt_execute($stmt);
+        }
+        mysqli_stmt_close($stmt);
+        mysqli_commit($conn);
+
+        $_SESSION['senderos_success'] = "Orden de la galeria actualizado.";
+        redirect_senderos($conn, $id);
+    }
+
     if ($action === 'delete_image') {
         $imageId = (int) ($_POST['image_id'] ?? 0);
         if ($imageId <= 0) {
@@ -187,7 +225,12 @@ try {
     $nombre = trim($_POST['nombre'] ?? '');
     $fecha = normalizar_fecha_sendero((string) ($_POST['fecha_sendero'] ?? ''), (string) ($_POST['fecha_sendero_visual'] ?? ''));
     $lugar = trim($_POST['lugar'] ?? '');
-    $provincia = trim($_POST['provincia'] ?? '');
+    try {
+        $provincia = sg_provincia_para_sendero($conn, (string) ($_POST['provincia'] ?? ''), $id);
+    } catch (InvalidArgumentException | RuntimeException $errorProvincia) {
+        $_SESSION['senderos_error'] = $errorProvincia->getMessage();
+        redirect_senderos($conn, $id);
+    }
     $descripcionCorta = trim($_POST['descripcion_corta'] ?? '');
     $descripcion = trim($_POST['descripcion'] ?? '');
     $nivelId = (int) ($_POST['nivel_dificultad_id'] ?? 0);
@@ -198,18 +241,111 @@ try {
     $distanciaKm = ($_POST['distancia_km'] ?? '') !== '' ? max(0, (float) $_POST['distancia_km']) : null;
     $desnivelMts = ($_POST['desnivel_mts'] ?? '') !== '' ? max(0, (int) $_POST['desnivel_mts']) : null;
     $coberturaSenal = ($_POST['cobertura_senal_pct'] ?? '') !== '' ? min(100, max(0, (int) $_POST['cobertura_senal_pct'])) : null;
-    $inversionTotal = ($_POST['inversion_total'] ?? '') !== '' ? max(0, (float) $_POST['inversion_total']) : null;
-    $fechaLimitePago = normalizar_fecha_sendero((string) ($_POST['fecha_limite_pago'] ?? ''));
+    $inversionesInput = is_array($_POST['inversiones'] ?? null) ? $_POST['inversiones'] : [];
+    $inversionesMenoresInput = is_array($_POST['inversiones_menores'] ?? null) ? $_POST['inversiones_menores'] : [];
     $estado = $_POST['estado'] ?? 'pendiente';
     $activo = isset($_POST['activo']) ? 1 : 0;
+    $incluyeChalecoSalvavidas = isset($_POST['incluye_chaleco_salvavidas']) ? 1 : 0;
+    // Como participan los menores. Si el formulario es viejo (sin selector) se deduce de la casilla.
+    $menoresModo = (string) ($_POST['menores_modo'] ?? '');
+    if (!isset(sg_menores_modos()[$menoresModo])) {
+        $menoresModo = isset($_POST['menores_misma_inversion']) ? 'precio' : 'propias';
+    }
+    $menoresMismaInversion = $menoresModo === 'propias' ? 0 : 1;
     $terrenos = array_map('intval', $_POST['tipos_terreno'] ?? []);
     $anotaciones = array_map('intval', $_POST['anotaciones'] ?? []);
-    $incluye = array_map('intval', $_POST['incluye'] ?? []);
+    $inversiones = normalizar_inversiones_sendero($inversionesInput);
+    $inversionesMenores = normalizar_inversiones_sendero($inversionesMenoresInput, true);
 
     if ($nombre === '' || $lugar === '' || $nivelId <= 0) {
         $_SESSION['senderos_error'] = "Completa nombre, fecha en formato dia/mes/año, lugar y dificultad.";
         redirect_senderos($conn, $id);
     }
+
+    $inversionesActivas = array_values(array_filter($inversiones, static fn($item) => (int) $item['activo'] === 1));
+    if ($estado === 'pendiente' && empty($inversionesActivas)) {
+        $_SESSION['senderos_error'] = "Agrega al menos una inversion activa para este sendero.";
+        redirect_senderos($conn, $id);
+    }
+
+    foreach ($inversionesActivas as $inversion) {
+        if ((float) $inversion['monto'] <= 0) {
+            $_SESSION['senderos_error'] = "Cada inversion activa debe tener monto mayor a cero.";
+            redirect_senderos($conn, $id);
+        }
+    }
+
+    // El precio del menor en las inversiones del adulto sale del modo elegido:
+    // igual = vacio (toma el del adulto), gratis = 0, precio = lo escrito (vacio = igual al adulto).
+    foreach ($inversiones as &$inversionAdulto) {
+        if ($menoresModo === 'gratis') {
+            $inversionAdulto['monto_menor'] = 0.0;
+        } elseif ($menoresModo !== 'precio') {
+            $inversionAdulto['monto_menor'] = null;
+        }
+    }
+    unset($inversionAdulto);
+
+    if ($menoresModo === 'no_admite' && $id > 0) {
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT COUNT(*) AS total FROM registro_sendero_menores rsm
+             INNER JOIN registros_senderos rs ON rs.id = rsm.registro_id
+             WHERE rs.sendero_id = ? AND rs.estado = 'registrado'"
+        );
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        mysqli_stmt_execute($stmt);
+        $menoresInscritos = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['total'] ?? 0);
+        mysqli_stmt_close($stmt);
+        if ($menoresInscritos > 0) {
+            $_SESSION['senderos_error'] = "Este sendero ya tiene {$menoresInscritos} menor(es) inscrito(s). Quitalos de las inscripciones antes de marcar que no admite menores.";
+            redirect_senderos($conn, $id);
+        }
+    }
+
+    $inversionesMenoresActivas = array_values(array_filter($inversionesMenores, static fn($item) => (int) $item['activo'] === 1));
+    if ($estado === 'pendiente' && $menoresMismaInversion === 0 && empty($inversionesMenoresActivas)) {
+        $_SESSION['senderos_error'] = "Agrega al menos una inversion activa para menores o elige otra opcion en \"Menores de edad\".";
+        redirect_senderos($conn, $id);
+    }
+    // Las inversiones propias de menores solo se revisan cuando se usan.
+    foreach ($menoresMismaInversion === 0 ? $inversionesMenoresActivas : [] as $inversion) {
+        if ((float) $inversion['monto'] <= 0) {
+            $_SESSION['senderos_error'] = "Cada inversion activa para menores debe tener monto mayor a cero.";
+            redirect_senderos($conn, $id);
+        }
+    }
+
+    $puntosInput = $_POST['puntos'] ?? [];
+    $puntosInput = is_array($puntosInput) ? $puntosInput : [];
+    $puntosCatalogoSeleccionados = [];
+    foreach ($puntosInput as $punto) {
+        if (!is_array($punto)) {
+            continue;
+        }
+
+        $puntoCatalogoId = (int) ($punto['punto_encuentro_id'] ?? 0);
+        $horaEncuentroPunto = trim((string) ($punto['hora_encuentro'] ?? ''));
+        $horaSalidaPunto = trim((string) ($punto['hora_salida'] ?? ''));
+        $tieneDatosPunto = $puntoCatalogoId > 0 || $horaEncuentroPunto !== '' || $horaSalidaPunto !== '';
+        if (!$tieneDatosPunto) {
+            continue;
+        }
+
+        if ($puntoCatalogoId <= 0 || $horaEncuentroPunto === '' || $horaSalidaPunto === '') {
+            $_SESSION['senderos_error'] = "Completa el lugar, la hora de llegada y la hora de salida de cada punto de encuentro.";
+            redirect_senderos($conn, $id);
+        }
+        if (in_array($puntoCatalogoId, $puntosCatalogoSeleccionados, true)) {
+            $_SESSION['senderos_error'] = "No puedes agregar el mismo punto de encuentro mas de una vez.";
+            redirect_senderos($conn, $id);
+        }
+        $puntosCatalogoSeleccionados[] = $puntoCatalogoId;
+    }
+
+    $inversionBase = $inversionesActivas[0] ?? ($inversiones[0] ?? null);
+    $inversionTotal = $inversionBase ? (float) $inversionBase['monto'] : null;
+    $fechaLimitePago = $inversionBase['fecha_limite_pago'] ?? '';
 
     if (!in_array($estado, ['pendiente', 'visitado'], true)) {
         $estado = 'pendiente';
@@ -246,6 +382,21 @@ try {
         $imagenCatalogo = save_uploaded_image($_FILES['imagen_catalogo'], $slug, 'catalogo');
     }
 
+    // Reutilizar una imagen que el sendero ya tiene cargada. Un archivo nuevo siempre manda sobre la eleccion.
+    if ($id > 0) {
+        $reutilizables = sendero_imagenes_reutilizables($conn, $id);
+        $elegida = static function (string $campo, ?string $subida) use ($reutilizables): ?string {
+            if ($subida !== null) {
+                return $subida;
+            }
+            $ruta = trim((string) ($_POST[$campo . '_existente'] ?? ''));
+            return $ruta !== '' && in_array($ruta, $reutilizables, true) ? $ruta : null;
+        };
+        $imagenPrincipal = $elegida('imagen_principal', $imagenPrincipal);
+        $imagenFlyer = $elegida('imagen_flyer', $imagenFlyer);
+        $imagenCatalogo = $elegida('imagen_catalogo', $imagenCatalogo);
+    }
+
     if ($id > 0) {
         $stmt = mysqli_prepare(
             $conn,
@@ -257,10 +408,10 @@ try {
                  tiempo_ida_vehiculo_min = ?, tiempo_regreso_vehiculo_min = ?, tipo_camino_vehiculo_id = ?,
                  tiempo_sendero_min = ?, distancia_km = ?, desnivel_mts = ?, cobertura_senal_pct = ?,
                  inversion_total = ?, fecha_limite_pago = ?,
-                 estado = ?, activo = ?
+                 estado = ?, activo = ?, incluye_chaleco_salvavidas = ?, menores_misma_inversion = ?
              WHERE id = ?"
         );
-        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $id);
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssiiii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $incluyeChalecoSalvavidas, $menoresMismaInversion, $id);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         $senderoId = $id;
@@ -280,12 +431,20 @@ try {
             "INSERT INTO senderos
              (nombre, slug, fecha_sendero, lugar, provincia, descripcion_corta, descripcion, imagen_principal, imagen_flyer, imagen_catalogo,
               nivel_dificultad_id, tiempo_ida_vehiculo_min, tiempo_regreso_vehiculo_min, tipo_camino_vehiculo_id,
-              tiempo_sendero_min, distancia_km, desnivel_mts, cobertura_senal_pct, inversion_total, fecha_limite_pago, estado, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              tiempo_sendero_min, distancia_km, desnivel_mts, cobertura_senal_pct, inversion_total, fecha_limite_pago, estado, activo,
+              incluye_chaleco_salvavidas, menores_misma_inversion)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
-        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssi", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo);
+        mysqli_stmt_bind_param($stmt, "ssssssssssiiiiidiidssiii", $nombre, $slug, $fecha, $lugar, $provincia, $descripcionCorta, $descripcion, $imagenPrincipal, $imagenFlyer, $imagenCatalogo, $nivelId, $tiempoIdaVehiculo, $tiempoRegresoVehiculo, $tipoCaminoVehiculoId, $tiempoSendero, $distanciaKm, $desnivelMts, $coberturaSenal, $inversionTotal, $fechaLimitePago, $estado, $activo, $incluyeChalecoSalvavidas, $menoresMismaInversion);
         mysqli_stmt_execute($stmt);
         $senderoId = mysqli_insert_id($conn);
+        mysqli_stmt_close($stmt);
+    }
+
+    if (sg_menores_modo_columna($conn)) {
+        $stmt = mysqli_prepare($conn, "UPDATE senderos SET menores_modo = ? WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, "si", $menoresModo, $senderoId);
+        mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
     }
 
@@ -301,51 +460,196 @@ try {
     }
 
     mysqli_query($conn, "DELETE FROM sendero_anotaciones WHERE sendero_id = " . (int) $senderoId);
-    foreach (array_unique($anotaciones) as $anotacionId) {
+    foreach (array_values(array_unique($anotaciones)) as $ordenAnotacion => $anotacionId) {
         if ($anotacionId <= 0) {
             continue;
         }
-        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_anotaciones (sendero_id, anotacion_id) VALUES (?, ?)");
-        mysqli_stmt_bind_param($stmt, "ii", $senderoId, $anotacionId);
+        $ordenItem = $ordenAnotacion + 1;
+        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_anotaciones (sendero_id, anotacion_id, orden) VALUES (?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, "iii", $senderoId, $anotacionId, $ordenItem);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
     }
 
+    $existingInvestmentIds = [];
+    if ($id > 0) {
+        $resExisting = mysqli_query($conn, "SELECT id FROM sendero_inversiones WHERE sendero_id = " . (int) $senderoId);
+        if ($resExisting) {
+            while ($row = mysqli_fetch_assoc($resExisting)) {
+                $existingInvestmentIds[] = (int) $row['id'];
+            }
+        }
+    }
+
+    $savedInvestmentIds = [];
+    $allIncluye = [];
+    foreach (array_merge($inversiones, $inversionesMenores) as $inversion) {
+        $investmentId = (int) $inversion['id'];
+        if ($investmentId > 0 && in_array($investmentId, $existingInvestmentIds, true)) {
+            $stmt = mysqli_prepare(
+                $conn,
+                "UPDATE sendero_inversiones
+                 SET nombre = ?, descripcion = ?, monto = ?, monto_menor = ?, fecha_limite_pago = ?, orden = ?, activo = ?, es_menor = ?
+                 WHERE id = ? AND sendero_id = ?"
+            );
+            mysqli_stmt_bind_param($stmt, "ssddsiiiii", $inversion['nombre'], $inversion['descripcion'], $inversion['monto'], $inversion['monto_menor'], $inversion['fecha_limite_pago'], $inversion['orden'], $inversion['activo'], $inversion['es_menor'], $investmentId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO sendero_inversiones (sendero_id, es_menor, nombre, descripcion, monto, monto_menor, fecha_limite_pago, orden, activo)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+            mysqli_stmt_bind_param($stmt, "iissddsii", $senderoId, $inversion['es_menor'], $inversion['nombre'], $inversion['descripcion'], $inversion['monto'], $inversion['monto_menor'], $inversion['fecha_limite_pago'], $inversion['orden'], $inversion['activo']);
+            mysqli_stmt_execute($stmt);
+            $investmentId = mysqli_insert_id($conn);
+            mysqli_stmt_close($stmt);
+        }
+
+        $savedInvestmentIds[] = $investmentId;
+        mysqli_query($conn, "DELETE FROM sendero_inversion_incluye WHERE inversion_id = " . (int) $investmentId);
+        foreach ($inversion['incluye'] as $ordenIncluye => $incluyeId) {
+            if ($incluyeId <= 0) {
+                continue;
+            }
+            $allIncluye[] = $incluyeId;
+            $ordenItem = $ordenIncluye + 1;
+            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_inversion_incluye (inversion_id, incluye_id, orden) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "iii", $investmentId, $incluyeId, $ordenItem);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    foreach (array_diff($existingInvestmentIds, $savedInvestmentIds) as $removedId) {
+        $removedId = (int) $removedId;
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT
+                (SELECT COUNT(*) FROM registros_senderos WHERE inversion_id = ?) +
+                (SELECT COUNT(*) FROM registro_sendero_menores WHERE inversion_id = ?) AS usos"
+        );
+        mysqli_stmt_bind_param($stmt, "ii", $removedId, $removedId);
+        mysqli_stmt_execute($stmt);
+        $usageResult = mysqli_stmt_get_result($stmt);
+        $usageRow = $usageResult ? mysqli_fetch_assoc($usageResult) : null;
+        mysqli_stmt_close($stmt);
+
+        if ((int) ($usageRow['usos'] ?? 0) > 0) {
+            mysqli_query($conn, "UPDATE sendero_inversiones SET activo = 0 WHERE id = " . $removedId . " AND sendero_id = " . (int) $senderoId);
+            continue;
+        }
+
+        mysqli_query($conn, "DELETE FROM sendero_inversiones WHERE id = " . $removedId . " AND sendero_id = " . (int) $senderoId);
+    }
+
     mysqli_query($conn, "DELETE FROM sendero_elementos_incluidos WHERE sendero_id = " . (int) $senderoId);
-    foreach (array_unique($incluye) as $incluyeId) {
+    foreach (array_unique($allIncluye) as $incluyeId) {
         if ($incluyeId <= 0) {
             continue;
         }
-        $stmt = mysqli_prepare($conn, "INSERT INTO sendero_elementos_incluidos (sendero_id, incluye_id) VALUES (?, ?)");
+        $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO sendero_elementos_incluidos (sendero_id, incluye_id) VALUES (?, ?)");
         mysqli_stmt_bind_param($stmt, "ii", $senderoId, $incluyeId);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
     }
 
-    mysqli_query($conn, "DELETE FROM sendero_puntos_encuentro WHERE sendero_id = " . (int) $senderoId);
-    $puntos = $_POST['puntos'] ?? [];
+    $puntos = $puntosInput;
+    $puntosConservados = [];
     $orden = 1;
     foreach ($puntos as $punto) {
+        if (!is_array($punto)) {
+            continue;
+        }
+
+        $senderoPuntoId = (int) ($punto['id'] ?? 0);
+        $puntoEncuentroId = (int) ($punto['punto_encuentro_id'] ?? 0);
         $nombrePunto = trim($punto['nombre_punto'] ?? '');
         $direccion = trim($punto['direccion_referencia'] ?? '');
         $horaEncuentro = trim($punto['hora_encuentro'] ?? '');
         $horaSalida = trim($punto['hora_salida'] ?? '');
         $urlMapa = trim($punto['url_mapa'] ?? '');
 
+        if ($puntoEncuentroId > 0) {
+            $stmt = mysqli_prepare($conn, "SELECT nombre, direccion_referencia, url_mapa FROM puntos_encuentro WHERE id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, "i", $puntoEncuentroId);
+            mysqli_stmt_execute($stmt);
+            $resPuntoCatalogo = mysqli_stmt_get_result($stmt);
+            $catalogoPunto = mysqli_fetch_assoc($resPuntoCatalogo);
+            mysqli_stmt_close($stmt);
+
+            if ($catalogoPunto) {
+                $nombrePunto = trim((string) $catalogoPunto['nombre']);
+                $direccion = trim((string) ($catalogoPunto['direccion_referencia'] ?? ''));
+                $urlMapa = trim((string) ($catalogoPunto['url_mapa'] ?? ''));
+            } else {
+                $puntoEncuentroId = 0;
+            }
+        }
+
         if ($nombrePunto === '' || $horaEncuentro === '' || $horaSalida === '') {
             continue;
         }
 
-        $stmt = mysqli_prepare(
-            $conn,
-            "INSERT INTO sendero_puntos_encuentro
-             (sendero_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
-        );
-        mysqli_stmt_bind_param($stmt, "isssssi", $senderoId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        $puntoEncuentroId = $puntoEncuentroId > 0 ? $puntoEncuentroId : null;
+
+        $puntoPerteneceSendero = false;
+        if ($senderoPuntoId > 0) {
+            $stmt = mysqli_prepare($conn, "SELECT id FROM sendero_puntos_encuentro WHERE id = ? AND sendero_id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, "ii", $senderoPuntoId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            $puntoPerteneceSendero = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($puntoPerteneceSendero) {
+            $stmt = mysqli_prepare(
+                $conn,
+                "UPDATE sendero_puntos_encuentro
+                 SET punto_encuentro_id = ?, nombre_punto = ?, direccion_referencia = ?, hora_encuentro = ?,
+                     hora_salida = ?, url_mapa = ?, orden = ?, activo = 1
+                 WHERE id = ? AND sendero_id = ?"
+            );
+            mysqli_stmt_bind_param($stmt, "isssssiii", $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden, $senderoPuntoId, $senderoId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        } else {
+            $stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO sendero_puntos_encuentro
+                 (sendero_id, punto_encuentro_id, nombre_punto, direccion_referencia, hora_encuentro, hora_salida, url_mapa, orden, activo)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
+            );
+            mysqli_stmt_bind_param($stmt, "iisssssi", $senderoId, $puntoEncuentroId, $nombrePunto, $direccion, $horaEncuentro, $horaSalida, $urlMapa, $orden);
+            mysqli_stmt_execute($stmt);
+            $senderoPuntoId = (int) mysqli_insert_id($conn);
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($senderoPuntoId > 0) {
+            $puntosConservados[] = $senderoPuntoId;
+        }
         $orden++;
+    }
+
+    $condicionConservados = $puntosConservados
+        ? " AND id NOT IN (" . implode(',', array_map('intval', $puntosConservados)) . ")"
+        : '';
+    $resPuntosRetirados = mysqli_query(
+        $conn,
+        "SELECT spe.id,
+                (SELECT COUNT(*) FROM registros_senderos rs WHERE rs.sendero_punto_encuentro_id = spe.id) AS uso_count
+         FROM sendero_puntos_encuentro spe
+         WHERE spe.sendero_id = " . (int) $senderoId . " AND spe.activo = 1" . $condicionConservados
+    );
+    while ($resPuntosRetirados && $puntoRetirado = mysqli_fetch_assoc($resPuntosRetirados)) {
+        $puntoRetiradoId = (int) $puntoRetirado['id'];
+        if ((int) $puntoRetirado['uso_count'] > 0) {
+            mysqli_query($conn, "UPDATE sendero_puntos_encuentro SET activo = 0 WHERE id = " . $puntoRetiradoId . " AND sendero_id = " . (int) $senderoId);
+        } else {
+            mysqli_query($conn, "DELETE FROM sendero_puntos_encuentro WHERE id = " . $puntoRetiradoId . " AND sendero_id = " . (int) $senderoId);
+        }
     }
 
     $galleryFiles = uploaded_files_array('galeria');
@@ -379,10 +683,15 @@ try {
 
     mysqli_commit($conn);
 
+    unset($_SESSION['senderos_old_input']);
     $_SESSION['senderos_success'] = $id > 0 ? "Sendero actualizado correctamente." : "Sendero creado correctamente.";
-    redirect_senderos($conn, $senderoId);
+    // Al guardar se vuelve a la consulta.
+    redirect_senderos($conn);
 } catch (Throwable $e) {
     mysqli_rollback($conn);
-    $_SESSION['senderos_error'] = "Error: " . $e->getMessage();
+    error_log('Mantenimiento de senderos: ' . $e->getMessage());
+    $_SESSION['senderos_error'] = APP_DEBUG
+        ? "Error: " . $e->getMessage()
+        : "No se pudo guardar el sendero.";
     redirect_senderos($conn, $id);
 }

@@ -1,19 +1,19 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/csrf.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in']) || (int) ($_SESSION['usuario_rol_id'] ?? 0) !== 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'finanzas.tarjeta_pago';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header("Location: " . BASE_URL . "mantenimientos/mantenimiento_tarjeta_pago.php");
     exit;
 }
+csrf_validate_post(BASE_URL . "mantenimientos/mantenimiento_tarjeta_pago.php", 'pago_error');
 
 require_once __DIR__ . '/../bd/conexion.php';
 

@@ -1,0 +1,31 @@
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: #eef3ed; color: #14251a; font-family: Arial, sans-serif; }
+.install-shell { width: min(1080px, calc(100% - 32px)); min-height: 100vh; margin: 0 auto; padding: 48px 0; display: grid; grid-template-columns: minmax(250px, .78fr) minmax(0, 1.22fr); gap: 28px; align-items: start; }
+.install-intro { padding: 34px 28px; color: #fff; background: #123d27; border-radius: 8px; box-shadow: 0 18px 36px rgba(20, 51, 32, .16); }
+.install-intro h1 { margin: 16px 0 14px; font-size: 2rem; line-height: 1.13; letter-spacing: 0; }
+.install-intro p { margin: 0; line-height: 1.6; color: #dcece1; }
+.install-intro ol { margin: 28px 0 0; padding-left: 20px; line-height: 1.55; color: #ecf5ee; }
+.install-intro li + li { margin-top: 12px; }
+.install-card { padding: 34px; background: #fff; border: 1px solid #dbe4dd; border-radius: 8px; box-shadow: 0 14px 32px rgba(27, 57, 37, .08); }
+.install-kicker { display: inline-block; padding: 6px 9px; border-radius: 999px; color: #076b3a; background: #e3f4e8; font-size: .72rem; font-weight: 800; letter-spacing: 0; }
+.install-kicker.success { color: #087340; background: #d8f3e3; }
+.install-kicker.locked { color: #914b00; background: #fff0d5; }
+.install-card h2 { margin: 15px 0 8px; font-size: 1.7rem; letter-spacing: 0; }
+.install-card > p { margin: 0 0 24px; line-height: 1.55; color: #5b6b60; }
+.install-note { padding: 12px 14px; background: #f2f7f3; border-left: 3px solid #17834b; }
+.install-form { display: grid; gap: 22px; }
+fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 14px; }
+legend { margin-bottom: 3px; font-size: .9rem; font-weight: 800; color: #234431; }
+label { display: grid; gap: 7px; color: #293c30; font-size: .86rem; font-weight: 700; }
+label span { color: #708176; font-weight: 400; }
+input { width: 100%; min-height: 44px; border: 1px solid #cdd9d0; border-radius: 6px; padding: 10px 12px; color: #14251a; background: #fff; font: inherit; font-weight: 400; }
+input:focus { outline: 3px solid rgba(23, 131, 75, .16); border-color: #17834b; }
+.install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.install-submit, .install-secondary { display: inline-flex; justify-content: center; align-items: center; width: fit-content; min-height: 44px; padding: 11px 18px; border: 0; border-radius: 6px; background: #123d27; color: #fff; text-decoration: none; font: inherit; font-weight: 800; cursor: pointer; }
+.install-submit:hover { background: #0d301e; }
+.install-secondary { background: #eff4f0; color: #173c26; border: 1px solid #cfdcd2; }
+.install-alert { margin: 18px 0; padding: 13px 15px; border: 1px solid #eac2bf; border-radius: 6px; color: #7e211b; background: #fff0ee; line-height: 1.45; }
+.install-alert ul { margin: 7px 0 0; padding-left: 18px; }
+@media (max-width: 800px) { .install-shell { grid-template-columns: 1fr; padding: 20px 0; } .install-intro, .install-card { padding: 26px 20px; } }
+@media (max-width: 520px) { .install-grid { grid-template-columns: 1fr; } .install-card h2 { font-size: 1.45rem; } }

@@ -1,0 +1,11 @@
+.provincias-page .fin-container { max-width: 1600px; }
+.provincias-page .fin-layout { grid-template-columns: minmax(270px, 350px) minmax(0, 1fr); align-items: start; }
+.provincias-page .fin-catalog-table-wrap { max-height: 620px; }
+.provincias-page .fin-catalog-table-wrap table { min-width: 620px; }
+.provincias-page .fin-row-actions { flex-wrap: nowrap; }
+.provincias-page .fin-row-actions svg,
+.provincias-page .fin-actions svg { width: 16px; height: 16px; flex-shrink: 0; }
+.provincias-list-full { grid-column: 1 / -1; }
+@media (max-width: 980px) {
+    .provincias-page .fin-layout { grid-template-columns: 1fr; }
+}

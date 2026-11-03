@@ -1,11 +1,20 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$pageTitle = "Login | Senderismo Go!";
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+sg_restaurar_sesion_recordada();
+require_once __DIR__ . '/../componentes/configuracion_sitio.php';
+
+$loginSiteIdentity = sg_site_identity();
+$loginSiteName = $loginSiteIdentity['nombre'];
+$loginSiteLogo = $loginSiteIdentity['logo'];
+
+$pageTitle = "Login | " . $loginSiteName;
 
 $cssFiles = [
     "css/global.css",
@@ -19,9 +28,12 @@ $jsFiles = [
 ];
 
 if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
+    header('Location: ' . sg_clean_url('pantallas/inicio.php'));
     exit;
 }
+
+$showRegisterPrompt = !empty($_SESSION['show_register_prompt']);
+unset($_SESSION['show_register_prompt']);
 
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
@@ -39,7 +51,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
             <div class="login-left-content">
                 <h2 class="login-left-title">TE ESTAMOS ESPERANDO</h2>
-                <p class="login-left-subtitle">Accede para continuar tu experiencia con Senderismo Go</p>
+                <p class="login-left-subtitle">Accede para continuar tu experiencia con <?= htmlspecialchars($loginSiteName, ENT_QUOTES, 'UTF-8') ?></p>
             </div>
         </div>
 
@@ -48,7 +60,11 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <div class="login-card">
 
                 <div class="login-logo">
-                    <img src="<?= BASE_URL ?>imagenes/logo/logo_sg.png" alt="Senderismo Go">
+                    <?php if ($loginSiteLogo !== ''): ?>
+                        <img src="<?= htmlspecialchars($loginSiteLogo, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($loginSiteName, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php else: ?>
+                        <span class="login-logo-text"><?= htmlspecialchars($loginSiteName, ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php endif; ?>
                 </div>
 
                 <h1 class="login-title">Iniciar Sesión</h1>
@@ -81,9 +97,9 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                             <span>Recordar sesión</span>
                         </label>
 
-                        <span class="forgot-password is-disabled" aria-disabled="true">
+                        <a class="forgot-password" href="<?= BASE_URL ?>pantallas/recuperar_password.php">
                             ¿Olvidaste tu contraseña?
-                        </span>
+                        </a>
                     </div>
 
                     <button type="submit" class="btn-login" id="loginButton">
@@ -115,7 +131,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </p>
 
                     <p class="mt-2">
-                        <a href="<?= BASE_URL ?>index.php">← Volver al inicio</a>
+                        <a href="<?= BASE_URL ?>">← Volver al inicio</a>
                     </p>
                 </div>
 
@@ -124,5 +140,26 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
     </div>
 </div>
+
+<?php if ($showRegisterPrompt): ?>
+    <dialog class="login-register-dialog" data-register-prompt aria-labelledby="register-prompt-title" aria-describedby="register-prompt-description">
+        <button class="login-register-dialog-close" type="button" aria-label="Cerrar mensaje" title="Cerrar" data-close-register-prompt>
+            <i data-feather="x"></i>
+        </button>
+        <span class="login-register-dialog-icon" aria-hidden="true">
+            <i data-feather="user-plus"></i>
+        </span>
+        <span class="login-register-dialog-kicker">Crea tu acceso</span>
+        <h2 id="register-prompt-title">¿Aún no tienes usuario?</h2>
+        <p id="register-prompt-description">Si no tienes un usuario, haz clic aquí para crear tu cuenta.</p>
+        <div class="login-register-dialog-actions">
+            <button class="login-register-dialog-secondary" type="button" data-close-register-prompt>Seguir intentando</button>
+            <a class="login-register-dialog-primary btn" href="<?= BASE_URL ?>pantallas/registro.php">
+                <i data-feather="user-plus"></i>
+                Crear usuario
+            </a>
+        </div>
+    </dialog>
+<?php endif; ?>
 
 <?php include_once __DIR__ . "/../componentes/pie_pagina.php"; ?>

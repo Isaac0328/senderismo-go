@@ -1,6 +1,6 @@
 .detalles-page {
     min-height: 100vh;
-    background: #e6e6e6;
+    background: var(--app-neutral-150);
     padding: 88px 20px 24px;
 }
 
@@ -23,8 +23,8 @@
     align-items: center;
     border-radius: 999px;
     padding: 4px 9px;
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
     font-size: .72rem;
     font-weight: 900;
     text-transform: uppercase;
@@ -32,7 +32,7 @@
 
 .detalles-title {
     margin: 7px 0 0;
-    color: #111;
+    color: var(--app-text);
     font-size: 1.75rem;
     line-height: 1.1;
     font-weight: 900;
@@ -40,7 +40,7 @@
 
 .detalles-subtitle {
     margin: 5px 0 0;
-    color: #555;
+    color: var(--app-neutral-700);
 }
 
 .detalles-link,
@@ -51,8 +51,8 @@
     min-height: 38px;
     border-radius: 8px;
     padding: 9px 12px;
-    background: #fff;
-    color: #111;
+    background: var(--app-surface);
+    color: var(--app-text);
     border: 1px solid rgba(0, 0, 0, .08);
     font-weight: 900;
     text-decoration: none;
@@ -66,13 +66,13 @@
 }
 
 .detalles-alert.success {
-    background: rgba(0, 180, 120, .12);
-    color: #079258;
+    background: color-mix(in srgb, var(--app-success) 12%, transparent);
+    color: var(--app-success);
 }
 
 .detalles-alert.error {
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-danger) 10%, transparent);
+    color: var(--app-danger);
 }
 
 .detalles-tabs {
@@ -85,8 +85,8 @@
 .detalles-tabs a {
     border-radius: 999px;
     padding: 8px 11px;
-    background: #fff;
-    color: #111;
+    background: var(--app-surface);
+    color: var(--app-text);
     border: 1px solid rgba(0, 0, 0, .08);
     font-size: .82rem;
     font-weight: 900;
@@ -101,7 +101,7 @@
 }
 
 .catalog-card {
-    background: #fff;
+    background: var(--app-surface);
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, .06);
     box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
@@ -119,14 +119,14 @@
 
 .catalog-head h2 {
     margin: 0;
-    color: #111;
+    color: var(--app-text);
     font-size: .98rem;
     font-weight: 900;
 }
 
 .catalog-head p {
     margin: 3px 0 0;
-    color: #666;
+    color: var(--app-muted);
     font-size: .82rem;
     line-height: 1.35;
 }
@@ -135,8 +135,8 @@
     flex: 0 0 auto;
     border-radius: 999px;
     padding: 5px 8px;
-    background: #f1f1f1;
-    color: #444;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-800);
     font-size: .72rem;
     font-weight: 900;
 }
@@ -153,8 +153,8 @@
     height: 34px;
     border: 0;
     border-radius: 8px;
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -163,7 +163,7 @@
 }
 
 .catalog-toggle:hover {
-    background: #2b2b2b;
+    background: var(--app-neutral-800);
 }
 
 .catalog-toggle svg {
@@ -198,7 +198,7 @@
 .field label {
     display: block;
     margin-bottom: 5px;
-    color: #222;
+    color: var(--app-text);
     font-size: .8rem;
     font-weight: 900;
 }
@@ -216,6 +216,14 @@
 
 .field textarea {
     resize: vertical;
+}
+
+.field-note {
+    display: block;
+    margin-top: 5px;
+    color: var(--app-muted);
+    font-size: .76rem;
+    line-height: 1.35;
 }
 
 .active-row {
@@ -244,8 +252,8 @@
 .btn-primary {
     min-height: 38px;
     padding: 9px 13px;
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
 }
 
 .catalog-list {
@@ -262,19 +270,19 @@
     gap: 10px;
     padding: 10px;
     border-radius: 8px;
-    background: #f7f7f7;
+    background: var(--app-neutral-50);
     border: 1px solid rgba(0, 0, 0, .05);
 }
 
 .catalog-item strong {
     display: block;
-    color: #111;
+    color: var(--app-text);
     font-size: .9rem;
 }
 
 .catalog-item p {
     margin: 3px 0 6px;
-    color: #666;
+    color: var(--app-muted);
     font-size: .8rem;
     line-height: 1.35;
 }
@@ -289,41 +297,58 @@
 }
 
 .pill.active {
-    background: rgba(0, 180, 120, .14);
-    color: #079258;
+    background: color-mix(in srgb, var(--app-success) 14%, transparent);
+    color: var(--app-success);
 }
 
 .pill.inactive {
-    background: rgba(225, 6, 0, .10);
-    color: #b90000;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
+}
+
+.pill.level {
+    margin-left: 5px;
+    background: color-mix(in srgb, var(--app-ink) 10%, transparent);
+    color: var(--app-text);
 }
 
 .btn-mini {
     display: inline-flex;
     align-items: center;
-    min-height: 32px;
+    justify-content: center;
+    width: 76px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
     padding: 7px 9px;
     background: rgba(0, 0, 0, .08);
-    color: #111;
+    color: var(--app-text);
     font-size: .76rem;
 }
 
 .btn-mini.warn {
-    background: rgba(255, 190, 0, .18);
-    color: #7a5200;
+    background: color-mix(in srgb, var(--app-warning) 18%, transparent);
+    color: var(--app-warning-dark);
 }
 
 .btn-mini.ok {
-    background: rgba(0, 180, 120, .14);
-    color: #079258;
+    background: color-mix(in srgb, var(--app-success) 14%, transparent);
+    color: var(--app-success);
+}
+
+.btn-mini.danger {
+    background: color-mix(in srgb, var(--app-danger) 10%, transparent);
+    color: var(--app-danger);
 }
 
 .inline-form {
-    display: inline;
+    display: inline-flex;
+    width: 76px;
+    height: 34px;
 }
 
 .empty {
-    color: #666;
+    color: var(--app-muted);
     padding: 12px;
 }
 
@@ -362,11 +387,27 @@
     }
 
     .catalog-head-actions,
-    .catalog-actions,
-    .catalog-item-actions {
+    .catalog-actions {
         align-items: stretch;
         flex-direction: column;
         width: 100%;
+    }
+
+    .catalog-item-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 76px);
+        align-items: center;
+        justify-content: end;
+        width: auto;
+    }
+
+    .catalog-item-actions > .btn-mini,
+    .catalog-item-actions .inline-form,
+    .catalog-item-actions .inline-form .btn-mini {
+        width: 76px;
+        height: 34px;
+        min-height: 34px;
+        max-height: 34px;
     }
 
     .catalog-toggle {

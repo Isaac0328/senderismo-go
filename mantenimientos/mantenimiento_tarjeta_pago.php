@@ -9,7 +9,7 @@ $ROLES_PERMITIDOS = [1];
 require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
 require_once __DIR__ . '/../bd/conexion.php';
 
-$pageTitle = "Mantenimiento Tarjeta de Pago | Senderismo Go!";
+$pageTitle = "Tarjeta de pago";
 $cssFiles = [
     "css/global.css",
     "css/barra_navegacion.css",
@@ -19,32 +19,16 @@ $jsFiles = [
     "js/barra_navegacion.js"
 ];
 
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS tarjeta_pago (
-        id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-        banco VARCHAR(120) NOT NULL,
-        cuenta VARCHAR(80) NOT NULL,
-        tipo_cuenta VARCHAR(80) NOT NULL,
-        cedula VARCHAR(40) NOT NULL,
-        correo VARCHAR(160) NOT NULL,
-        nombre VARCHAR(160) NOT NULL,
-        telefono_comprobante VARCHAR(40) NOT NULL,
-        nota_importante TEXT NOT NULL,
-        activo TINYINT(1) NOT NULL DEFAULT 1,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-");
-
 $pago = [
-    'banco' => 'Banco Popular',
-    'cuenta' => '846542835',
-    'tipo_cuenta' => 'Corriente',
-    'cedula' => '032-0039961-0',
-    'correo' => 'senderismogopro@gmail.com',
-    'nombre' => 'Yomary Infante',
-    'telefono_comprobante' => '809-323-1888',
-    'nota_importante' => 'Al momento de realizar el pago debe enviar el comprobante al numero indicado. El deposito por reservacion no es reembolsable ni transferible. No se realizan reembolsos del pago total, pero puede ceder su lugar a otra persona que cuente con la capacidad fisica necesaria para realizar el sendero.',
-    'activo' => 1,
+    'banco' => '',
+    'cuenta' => '',
+    'tipo_cuenta' => '',
+    'cedula' => '',
+    'correo' => '',
+    'nombre' => '',
+    'telefono_comprobante' => '',
+    'nota_importante' => '',
+    'activo' => 0,
 ];
 
 $res = mysqli_query($conn, "SELECT * FROM tarjeta_pago WHERE id = 1 LIMIT 1");
@@ -70,7 +54,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
         <div class="senderos-admin-header">
             <div>
                 <span class="admin-kicker">Informacion financiera</span>
-                <h1 class="senderos-admin-title">Mantenimiento Tarjeta de Pago</h1>
+                <h1 class="senderos-admin-title">Tarjeta de pago</h1>
                 <p class="senderos-admin-subtitle">Actualiza los datos bancarios que se muestran en el detalle de los senderos.</p>
             </div>
             <div class="senderos-header-actions">

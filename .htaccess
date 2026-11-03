@@ -1,2 +1,44 @@
 DirectoryIndex index.php
 Options -Indexes
+
+RewriteEngine On
+
+# Nunca exponer configuracion, respaldos, migraciones ni dependencias internas.
+RewriteRule ^(?:\.private|\.git|\.codex_backups|bd|scripts_bd|migraciones|herramientas|vendor|archivos/comprobantes_pago)(?:/|$) - [F,L,NC]
+
+<FilesMatch "^(?:composer\.(?:json|lock)|configuracion(?:\..*)?\.php)$">
+    Require all denied
+</FilesMatch>
+
+# Los respaldos no deben poder descargarse aunque lleguen por error a la carpeta publica.
+<FilesMatch "\.(?:sql|sql\.gz|bak|backup)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+# Convierte accesos GET antiguos en rutas canonicas antes de ejecutar la pantalla.
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?pantallas/[a-z0-9_]+\.php(?:[?\s]) [NC]
+RewriteRule ^pantallas/([a-z0-9_]+)\.php$ index.php?__legacy_screen=$1 [L,QSA]
+
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?mantenimientos/mantenimiento_[a-z0-9_]+\.php(?:[?\s]) [NC]
+RewriteRule ^mantenimientos/mantenimiento_([a-z0-9_]+)\.php$ index.php?__legacy_admin=$1 [L,QSA]
+
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s/+(.*/)?sesion/cerrar_sesion\.php(?:[?\s]) [NC]
+RewriteRule ^sesion/cerrar_sesion\.php$ index.php?__legacy_logout=1 [L,QSA]
+
+# Mantiene archivos y carpetas reales accesibles (CSS, JS, imagenes y procesos).
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Todas las rutas navegables se resuelven desde el controlador principal.
+RewriteRule ^ index.php [L,QSA]

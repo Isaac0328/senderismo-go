@@ -1,11 +1,12 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$pageTitle = "Nosotros | Senderismo Go!";
+$pageTitle = "Nosotros";
 $cssFiles = [
     "css/global.css",
     "css/barra_navegacion.css",
@@ -16,41 +17,45 @@ $jsFiles = [
     "js/nosotros.js"
 ];
 
-$stats = [
-    ['valor' => '150+', 'label' => 'Rutas exploradas'],
-    ['valor' => '5K+', 'label' => 'Aventureros guiados'],
-    ['valor' => '98%', 'label' => 'Experiencias positivas'],
-];
+function h($value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
 
-$valores = [
-    [
-        'icono' => 'shield',
-        'titulo' => 'Seguridad',
-        'texto' => 'Planificamos cada salida con criterio, informacion clara y acompañamiento responsable.'
-    ],
-    [
-        'icono' => 'map',
-        'titulo' => 'Conocimiento local',
-        'texto' => 'Exploramos rutas, puntos de encuentro y condiciones reales para orientar mejor a cada grupo.'
-    ],
-    [
-        'icono' => 'leaf',
-        'titulo' => 'Respeto natural',
-        'texto' => 'Promovemos senderismo consciente, bajo impacto y cuidado de los espacios que visitamos.'
-    ],
-];
+$config = [];
+$indicadores = [];
+$valores = [];
+$pasos = [];
+$equipo = [];
+$connNosotros = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+if ($connNosotros) {
+    mysqli_set_charset($connNosotros, 'utf8mb4');
 
-$pasos = [
-    ['numero' => '01', 'titulo' => 'Escuchamos tu objetivo', 'texto' => 'Identificamos si buscas una ruta familiar, privada, corporativa, fotografica o de mayor desafio.'],
-    ['numero' => '02', 'titulo' => 'Elegimos la experiencia', 'texto' => 'Recomendamos dificultad, distancia, horario, equipo y condiciones segun el perfil del grupo.'],
-    ['numero' => '03', 'titulo' => 'Acompañamos la aventura', 'texto' => 'Coordinamos el recorrido, los puntos de encuentro y las recomendaciones antes y durante la salida.'],
-];
+    $res = mysqli_query($connNosotros, "SELECT * FROM configuracion_nosotros WHERE id = 1 LIMIT 1");
+    $config = $res ? (mysqli_fetch_assoc($res) ?: []) : [];
 
-$equipo = [
-    ['nombre' => 'Equipo de guias', 'rol' => 'Orientacion y seguridad', 'imagen' => 'imagenes/paisajes/img1.jpg'],
-    ['nombre' => 'Coordinacion de rutas', 'rol' => 'Logistica y experiencia', 'imagen' => 'imagenes/paisajes/img3.jpg'],
-    ['nombre' => 'Comunidad Senderismo Go', 'rol' => 'Aventureros y aliados', 'imagen' => 'imagenes/paisajes/img5.jpg'],
-];
+    $res = mysqli_query($connNosotros, "SELECT * FROM nosotros_indicadores WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    while ($res && ($row = mysqli_fetch_assoc($res))) {
+        $indicadores[] = $row;
+    }
+    $res = mysqli_query($connNosotros, "SELECT * FROM nosotros_valores WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    while ($res && ($row = mysqli_fetch_assoc($res))) {
+        $valores[] = $row;
+    }
+    $res = mysqli_query($connNosotros, "SELECT * FROM nosotros_pasos WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    while ($res && ($row = mysqli_fetch_assoc($res))) {
+        $pasos[] = $row;
+    }
+    $res = mysqli_query($connNosotros, "SELECT * FROM nosotros_equipo WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    while ($res && ($row = mysqli_fetch_assoc($res))) {
+        $equipo[] = $row;
+    }
+    mysqli_close($connNosotros);
+}
+
+$url = static function (string $path): string {
+    return sg_clean_url($path);
+};
 
 include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
@@ -58,34 +63,31 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 <main class="about-page">
     <section class="about-hero" id="nosotros-hero">
-        <img src="<?= BASE_URL ?>imagenes/paisajes/hero.jpg" alt="Senderismo Go en la montana" class="about-hero-img">
+        <img src="<?= $url($config['hero_imagen'] ?? 'imagenes/paisajes/hero.jpg') ?>" alt="Experiencia en la montana" class="about-hero-img">
         <div class="about-hero-overlay"></div>
 
         <div class="about-hero-content">
-            <span class="about-kicker"><i data-feather="compass"></i> Nosotros</span>
-            <h1>Guiamos experiencias que conectan personas con la naturaleza.</h1>
-            <p>
-                Senderismo Go nace para que cada persona pueda descubrir rutas, paisajes y comunidades con una
-                experiencia organizada, cercana y responsable.
-            </p>
+            <span class="about-kicker"><i data-feather="compass"></i> <?= h($config['hero_kicker'] ?? 'Nosotros') ?></span>
+            <h1><?= h($config['hero_titulo'] ?? '') ?></h1>
+            <p><?= h($config['hero_subtitulo'] ?? '') ?></p>
             <div class="about-actions">
-                <a href="<?= BASE_URL ?>pantallas/senderos.php" class="about-btn primary">
+                <a href="<?= $url($config['boton_principal_url'] ?? 'pantallas/senderos.php') ?>" class="about-btn primary">
                     <i data-feather="map"></i>
-                    Ver senderos
+                    <?= h($config['boton_principal_texto'] ?? 'Ver senderos') ?>
                 </a>
-                <a href="<?= BASE_URL ?>pantallas/contacto.php" class="about-btn secondary">
+                <a href="<?= $url($config['boton_secundario_url'] ?? 'pantallas/contacto.php') ?>" class="about-btn secondary">
                     <i data-feather="message-circle"></i>
-                    Coordinar una ruta
+                    <?= h($config['boton_secundario_texto'] ?? 'Coordinar una ruta') ?>
                 </a>
             </div>
         </div>
     </section>
 
-    <section class="about-stats" aria-label="Indicadores de Senderismo Go">
-        <?php foreach ($stats as $stat): ?>
+    <section class="about-stats" aria-label="Indicadores de la organizacion">
+        <?php foreach ($indicadores as $stat): ?>
             <article>
-                <strong><?= htmlspecialchars($stat['valor']) ?></strong>
-                <span><?= htmlspecialchars($stat['label']) ?></span>
+                <strong><?= h($stat['valor']) ?></strong>
+                <span><?= h($stat['etiqueta']) ?></span>
             </article>
         <?php endforeach; ?>
     </section>
@@ -93,26 +95,18 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     <section class="about-section about-story">
         <div class="about-container story-grid">
             <div class="story-media">
-                <img src="<?= BASE_URL ?>imagenes/paisajes/img4.jpg" alt="Paisaje recorrido por Senderismo Go">
+                <img src="<?= $url($config['historia_imagen'] ?? 'imagenes/paisajes/img4.jpg') ?>" alt="Paisaje recorrido por la comunidad">
                 <div class="story-badge">
-                    <strong>Desde 2015</strong>
-                    <span>Creando comunidad outdoor</span>
+                    <strong><?= h($config['historia_badge_titulo'] ?? '') ?></strong>
+                    <span><?= h($config['historia_badge_texto'] ?? '') ?></span>
                 </div>
             </div>
 
             <div class="story-copy">
-                <span class="section-label">Nuestra historia</span>
-                <h2>De una caminata entre amigos a una comunidad de aventura.</h2>
-                <p>
-                    Lo que comenzo como recorridos entre personas amantes de la montana se convirtio en una forma de
-                    compartir naturaleza, bienestar y compañerismo. Hoy organizamos experiencias para quienes desean
-                    caminar con mayor seguridad, aprender sobre cada ruta y vivir momentos memorables.
-                </p>
-                <p>
-                    Trabajamos con planificacion, guias preparados, comunicacion clara y respeto por cada espacio
-                    natural. Nuestro objetivo es que el visitante se sienta acompañado desde que pregunta por una ruta
-                    hasta que termina la experiencia.
-                </p>
+                <span class="section-label"><?= h($config['historia_kicker'] ?? 'Nuestra historia') ?></span>
+                <h2><?= h($config['historia_titulo'] ?? '') ?></h2>
+                <p><?= h($config['historia_texto_1'] ?? '') ?></p>
+                <p><?= h($config['historia_texto_2'] ?? '') ?></p>
             </div>
         </div>
     </section>
@@ -120,17 +114,17 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     <section class="about-section about-values">
         <div class="about-container">
             <div class="section-heading">
-                <span class="section-label">Nuestro compromiso</span>
-                <h2>Lo que cuidamos en cada salida</h2>
-                <p>La aventura debe sentirse emocionante, pero tambien organizada, clara y humana.</p>
+                <span class="section-label"><?= h($config['valores_kicker'] ?? 'Nuestro compromiso') ?></span>
+                <h2><?= h($config['valores_titulo'] ?? '') ?></h2>
+                <p><?= h($config['valores_texto'] ?? '') ?></p>
             </div>
 
             <div class="values-grid">
                 <?php foreach ($valores as $valor): ?>
                     <article class="value-card">
-                        <span><i data-feather="<?= htmlspecialchars($valor['icono']) ?>"></i></span>
-                        <h3><?= htmlspecialchars($valor['titulo']) ?></h3>
-                        <p><?= htmlspecialchars($valor['texto']) ?></p>
+                        <span><i data-feather="<?= h($valor['icono']) ?>"></i></span>
+                        <h3><?= h($valor['titulo']) ?></h3>
+                        <p><?= h($valor['texto']) ?></p>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -140,21 +134,18 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     <section class="about-section about-process">
         <div class="about-container process-grid">
             <div>
-                <span class="section-label">Como trabajamos</span>
-                <h2>Una ruta bien vivida empieza antes de caminar.</h2>
-                <p>
-                    Por eso cada experiencia se prepara con informacion practica: dificultad, distancia, tiempos,
-                    puntos de encuentro, terreno, recomendaciones y lo que cada participante debe llevar.
-                </p>
+                <span class="section-label"><?= h($config['proceso_kicker'] ?? 'Como trabajamos') ?></span>
+                <h2><?= h($config['proceso_titulo'] ?? '') ?></h2>
+                <p><?= h($config['proceso_texto'] ?? '') ?></p>
             </div>
 
             <div class="process-list">
                 <?php foreach ($pasos as $paso): ?>
                     <article>
-                        <strong><?= htmlspecialchars($paso['numero']) ?></strong>
+                        <strong><?= h($paso['numero']) ?></strong>
                         <div>
-                            <h3><?= htmlspecialchars($paso['titulo']) ?></h3>
-                            <p><?= htmlspecialchars($paso['texto']) ?></p>
+                            <h3><?= h($paso['titulo']) ?></h3>
+                            <p><?= h($paso['texto']) ?></p>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -165,18 +156,27 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
     <section class="about-section about-team" id="equipo">
         <div class="about-container">
             <div class="section-heading">
-                <span class="section-label">Equipo</span>
-                <h2>Personas detras de cada experiencia</h2>
-                <p>Un equipo enfocado en seguridad, logistica, orientacion y buen trato.</p>
+                <span class="section-label"><?= h($config['equipo_kicker'] ?? 'Equipo') ?></span>
+                <h2><?= h($config['equipo_titulo'] ?? '') ?></h2>
+                <p><?= h($config['equipo_texto'] ?? '') ?></p>
             </div>
 
             <div class="team-grid">
                 <?php foreach ($equipo as $persona): ?>
                     <article class="team-card">
-                        <img src="<?= BASE_URL . htmlspecialchars($persona['imagen']) ?>" alt="<?= htmlspecialchars($persona['nombre']) ?>">
+                        <button type="button"
+                                class="team-image-button"
+                                data-team-image
+                                data-image-src="<?= h($url($persona['imagen'])) ?>"
+                                data-image-title="<?= h($persona['nombre']) ?>"
+                                data-image-subtitle="<?= h($persona['rol']) ?>"
+                                aria-label="Ampliar imagen de <?= h($persona['nombre']) ?>">
+                            <img src="<?= $url($persona['imagen']) ?>" alt="<?= h($persona['nombre']) ?>">
+                            <span class="team-image-zoom" aria-hidden="true"><i data-feather="maximize-2"></i></span>
+                        </button>
                         <div>
-                            <h3><?= htmlspecialchars($persona['nombre']) ?></h3>
-                            <p><?= htmlspecialchars($persona['rol']) ?></p>
+                            <h3><?= h($persona['nombre']) ?></h3>
+                            <p><?= h($persona['rol']) ?></p>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -184,16 +184,31 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
         </div>
     </section>
 
+    <dialog class="team-lightbox" data-team-lightbox aria-labelledby="teamLightboxTitle">
+        <section class="team-lightbox-panel">
+            <button type="button" class="team-lightbox-close" data-team-lightbox-close aria-label="Cerrar imagen ampliada">
+                <i data-feather="x"></i>
+            </button>
+            <div class="team-lightbox-media">
+                <img src="" alt="" data-team-lightbox-image>
+            </div>
+            <div class="team-lightbox-caption">
+                <strong id="teamLightboxTitle" data-team-lightbox-title></strong>
+                <span data-team-lightbox-subtitle></span>
+            </div>
+        </section>
+    </dialog>
+
     <section class="about-section about-cta">
         <div class="about-container cta-inner">
             <div>
-                <span class="section-label">Proxima aventura</span>
-                <h2>Quieres caminar con nosotros?</h2>
-                <p>Explora los proximos senderos o escribenos para coordinar una experiencia privada.</p>
+                <span class="section-label"><?= h($config['cta_kicker'] ?? 'Proxima aventura') ?></span>
+                <h2><?= h($config['cta_titulo'] ?? '') ?></h2>
+                <p><?= h($config['cta_texto'] ?? '') ?></p>
             </div>
             <div class="about-actions">
-                <a href="<?= BASE_URL ?>pantallas/senderos.php" class="about-btn primary">Ver proximos</a>
-                <a href="<?= BASE_URL ?>pantallas/contacto.php" class="about-btn secondary dark">Contactar</a>
+                <a href="<?= $url($config['cta_boton_principal_url'] ?? 'pantallas/senderos.php') ?>" class="about-btn primary"><?= h($config['cta_boton_principal_texto'] ?? 'Ver proximos') ?></a>
+                <a href="<?= $url($config['cta_boton_secundario_url'] ?? 'pantallas/contacto.php') ?>" class="about-btn secondary dark"><?= h($config['cta_boton_secundario_texto'] ?? 'Contactar') ?></a>
             </div>
         </div>
     </section>

@@ -1,0 +1,2 @@
+# Notas de trabajo: nunca deben poder leerse desde la web aunque lleguen por error a produccion.
+Require all denied

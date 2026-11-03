@@ -3,7 +3,7 @@
 /* Ajuste para navbar fijo (h-16 / md:h-20) + margen visual */
 .login-page {
     min-height: 100vh;
-    background: #e6e6e6;
+    background: var(--app-neutral-150);
     /* grisáceo */
     display: flex;
     align-items: stretch;
@@ -62,7 +62,7 @@
 
 .login-left-title {
     margin: 0;
-    color: #fff;
+    color: var(--app-inverse);
     font-size: 2rem;
     letter-spacing: 0.08em;
     font-weight: 900;
@@ -80,7 +80,7 @@
 
 /* Lado derecho */
 .login-right {
-    background: #ffffff;
+    background: var(--app-surface);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -91,7 +91,7 @@
 .login-card {
     width: 100%;
     max-width: 420px;
-    background: #ffffff;
+    background: var(--app-surface);
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 12px;
     /* cuadrada suave */
@@ -121,20 +121,29 @@
     animation: floatSoft 4.5s ease-in-out infinite;
 }
 
+.login-logo-text {
+    max-width: 300px;
+    overflow-wrap: anywhere;
+    color: var(--app-primary-600);
+    font-size: 1.35rem;
+    font-weight: 900;
+    text-align: center;
+}
+
 .login-title {
     text-transform: none;
     /* Global.css pone uppercase, aquí lo anulamos */
     font-size: 1.8rem;
     font-weight: 900;
     margin: 0 0 6px 0;
-    color: #111;
+    color: var(--app-text);
     text-align: center;
 }
 
 .login-desc {
     margin: 0 0 22px 0;
     text-align: center;
-    color: #666;
+    color: var(--app-muted);
 }
 
 /* Form */
@@ -151,7 +160,7 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 650;
-    color: #222;
+    color: var(--app-text);
     font-size: 0.95rem;
     text-transform: none;
 }
@@ -159,17 +168,17 @@
 .form-group input {
     width: 100%;
     padding: 14px 14px;
-    border: 1.8px solid #d7d7d7;
+    border: 1.8px solid var(--app-neutral-200);
     border-radius: 10px;
-    background: #fafafa;
+    background: var(--app-neutral-25);
     font-size: 1rem;
     transition: transform 0.18s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #111;
-    background: #fff;
+    border-color: var(--app-ink);
+    background: var(--app-surface);
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
     transform: translateY(-1px);
 }
@@ -189,7 +198,7 @@
     cursor: pointer;
     padding: 6px;
     border-radius: 8px;
-    color: #555;
+    color: var(--app-neutral-700);
     transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -212,7 +221,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #444;
+    color: var(--app-neutral-800);
     cursor: pointer;
     user-select: none;
     text-transform: none;
@@ -224,7 +233,7 @@
 }
 
 .forgot-password {
-    color: #111;
+    color: var(--app-text);
     text-decoration: none;
     font-weight: 700;
 }
@@ -248,8 +257,8 @@
     border: none;
     border-radius: 10px;
     padding: 14px 16px;
-    background: #111;
-    color: #fff;
+    background: var(--app-ink);
+    color: var(--app-inverse);
     font-weight: 900;
     cursor: pointer;
     transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.25s ease;
@@ -280,15 +289,29 @@
 }
 
 .alert-error {
-    background: #ffe9e9;
-    border: 1px solid #ffb6b6;
-    color: #7a1c1c;
+    background: var(--app-danger-100);
+    border: 1px solid var(--app-danger-300);
+    color: var(--app-danger-dark);
 }
 
 .alert-success {
-    background: #eaffea;
-    border: 1px solid #b8ffb8;
-    color: #1f6b1f;
+    background: var(--app-success-50);
+    border: 1px solid var(--app-success-200);
+    color: var(--app-success);
+}
+
+.alert-dev {
+    background: var(--app-warning-100);
+    border: 1px solid var(--app-warning-400);
+    color: var(--app-warning-900);
+    word-break: break-word;
+}
+
+.alert-dev a {
+    display: block;
+    margin-top: 6px;
+    color: var(--app-text);
+    font-weight: 800;
 }
 
 /* Footer */
@@ -298,7 +321,7 @@
 }
 
 .login-footer a {
-    color: #111;
+    color: var(--app-text);
     font-weight: 800;
     text-decoration: none;
 }
@@ -309,8 +332,141 @@
 
 .login-register {
     margin: 0 0 8px 0;
-    color: #333;
+    color: var(--app-neutral-800);
     font-weight: 600;
+}
+
+.login-register-dialog {
+    position: fixed;
+    width: min(410px, calc(100% - 32px));
+    margin: auto;
+    padding: 28px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    text-align: center;
+}
+
+.login-register-dialog::backdrop {
+    background: color-mix(in srgb, var(--app-ink) 62%, transparent);
+    backdrop-filter: blur(3px);
+}
+
+.login-register-dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--app-neutral-150);
+    border-radius: 8px;
+    background: var(--app-bg);
+    color: var(--app-neutral-800);
+    cursor: pointer;
+}
+
+.login-register-dialog-close svg {
+    width: 17px;
+    height: 17px;
+}
+
+.login-register-dialog-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 13px;
+    border-radius: 50%;
+    background: var(--app-primary-100);
+    color: var(--app-primary);
+}
+
+.login-register-dialog-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.login-register-dialog-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--app-accent-600);
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.login-register-dialog h2 {
+    margin: 0;
+    color: var(--app-text);
+    font-size: 1.35rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.login-register-dialog p {
+    margin: 10px auto 20px;
+    max-width: 320px;
+    color: var(--app-muted);
+    font-size: 0.93rem;
+    line-height: 1.5;
+}
+
+.login-register-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.login-register-dialog-actions button,
+.login-register-dialog-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.login-register-dialog-actions svg {
+    width: 17px;
+    height: 17px;
+}
+
+.login-register-dialog-secondary {
+    border: 1px solid var(--app-neutral-200);
+    background: var(--app-bg);
+    color: var(--app-text);
+}
+
+.login-register-dialog-primary {
+    border: 1px solid var(--app-primary-dark);
+    background: var(--app-primary-dark);
+    color: var(--app-inverse);
+}
+
+.login-register-dialog-close:hover,
+.login-register-dialog-close:focus-visible,
+.login-register-dialog-secondary:hover,
+.login-register-dialog-secondary:focus-visible {
+    border-color: var(--app-primary);
+    outline: none;
+}
+
+.login-register-dialog-primary:hover,
+.login-register-dialog-primary:focus-visible {
+    background: var(--app-primary-dark);
+    outline: 3px solid color-mix(in srgb, var(--app-primary) 18%, transparent);
 }
 
 /* ---------------- Animaciones modernas ---------------- */
@@ -412,5 +568,15 @@
 
     .login-card {
         max-width: 520px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-register-dialog {
+        padding: 26px 18px 18px;
+    }
+
+    .login-register-dialog-actions {
+        grid-template-columns: 1fr;
     }
 }

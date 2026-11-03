@@ -1,4 +1,4 @@
-/* Contacto.js - Senderismo Go! */
+/* Interacciones de la pagina de contacto. */
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('contactForm');

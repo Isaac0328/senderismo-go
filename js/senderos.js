@@ -8,6 +8,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     safeFeatherReplace();
 
+    /* ================= EXPLORADOR DE PRÓXIMOS SENDEROS ================= */
+    const explorer = document.querySelector('[data-senderos-explorer]');
+    if (explorer) {
+        const tools = explorer.querySelector('.senderos-explorer-tools');
+        const search = explorer.querySelector('[data-senderos-search]');
+        const difficulty = explorer.querySelector('[data-senderos-difficulty]');
+        const province = explorer.querySelector('[data-senderos-province]');
+        const cards = Array.from(explorer.querySelectorAll('[data-sendero-card]'));
+        const count = explorer.querySelector('[data-senderos-count]');
+        const empty = explorer.querySelector('[data-senderos-empty]');
+        const reset = explorer.querySelector('[data-senderos-reset]');
+        const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+        const filterCards = () => {
+            const term = normalize(search.value);
+            let visible = 0;
+            cards.forEach((card) => {
+                const matches = normalize(card.dataset.search || '').includes(term)
+                    && (!difficulty.value || card.dataset.difficulty === difficulty.value)
+                    && (!province.value || card.dataset.province === province.value);
+                card.hidden = !matches;
+                if (matches) visible += 1;
+            });
+            count.textContent = `${visible} ${visible === 1 ? 'sendero disponible' : 'senderos disponibles'}`;
+            empty.hidden = visible !== 0;
+        };
+
+        tools.hidden = false;
+        tools.addEventListener('submit', (event) => event.preventDefault());
+        search.addEventListener('input', filterCards);
+        difficulty.addEventListener('change', filterCards);
+        province.addEventListener('change', filterCards);
+        reset.addEventListener('click', () => {
+            search.value = '';
+            difficulty.value = '';
+            province.value = '';
+            filterCards();
+            search.focus();
+        });
+        filterCards();
+    }
+
     /* ================= ANIMACIÓN DE ENTRADA ================= */
     const animatedItems = document.querySelectorAll(
         '.sendero-card, .visitados-banner, .calendar-card, .section-heading'

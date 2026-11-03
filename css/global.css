@@ -1,27 +1,173 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 
+/* ==========================================================================
+   ESTILOS GLOBALES
+
+   Índice
+     1. Variables de la paleta
+     2. Base y reinicio
+     3. Tipografía
+     4. Estructura
+     5. Componentes compartidos
+     6. Adaptación a pantallas pequeñas
+
+   Reglas de uso
+     - Ningún color se escribe a mano en las hojas de cada pantalla: siempre
+       var(--app-...). Así toda la plataforma sigue la paleta del cliente.
+     - El tema activo solo define los nueve valores de la sección 1.1 (se
+       imprimen en el encabezado desde componentes/tema_colores.php). Todo lo
+       demás se calcula aquí a partir de ellos.
+     - css/tema.css se carga después de las hojas de pantalla y contiene los
+       ajustes del tema que deben imponerse a ellas.
+     - Lo que se repite en varias pantallas vive en la sección 5 de este
+       archivo; la hoja de cada pantalla solo contiene lo que le es propio.
+     - Excepciones: los colores de marcas externas (WhatsApp, Instagram) y
+       css/instalacion.css, que se muestra antes de que exista un tema.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. VARIABLES DE LA PALETA
+   ========================================================================== */
+
 :root {
-    --color-negro: #000000;
-    --color-blanco: #ffffff;
-    --color-rojo: #e10600;
-    /* rojo principal */
-    --color-rojo-hover: #c00400;
-    --color-gris: #f5f5f5;
-    /* apoyo */
+    /* 1.1 Paleta base: el tema activo sustituye estos nueve valores. */
+    --app-primary: #1f6b45;
+    --app-primary-dark: #123d27;
+    --app-accent: #c2410c;
+    --app-accent-dark: #9a3412;
+    --app-bg: #f3f6ef;
+    --app-surface: #ffffff;
+    --app-text: #17221b;
+    --app-muted: #617067;
+    --app-line: rgba(20, 27, 23, 0.12);
+
+    /* 1.2 Estados: significan lo mismo con cualquier marca. */
+    --app-success: #0f7a3f;
+    --app-danger: #c81e1e;
+    --app-warning: #d9960a;
+    --app-info: #0a6aa1;
+
+    /* 1.3 Texto e iconos sobre fondos oscuros o de color. */
+    --app-inverse: #ffffff;
 }
 
-/* Reset básico */
+/* Todo lo que sigue se calcula a partir de la paleta base. Se declara también
+   en .theme-preview para que la vista previa del tema recalcule con sus colores. */
+:root,
+.theme-preview {
+    /* 1.4 Rellenos y bordes oscuros. */
+    --app-ink: var(--app-text);
+
+    /* 1.5 Escalas de color.
+       50-400: tonos claros sobre la superficie (fondos suaves y bordes).
+       600-900 y dark: tonos oscuros (texto y estados al pasar el cursor). */
+
+    /* primary: principal de la marca */
+    --app-primary-50: color-mix(in srgb, var(--app-primary) 6%, var(--app-surface));
+    --app-primary-100: color-mix(in srgb, var(--app-primary) 12%, var(--app-surface));
+    --app-primary-200: color-mix(in srgb, var(--app-primary) 22%, var(--app-surface));
+    --app-primary-300: color-mix(in srgb, var(--app-primary) 38%, var(--app-surface));
+    --app-primary-400: color-mix(in srgb, var(--app-primary) 60%, var(--app-surface));
+    --app-primary-600: color-mix(in srgb, var(--app-primary) 80%, #000);
+    --app-primary-900: color-mix(in srgb, var(--app-primary) 38%, #000);
+
+    /* accent: acento de la marca */
+    --app-accent-50: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface));
+    --app-accent-100: color-mix(in srgb, var(--app-accent) 12%, var(--app-surface));
+    --app-accent-200: color-mix(in srgb, var(--app-accent) 22%, var(--app-surface));
+    --app-accent-300: color-mix(in srgb, var(--app-accent) 38%, var(--app-surface));
+    --app-accent-400: color-mix(in srgb, var(--app-accent) 60%, var(--app-surface));
+    --app-accent-600: color-mix(in srgb, var(--app-accent) 80%, #000);
+    --app-accent-900: color-mix(in srgb, var(--app-accent) 38%, #000);
+
+    /* success: éxito */
+    --app-success-50: color-mix(in srgb, var(--app-success) 6%, var(--app-surface));
+    --app-success-100: color-mix(in srgb, var(--app-success) 12%, var(--app-surface));
+    --app-success-200: color-mix(in srgb, var(--app-success) 22%, var(--app-surface));
+    --app-success-300: color-mix(in srgb, var(--app-success) 38%, var(--app-surface));
+    --app-success-400: color-mix(in srgb, var(--app-success) 60%, var(--app-surface));
+    --app-success-600: color-mix(in srgb, var(--app-success) 80%, #000);
+    --app-success-900: color-mix(in srgb, var(--app-success) 38%, #000);
+    --app-success-dark: color-mix(in srgb, var(--app-success) 62%, #000);
+
+    /* danger: error o acción destructiva */
+    --app-danger-50: color-mix(in srgb, var(--app-danger) 6%, var(--app-surface));
+    --app-danger-100: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface));
+    --app-danger-200: color-mix(in srgb, var(--app-danger) 22%, var(--app-surface));
+    --app-danger-300: color-mix(in srgb, var(--app-danger) 38%, var(--app-surface));
+    --app-danger-400: color-mix(in srgb, var(--app-danger) 60%, var(--app-surface));
+    --app-danger-600: color-mix(in srgb, var(--app-danger) 80%, #000);
+    --app-danger-900: color-mix(in srgb, var(--app-danger) 38%, #000);
+    --app-danger-dark: color-mix(in srgb, var(--app-danger) 62%, #000);
+
+    /* warning: aviso */
+    --app-warning-50: color-mix(in srgb, var(--app-warning) 6%, var(--app-surface));
+    --app-warning-100: color-mix(in srgb, var(--app-warning) 12%, var(--app-surface));
+    --app-warning-200: color-mix(in srgb, var(--app-warning) 22%, var(--app-surface));
+    --app-warning-300: color-mix(in srgb, var(--app-warning) 38%, var(--app-surface));
+    --app-warning-400: color-mix(in srgb, var(--app-warning) 60%, var(--app-surface));
+    --app-warning-600: color-mix(in srgb, var(--app-warning) 80%, #000);
+    --app-warning-900: color-mix(in srgb, var(--app-warning) 38%, #000);
+    --app-warning-dark: color-mix(in srgb, var(--app-warning) 62%, #000);
+
+    /* info: información */
+    --app-info-50: color-mix(in srgb, var(--app-info) 6%, var(--app-surface));
+    --app-info-100: color-mix(in srgb, var(--app-info) 12%, var(--app-surface));
+    --app-info-200: color-mix(in srgb, var(--app-info) 22%, var(--app-surface));
+    --app-info-300: color-mix(in srgb, var(--app-info) 38%, var(--app-surface));
+    --app-info-400: color-mix(in srgb, var(--app-info) 60%, var(--app-surface));
+    --app-info-600: color-mix(in srgb, var(--app-info) 80%, #000);
+    --app-info-900: color-mix(in srgb, var(--app-info) 38%, #000);
+    --app-info-dark: color-mix(in srgb, var(--app-info) 62%, #000);
+
+    /* 1.6 Grises: mezcla del texto con la superficie, de claro (25) a oscuro (800). */
+    --app-neutral-25: color-mix(in srgb, var(--app-text) 2%, var(--app-surface));
+    --app-neutral-50: color-mix(in srgb, var(--app-text) 4%, var(--app-surface));
+    --app-neutral-100: color-mix(in srgb, var(--app-text) 7%, var(--app-surface));
+    --app-neutral-150: color-mix(in srgb, var(--app-text) 10%, var(--app-surface));
+    --app-neutral-200: color-mix(in srgb, var(--app-text) 14%, var(--app-surface));
+    --app-neutral-300: color-mix(in srgb, var(--app-text) 22%, var(--app-surface));
+    --app-neutral-400: color-mix(in srgb, var(--app-text) 35%, var(--app-surface));
+    --app-neutral-500: color-mix(in srgb, var(--app-text) 50%, var(--app-surface));
+    --app-neutral-600: color-mix(in srgb, var(--app-text) 62%, var(--app-surface));
+    --app-neutral-700: color-mix(in srgb, var(--app-text) 72%, var(--app-surface));
+    --app-neutral-800: color-mix(in srgb, var(--app-text) 84%, var(--app-surface));
+}
+
+
+/* ==========================================================================
+   2. BASE Y REINICIO
+   ========================================================================== */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Tipografía base */
+html,
+body {
+    min-width: 320px;
+    overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+}
+
+
+/* ==========================================================================
+   3. TIPOGRAFÍA
+   ========================================================================== */
+
 body {
     font-family: 'Montserrat', system-ui, sans-serif;
-    background-color: var(--color-blanco);
-    color: var(--color-negro);
+    background-color: var(--app-surface);
+    color: var(--app-text);
 }
 
 /* Títulos */
@@ -52,10 +198,32 @@ p {
     line-height: 1.7;
 }
 
-/* Botones base */
+@media (min-width: 1024px) {
+    p {
+        font-size: 1.05rem;
+    }
+}
+
+
+/* ==========================================================================
+   4. ESTRUCTURA
+   ========================================================================== */
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 1rem;
+}
+
+
+/* ==========================================================================
+   5. COMPONENTES COMPARTIDOS
+   ========================================================================== */
+
+/* 5.1 Botón base */
 .btn {
-    background-color: var(--color-rojo);
-    color: var(--color-blanco);
+    background-color: var(--app-accent);
+    color: var(--app-inverse);
     padding: 0.9rem 2rem;
     border-radius: 0.4rem;
     font-weight: 600;
@@ -64,34 +232,361 @@ p {
 }
 
 .btn:hover {
-    background-color: var(--color-rojo-hover);
+    background-color: var(--app-accent-dark);
     transform: translateY(-2px);
 }
 
-/* Contenedor genérico */
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 0 1rem;
+/* 5.2 Panel de filtros de actividades */
+.sg-filter-panel {
+    background: var(--app-surface);
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 8px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .08);
+    margin-bottom: 12px;
+    overflow: visible;
 }
 
-@media (min-width: 1024px) {
-    p {
-        font-size: 1.05rem;
+.sg-filter-fieldset {
+    min-width: 0;
+    margin: 0;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.sg-filter-fieldset legend {
+    margin-left: 4px;
+    padding: 0 8px;
+}
+
+.sg-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    background: var(--app-surface);
+    color: var(--app-text);
+    padding: 0;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.sg-filter-toggle span {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 8px solid var(--app-info);
+    transition: transform .18s ease;
+}
+
+.sg-filter-panel.is-collapsed .sg-filter-toggle span {
+    transform: rotate(-90deg);
+}
+
+.sg-filter-body {
+    display: block;
+}
+
+.sg-filter-panel.is-collapsed .sg-filter-body {
+    display: none;
+}
+
+.sg-filter-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sg-filter-heading span {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+    color: var(--app-accent-dark);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.sg-filter-heading h2 {
+    margin: 7px 0 0;
+    color: var(--app-text);
+    font-size: 1rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.sg-filter-heading svg {
+    width: 20px;
+    height: 20px;
+    color: var(--app-primary-dark);
+}
+
+.sg-filter-summary {
+    display: none;
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    gap: 10px;
+    align-items: center;
+    min-height: 42px;
+    border: 1px solid color-mix(in srgb, var(--app-primary-dark) 12%, transparent);
+    border-radius: 8px;
+    background: var(--app-primary-50);
+    padding: 10px 12px;
+    color: var(--app-primary-dark);
+}
+
+.sg-filter-summary strong,
+.sg-filter-summary span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 900;
+}
+
+.sg-filter-summary span {
+    color: var(--app-primary-600);
+    font-size: .9rem;
+}
+
+.sg-filter-panel.is-collapsed .sg-filter-summary {
+    display: grid;
+}
+
+.sg-sendero-filter {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 14px 16px;
+}
+
+.sg-filter-panel .sg-sendero-filter {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 14px 16px;
+    padding: 0;
+}
+
+.sg-sendero-filter label {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.sg-sendero-filter label > span {
+    color: var(--app-text);
+    font-size: .88rem;
+    font-weight: 900;
+}
+
+.sg-sendero-filter input,
+.sg-sendero-filter select {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid rgba(0, 0, 0, .14);
+    border-radius: 7px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.sg-sendero-filter input:focus,
+.sg-sendero-filter select:focus {
+    outline: 2px solid color-mix(in srgb, var(--app-primary-dark) 22%, transparent);
+    border-color: var(--app-primary-dark);
+}
+
+.sg-filter-actions {
+    display: flex;
+    align-items: end;
+    gap: 10px;
+}
+
+.sg-filter-actions button,
+.sg-filter-actions a,
+.sg-filter-use button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font-weight: 950;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sg-filter-actions a {
+    background: var(--app-neutral-50);
+    color: var(--app-accent-dark);
+}
+
+.sg-filter-results,
+.sg-filter-sendero,
+.sg-filter-use,
+.sg-filter-empty,
+.sg-filter-help {
+    grid-column: 1 / -1;
+}
+
+.sg-filter-sendero {
+    display: grid;
+    gap: 8px;
+}
+
+.sg-filter-sendero > span {
+    color: var(--app-text);
+    font-size: .88rem;
+    font-weight: 950;
+}
+
+.sg-sendero-results {
+    display: grid;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--app-surface);
+}
+
+.sg-sendero-row {
+    display: grid;
+    grid-template-columns: 28px minmax(260px, 1.45fr) minmax(96px, .5fr) minmax(120px, .65fr) minmax(72px, .35fr) minmax(130px, .65fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 46px;
+    margin: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+    padding: 9px 12px;
+    color: var(--app-text);
+    cursor: pointer;
+}
+
+.sg-sendero-row:last-child {
+    border-bottom: 0;
+}
+
+.sg-sendero-row:hover,
+.sg-sendero-row.is-selected {
+    background: var(--app-primary-50);
+}
+
+.sg-sendero-row-head {
+    min-height: 38px;
+    background: var(--app-neutral-50);
+    color: var(--app-neutral-800);
+    cursor: default;
+}
+
+.sg-sendero-row-head strong {
+    font-size: .72rem;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.sg-sendero-row input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sg-sendero-row strong,
+.sg-sendero-row span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+}
+
+.sg-sendero-row label,
+.sg-sendero-radio {
+    display: block;
+}
+
+.sg-sendero-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--app-neutral-300);
+    border-radius: 999px;
+    background: var(--app-surface);
+    box-shadow: inset 0 0 0 4px var(--app-surface);
+}
+
+.sg-sendero-row input:checked + .sg-sendero-radio {
+    border-color: var(--app-primary-dark);
+    background: var(--app-primary-dark);
+}
+
+.sg-filter-results {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    border: 1px solid color-mix(in srgb, var(--app-primary-dark) 12%, transparent);
+    border-radius: 8px;
+    background: var(--app-primary-50);
+    padding: 10px 12px;
+}
+
+.sg-filter-results strong,
+.sg-filter-results span {
+    display: inline-block;
+    color: var(--app-primary-dark);
+    font-weight: 950;
+}
+
+.sg-filter-results strong {
+    margin-right: 6px;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.sg-filter-use {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.sg-filter-use button {
+    background: var(--app-primary-dark);
+}
+
+.sg-filter-empty,
+.sg-filter-help {
+    margin: 0;
+    border-radius: 8px;
+    background: var(--app-neutral-50);
+    color: var(--app-neutral-700);
+    padding: 11px 12px;
+    font-weight: 800;
+}
+
+.sg-filter-actions svg,
+.sg-filter-use svg {
+    width: 17px;
+    height: 17px;
+}
+
+
+/* ==========================================================================
+   6. ADAPTACIÓN A PANTALLAS PEQUEÑAS
+   ========================================================================== */
+
+@media (max-width: 980px) {
+    .sg-sendero-filter,
+    .sg-filter-panel .sg-sendero-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-}
 
-html,
-body {
-    min-width: 320px;
-    overflow-x: hidden;
-}
-
-img,
-svg,
-video,
-canvas {
-    max-width: 100%;
+    .sg-filter-actions {
+        grid-column: span 2;
+    }
 }
 
 @media (max-width: 640px) {
@@ -125,5 +620,123 @@ canvas {
         width: 100%;
         justify-content: center;
         text-align: center;
+    }
+
+    /* Filtro de actividades compacto: campos de dos en dos y botones en una fila */
+    .sg-filter-panel {
+        margin-bottom: 8px;
+    }
+
+    .sg-filter-fieldset {
+        padding: 6px 10px 10px;
+    }
+
+    .sg-filter-toggle {
+        font-size: .92rem;
+    }
+
+    /* Resumen del sendero elegido: nombre arriba, datos en una linea */
+    .sg-filter-summary {
+        min-height: 0;
+        padding: 8px 10px;
+    }
+
+    .sg-filter-panel.is-collapsed .sg-filter-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1px 12px;
+    }
+
+    .sg-filter-summary strong {
+        flex: 0 0 100%;
+    }
+
+    .sg-filter-summary span {
+        font-size: .8rem;
+    }
+
+    /* El titulo del recuadro ya dice lo mismo que este encabezado */
+    .sg-filter-panel .sg-filter-heading {
+        display: none;
+    }
+
+    .sg-sendero-filter,
+    .sg-filter-panel .sg-sendero-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+    }
+
+    .sg-sendero-filter label {
+        gap: 3px;
+    }
+
+    .sg-sendero-filter label > span {
+        font-size: .74rem;
+    }
+
+    .sg-sendero-filter input,
+    .sg-sendero-filter select {
+        min-height: 38px;
+        padding: 6px 8px;
+    }
+
+    .sg-filter-actions {
+        grid-column: 1 / -1;
+        align-items: stretch;
+    }
+
+    .sg-filter-panel .sg-filter-actions button,
+    .sg-filter-panel .sg-filter-actions a,
+    .sg-filter-panel .sg-filter-use button {
+        width: auto;
+        min-height: 40px;
+        padding: 8px 14px;
+        white-space: nowrap;
+    }
+
+    .sg-filter-panel .sg-filter-actions button,
+    .sg-filter-panel .sg-filter-use button {
+        flex: 1 1 auto;
+    }
+
+    .sg-filter-results {
+        min-height: 0;
+        padding: 7px 10px;
+    }
+
+    .sg-filter-empty,
+    .sg-filter-help {
+        padding: 8px 10px;
+        font-size: .8rem;
+    }
+
+    /* Cada sendero: nombre arriba y sus datos en una sola linea debajo */
+    .sg-sendero-filter .sg-sendero-row {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 10px;
+        min-height: 0;
+        padding: 9px 10px 9px 38px;
+    }
+
+    .sg-sendero-filter .sg-sendero-row-head {
+        display: none;
+    }
+
+    .sg-sendero-radio {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+    }
+
+    .sg-sendero-row strong {
+        flex: 0 0 100%;
+        font-size: .9rem;
+    }
+
+    .sg-sendero-row span:not(.sg-sendero-radio) {
+        color: var(--app-neutral-700);
+        font-size: .78rem;
     }
 }

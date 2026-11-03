@@ -1,0 +1,80 @@
+/* ==========================================================================
+   AJUSTES DEL TEMA
+
+   Se carga después de las hojas de cada pantalla (ver componentes/encabezado.php)
+   para que la paleta del cliente se imponga en los elementos comunes.
+   Los valores de la paleta se definen en css/global.css y el tema activo los
+   sustituye desde componentes/tema_colores.php.
+   ========================================================================== */
+
+body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+}
+
+/* Fondo de las pantallas completas */
+.admin-page,
+.tema-admin-page,
+.inicio-admin-page,
+.nosotros-admin-page,
+.contacto-admin-page,
+.senderos-admin-page,
+.usuarios-page,
+.roles-page,
+.detalles-admin-page,
+.registro-sendero-page,
+.report-page {
+    background: var(--app-bg);
+    color: var(--app-text);
+}
+
+/* Etiquetas pequeñas sobre los títulos */
+.admin-kicker,
+.tema-admin-kicker,
+.inicio-admin-kicker,
+.nosotros-admin-kicker,
+.contact-admin-kicker,
+.section-label,
+.registro-kicker {
+    background: var(--app-accent-100);
+    color: var(--app-accent-dark);
+}
+
+/* Acciones principales */
+.panel-icon,
+.tema-submit,
+.inicio-submit,
+.nosotros-submit,
+.contact-submit,
+.btn-primary,
+.primary-action,
+.submit-btn {
+    background: var(--app-primary-dark);
+}
+
+.panel-icon svg,
+.tema-submit,
+.inicio-submit,
+.nosotros-submit,
+.contact-submit,
+.btn-primary,
+.primary-action,
+.submit-btn {
+    color: var(--app-inverse);
+}
+
+/* Enlaces de texto.
+   :where() deja esta regla con la prioridad mínima: da color a los enlaces
+   sueltos, pero cualquier botón, tarjeta o menú que defina su propio color
+   de texto lo conserva (antes se les imponía el acento y perdían contraste). */
+:where(a:not(.panel-item):not(.nav-link):not(.btn):not(.dropdown-item)) {
+    color: var(--app-accent-dark);
+}
+
+/* Foco de los campos de formulario */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--app-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 16%, transparent) !important;
+}

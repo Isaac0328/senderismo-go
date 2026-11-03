@@ -1,13 +1,17 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
 
-$pageTitle = "Senderos | Senderismo Go!";
+sg_actualizar_senderos_vencidos($conn);
+
+$pageTitle = "Senderos";
 
 $cssFiles = [
     "css/global.css",
@@ -117,10 +121,14 @@ $sqlProximos = "
               AND spe.activo = 1
         ) AS total_puntos,
         (
-            SELECT MIN(spe.hora_salida)
+            SELECT spe.hora_salida
             FROM sendero_puntos_encuentro spe
             WHERE spe.sendero_id = s.id
               AND spe.activo = 1
+              AND spe.hora_salida IS NOT NULL
+              AND spe.hora_salida <> ''
+            ORDER BY spe.orden DESC, spe.id DESC
+            LIMIT 1
         ) AS hora_salida
     FROM senderos s
     INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
@@ -141,6 +149,20 @@ if ($resProximos) {
 
 $senderoDestacado = $proximosSenderos[0] ?? null;
 $senderosSecundarios = array_slice($proximosSenderos, 1);
+$provinciasProximas = [];
+$dificultadesProximas = [];
+foreach ($proximosSenderos as $senderoFiltro) {
+    $provinciaFiltro = trim((string) ($senderoFiltro['provincia'] ?? ''));
+    $dificultadFiltro = trim((string) ($senderoFiltro['nivel_dificultad'] ?? ''));
+    if ($provinciaFiltro !== '') {
+        $provinciasProximas[$provinciaFiltro] = $provinciaFiltro;
+    }
+    if ($dificultadFiltro !== '') {
+        $dificultadesProximas[$dificultadFiltro] = $dificultadFiltro;
+    }
+}
+natcasesort($provinciasProximas);
+natcasesort($dificultadesProximas);
 
 $eventosCalendario = [];
 
@@ -185,7 +207,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 <div class="senderos-page">
     <section class="senderos-hero">
-        <img src="<?= BASE_URL ?>imagenes/paisajes/hero.jpg" alt="Senderismo Go" class="senderos-hero-img">
+        <img src="<?= BASE_URL ?>imagenes/paisajes/hero.jpg" alt="Actividad al aire libre" class="senderos-hero-img">
         <div class="senderos-hero-overlay"></div>
 
         <div class="senderos-hero-content container-senderos">
@@ -202,9 +224,12 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             <?php
             $destacadoImg = sendero_img_src($senderoDestacado['imagen_flyer']);
             $dias = dias_restantes($senderoDestacado['fecha_sendero']);
+            $destacadoUrl = htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $senderoDestacado['id']), ENT_QUOTES, 'UTF-8');
             ?>
             <section class="featured-sendero">
-                <div class="featured-media">
+                <a href="<?= $destacadoUrl ?>"
+                   class="featured-media featured-media-link"
+                   aria-label="Ver detalle de <?= htmlspecialchars($senderoDestacado['nombre'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if ($destacadoImg !== ''): ?>
                         <img src="<?= $destacadoImg ?>" alt="<?= htmlspecialchars($senderoDestacado['nombre']) ?>">
                     <?php else: ?>
@@ -217,7 +242,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         <?= date('d', strtotime($senderoDestacado['fecha_sendero'])) ?>
                         <small><?= strtoupper(date('M', strtotime($senderoDestacado['fecha_sendero']))) ?></small>
                     </span>
-                </div>
+                </a>
 
                 <div class="featured-content">
                     <span class="section-eyebrow">Siguiente salida</span>
@@ -233,7 +258,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                     </div>
 
                     <div class="featured-actions">
-                        <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $senderoDestacado['id'] ?>" class="btn-primary-sendero">
+                        <a href="<?= $destacadoUrl ?>" class="btn-primary-sendero">
                             Ver detalle
                         </a>
                         <span class="days-chip"><?= $dias === 0 ? 'Salida hoy' : 'Faltan ' . $dias . ' dias' ?></span>
@@ -242,24 +267,50 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
             </section>
         <?php endif; ?>
 
-        <section class="senderos-section">
+        <section class="senderos-section" data-senderos-explorer>
             <div class="section-heading-row">
                 <div>
                     <span class="section-eyebrow">Agenda abierta</span>
                     <h2 class="section-title">Proximos senderos</h2>
                 </div>
-                <a href="<?= BASE_URL ?>pantallas/senderos_visitados.php" class="section-link">Ver visitados</a>
+                <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_visitados.php'), ENT_QUOTES, 'UTF-8') ?>" class="section-link">Ver visitados</a>
             </div>
 
             <?php if (!empty($proximosSenderos)): ?>
-                <div class="senderos-grid">
+                <form class="senderos-explorer-tools" role="search" aria-label="Buscar proximos senderos" hidden>
+                    <label class="senderos-search">
+                        <i data-feather="search" aria-hidden="true"></i>
+                        <span class="senderos-sr-only">Buscar sendero</span>
+                        <input type="search" data-senderos-search placeholder="Buscar por nombre, lugar o provincia" autocomplete="off">
+                    </label>
+                    <label class="senderos-select-wrap">
+                        <span class="senderos-sr-only">Filtrar por dificultad</span>
+                        <select data-senderos-difficulty>
+                            <option value="">Todas las dificultades</option>
+                            <?php foreach ($dificultadesProximas as $dificultadFiltro): ?>
+                                <option value="<?= htmlspecialchars($dificultadFiltro, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($dificultadFiltro) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label class="senderos-select-wrap">
+                        <span class="senderos-sr-only">Filtrar por provincia</span>
+                        <select data-senderos-province>
+                            <option value="">Todas las provincias</option>
+                            <?php foreach ($provinciasProximas as $provinciaFiltro): ?>
+                                <option value="<?= htmlspecialchars($provinciaFiltro, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($provinciaFiltro) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <span class="senderos-result-count" data-senderos-count role="status" aria-live="polite"></span>
+                </form>
+                <div class="senderos-grid" data-senderos-grid>
                     <?php foreach ($proximosSenderos as $sendero): ?>
                         <?php
                         $imagenSrc = sendero_img_src($sendero['imagen_flyer']);
                         $terrenos = trim((string) ($sendero['tipos_terreno'] ?? ''));
                         ?>
-                        <article class="sendero-card">
-                            <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $sendero['id'] ?>" class="sendero-card-link">
+                        <article class="sendero-card" data-sendero-card data-search="<?= htmlspecialchars(strtolower($sendero['nombre'] . ' ' . $sendero['lugar'] . ' ' . ($sendero['provincia'] ?? '')), ENT_QUOTES, 'UTF-8') ?>" data-difficulty="<?= htmlspecialchars($sendero['nivel_dificultad'], ENT_QUOTES, 'UTF-8') ?>" data-province="<?= htmlspecialchars($sendero['provincia'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                            <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $sendero['id']), ENT_QUOTES, 'UTF-8') ?>" class="sendero-card-link">
                                 <div class="sendero-image-wrap">
                                     <?php if ($imagenSrc !== ''): ?>
                                         <img src="<?= $imagenSrc ?>" alt="<?= htmlspecialchars($sendero['nombre']) ?>" class="sendero-card-image">
@@ -314,6 +365,13 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
                         </article>
                     <?php endforeach; ?>
                 </div>
+                <div class="senderos-no-results" data-senderos-empty hidden>
+                    <i data-feather="search" aria-hidden="true"></i>
+                    <div>
+                        <h3>No encontramos senderos con esos filtros</h3>
+                        <button type="button" data-senderos-reset>Limpiar filtros</button>
+                    </div>
+                </div>
             <?php else: ?>
                 <div class="empty-senderos">
                     <i data-feather="map"></i>
@@ -358,7 +416,7 @@ include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
                             <?php if ($tieneEventos): ?>
                                 <?php foreach ($eventosCalendario[$fechaActual] as $evento): ?>
-                                    <a href="<?= BASE_URL ?>pantallas/senderos_detalle.php?id=<?= (int) $evento['id'] ?>" class="calendar-event-name" title="<?= htmlspecialchars($evento['nombre']) ?>">
+                                    <a href="<?= htmlspecialchars(sg_clean_url('pantallas/senderos_detalle.php?id=' . (int) $evento['id']), ENT_QUOTES, 'UTF-8') ?>" class="calendar-event-name" title="<?= htmlspecialchars($evento['nombre']) ?>">
                                         <?= htmlspecialchars($evento['nombre']) ?>
                                     </a>
                                 <?php endforeach; ?>

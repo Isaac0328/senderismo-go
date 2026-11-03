@@ -1,5 +1,24 @@
 <?php
-$pageTitle = "Inicio | Senderismo Go!";
+require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
+require_once __DIR__ . '/../bd/conexion.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../componentes/recordar_sesion.php';
+require_once __DIR__ . '/../componentes/encuestas_usuario.php';
+sg_restaurar_sesion_recordada();
+
+$inicioPersonalizado = !empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in']);
+if ($inicioPersonalizado) {
+    header('Cache-Control: private, no-store');
+    require_once __DIR__ . '/../componentes/inicio_usuario_datos.php';
+    $inicioUsuario = sg_inicio_usuario($conn, (int) $_SESSION['usuario_id']);
+}
+
+$pageTitle = 'Inicio';
 
 $cssFiles = [
     "css/global.css",
@@ -11,197 +30,218 @@ $jsFiles = [
     "js/barra_navegacion.js",
     "js/inicio.js"
 ];
+if ($inicioPersonalizado) {
+    $cssFiles[] = 'css/inicio_usuario.css';
+    $jsFiles = ['js/barra_navegacion.js', 'js/inicio_usuario.js'];
+}
+
+function inicio_h($value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+function inicio_url(?string $ruta): string
+{
+    $ruta = trim((string) $ruta);
+    if ($ruta === '') {
+        return BASE_URL . 'imagenes/paisajes/hero.jpg';
+    }
+    if (str_starts_with($ruta, '#')) {
+        return $ruta;
+    }
+    if (preg_match('/^https?:\/\//i', $ruta)) {
+        return $ruta;
+    }
+    return sg_clean_url($ruta);
+}
+
+$sgEncuestasUsuarioResumen = ['total' => 0, 'items' => []];
+$sgEncuestasUsuarioResumenCargado = false;
+if (!empty($_SESSION['usuario_id']) && !empty($_SESSION['logged_in'])) {
+    $sgEncuestasUsuarioResumen = sg_encuestas_usuario_resumen($conn, (int) $_SESSION['usuario_id'], 1);
+    $sgEncuestasUsuarioResumenCargado = true;
+}
+$inicioEncuestaPrincipal = $sgEncuestasUsuarioResumen['items'][0] ?? null;
+
+$inicio = [
+    'hero_imagen' => 'imagenes/paisajes/hero.jpg',
+    'logo_imagen' => '',
+    'hero_titulo' => 'Tu proxima experiencia comienza aqui',
+    'hero_subtitulo' => 'Actividades pensadas para disfrutar y compartir.',
+    'boton_texto' => 'CONOCER MAS',
+    'boton_url' => '#porque-elegirnos',
+    'acceso_rapido_texto' => 'Ver proximos senderos',
+    'acceso_rapido_badge' => 'Agenda',
+    'acceso_rapido_url' => 'pantallas/senderos.php',
+    'porque_titulo' => 'Experiencias para disfrutar y compartir',
+    'galeria_titulo' => 'Momentos para recordar',
+    'galeria_subtitulo' => 'Descubre las actividades que tenemos preparadas para la comunidad.',
+    'cta_titulo' => 'Conoce mas sobre nosotros',
+    'cta_texto' => 'Somos una comunidad que crea experiencias al aire libre con organizacion, cuidado y entusiasmo.',
+    'cta_boton_texto' => 'Saber mas',
+    'cta_boton_url' => 'pantallas/nosotros.php',
+];
+
+$resInicio = mysqli_query($conn, "SELECT * FROM configuracion_inicio WHERE id = 1 LIMIT 1");
+if ($resInicio && ($row = mysqli_fetch_assoc($resInicio))) {
+    foreach ($inicio as $campo => $valor) {
+        if (isset($row[$campo]) && trim((string) $row[$campo]) !== '') {
+            $inicio[$campo] = $row[$campo];
+        }
+    }
+}
+
+$tarjetasInicio = [];
+$galeriaInicio = [];
+if (!$inicioPersonalizado) {
+    $resTarjetas = mysqli_query($conn, "SELECT * FROM inicio_tarjetas WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    if ($resTarjetas) {
+        while ($row = mysqli_fetch_assoc($resTarjetas)) {
+            $tarjetasInicio[] = $row;
+        }
+    }
+
+    $resGaleria = mysqli_query($conn, "SELECT * FROM inicio_galeria WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    if ($resGaleria) {
+        while ($row = mysqli_fetch_assoc($resGaleria)) {
+            $galeriaInicio[] = $row;
+        }
+    }
+}
 
 include_once "../componentes/encabezado.php";
 include_once "../componentes/barra_navegacion.php";
 ?>
 
-<!-- CONTENEDOR GENERAL -->
-<div class="w-full pt-16 md:pt-20">
-
-    <!-- ================= HERO / PORTADA ================= -->
+<main class="inicio-page<?= $inicioPersonalizado ? ' inicio-personalizado' : '' ?>">
+    <?php if ($inicioPersonalizado): ?>
+        <?php include __DIR__ . '/../componentes/inicio_usuario.php'; ?>
+    <?php else: ?>
     <section id="hero" class="relative w-full h-screen">
-        <!-- Imagen de fondo -->
-        <img src="<?= BASE_URL ?>imagenes/paisajes/hero.jpg" alt="Senderismo Go"
-            class="absolute inset-0 w-full h-full object-cover">
-
-        <!-- Overlay -->
+        <img src="<?= inicio_h(inicio_url($inicio['hero_imagen'])) ?>" alt="<?= inicio_h($inicio['hero_titulo']) ?>" class="absolute inset-0 w-full h-full object-cover">
         <div class="absolute inset-0 bg-black/40"></div>
 
-        <!-- Contenido centrado -->
         <div class="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
+            <?php if (trim((string) $inicio['logo_imagen']) !== ''): ?>
+                <img src="<?= inicio_h(inicio_url($inicio['logo_imagen'])) ?>" alt="<?= inicio_h($inicio['hero_titulo']) ?>" class="w-32 md:w-40 lg:w-48 mb-6">
+            <?php endif; ?>
 
-            <!-- Logo -->
-            <img src="<?= BASE_URL ?>imagenes/logo/logo_sg.png" alt="Senderismo Go" class="w-32 md:w-40 lg:w-48 mb-6">
-
-            <!-- Título -->
             <h1 class="text-white text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-                Senderismo… Go!
+                <?= inicio_h($inicio['hero_titulo']) ?>
             </h1>
 
-            <!-- Subtítulo -->
             <p class="text-white text-lg md:text-xl mb-8">
-                ¡Apasionados por la naturaleza!
+                <?= inicio_h($inicio['hero_subtitulo']) ?>
             </p>
 
-            <!-- Botón scroll -->
-            <a href="#porque-elegirnos" class="btn flex items-center gap-2 smooth-scroll">
-                CONOCER MÁS
+            <a href="<?= inicio_h($inicio['boton_url']) ?>" class="btn flex items-center gap-2 smooth-scroll">
+                <?= inicio_h($inicio['boton_texto']) ?>
                 <span>↓</span>
+            </a>
+
+            <a href="<?= inicio_h(inicio_url($inicio['acceso_rapido_url'])) ?>" class="hero-quick-link" aria-label="<?= inicio_h($inicio['acceso_rapido_texto']) ?>">
+                <i data-feather="calendar"></i>
+                <span><?= inicio_h($inicio['acceso_rapido_texto']) ?></span>
+                <strong><?= inicio_h($inicio['acceso_rapido_badge']) ?></strong>
             </a>
         </div>
     </section>
 
-    <!-- ================= ¿POR QUÉ ELEGIRNOS? ================= -->
     <section id="porque-elegirnos" class="w-full py-20">
         <div class="max-w-7xl mx-auto px-6">
-
-            <!-- Título -->
-            <div class="text-center mb-16">
+            <div class="porque-header text-center mb-14">
+                <span class="porque-overline">Razones de confianza</span>
                 <h2 class="text-3xl md:text-4xl font-bold">
-                    ¿Por qué elegirnos?
+                    <?= inicio_h($inicio['porque_titulo']) ?>
                 </h2>
-            </div>
-
-            <!-- Contenedor de tarjetas -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-
-                <!-- Card 1 -->
-                <div class="card text-center hover-card transition-transform duration-300">
-                    <div class="mb-6 flex justify-center">
-                        <i data-feather="map" class="w-12 h-12"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-4">
-                        Rutas Exclusivas y Seguras
-                    </h3>
-                    <p class="leading-relaxed">
-                        Explora senderos cuidadosamente seleccionados para ofrecerte
-                        las mejores vistas y experiencias, con guías expertos que
-                        garantizan tu seguridad en todo momento.
-                    </p>
-                </div>
-
-                <!-- Card 2 -->
-                <div class="card text-center hover-card transition-transform duration-300">
-                    <div class="mb-6 flex justify-center">
-                        <i data-feather="users" class="w-12 h-12"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-4">
-                        Experiencia para Todos los Niveles
-                    </h3>
-                    <p class="leading-relaxed">
-                        Ofrecemos rutas adaptadas a principiantes y expertos,
-                        asegurando que cada aventura se ajuste a tu nivel y
-                        disfrutes sin preocupaciones.
-                    </p>
-                </div>
-
-                <!-- Card 3 -->
-                <div class="card text-center hover-card transition-transform duration-300">
-                    <div class="mb-6 flex justify-center">
-                        <i data-feather="image" class="w-12 h-12"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-4">
-                        Conexión Auténtica con la Naturaleza
-                    </h3>
-                    <p class="leading-relaxed">
-                        Más que un recorrido, nuestras experiencias te sumergen
-                        en la naturaleza con actividades de observación, fotografía
-                        y momentos de relajación en entornos únicos.
-                    </p>
-                </div>
-
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ================= GALERÍA ================= -->
-    <section id="galeria" class="w-full py-20">
-        <div class="max-w-7xl mx-auto px-6">
-
-            <!-- Título -->
-            <div class="text-center mb-14">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4">
-                    Algunos de los paisajes que verás con nosotros
-                </h2>
-                <p class="text-lg">
-                    Descubre un vistazo de las experiencias que te esperan
+                <p>
+                    Dise&ntilde;amos cada detalle para que vivas una experiencia segura, aut&eacute;ntica y memorable.
                 </p>
             </div>
 
-            <!-- Grid de imágenes -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <?php for ($i = 1; $i <= 10; $i++): ?>
-                    <div class="cursor-pointer image-hover" data-image-index="<?= $i - 1 ?>">
-                        <img src="<?= BASE_URL ?>imagenes/paisajes/img<?= $i ?>.jpg" alt="Paisaje <?= $i ?>"
-                            class="w-full h-40 object-cover rounded-lg">
+            <div class="porque-grid grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
+                <?php foreach ($tarjetasInicio as $tarjeta): ?>
+                    <div class="card text-center">
+                        <div class="icon-circle mb-6 flex justify-center">
+                            <i data-feather="<?= inicio_h($tarjeta['icono']) ?>" class="w-12 h-12"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-4">
+                            <?= inicio_h($tarjeta['titulo']) ?>
+                        </h3>
+                        <p class="leading-relaxed">
+                            <?= nl2br(inicio_h($tarjeta['descripcion'])) ?>
+                        </p>
+                        <span class="card-divider" aria-hidden="true"></span>
                     </div>
-                <?php endfor; ?>
+                <?php endforeach; ?>
             </div>
         </div>
     </section>
 
-    <!-- ================= QUIÉNES SOMOS (CTA) ================= -->
-    <section id="quienes-somos" class="w-full py-20">
-        <div class="max-w-6xl mx-auto px-6 text-center">
+    <section id="galeria" class="w-full py-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-14">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">
+                    <?= inicio_h($inicio['galeria_titulo']) ?>
+                </h2>
+                <p class="text-lg">
+                    <?= inicio_h($inicio['galeria_subtitulo']) ?>
+                </p>
+            </div>
 
-            <!-- Título -->
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                Conoce un poco más sobre nosotros
-            </h2>
-
-            <!-- Texto -->
-            <p class="text-lg leading-relaxed max-w-3xl mx-auto mb-10">
-                Somos una comunidad apasionada por la naturaleza, dedicada a crear
-                experiencias únicas de senderismo que conectan a las personas con
-                paisajes increíbles y momentos inolvidables.
-            </p>
-
-            <!-- Botón -->
-            <a href="<?= BASE_URL ?>pantallas/nosotros.php" class="btn inline-block">
-                Saber más
-            </a>
-
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <?php foreach ($galeriaInicio as $i => $imagen): ?>
+                    <div class="cursor-pointer image-hover" data-image-index="<?= (int) $i ?>">
+                        <img src="<?= inicio_h(inicio_url($imagen['imagen'])) ?>" alt="<?= inicio_h($imagen['titulo'] ?: 'Paisaje ' . ($i + 1)) ?>" class="w-full h-40 object-cover rounded-lg">
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     </section>
 
-</div>
+    <section id="quienes-somos" class="w-full py-20">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">
+                <?= inicio_h($inicio['cta_titulo']) ?>
+            </h2>
 
-<!-- ================= MODAL GALERÍA ================= -->
+            <p class="text-lg leading-relaxed max-w-3xl mx-auto mb-10">
+                <?= nl2br(inicio_h($inicio['cta_texto'])) ?>
+            </p>
+
+            <a href="<?= inicio_h(inicio_url($inicio['cta_boton_url'])) ?>" class="btn inline-block">
+                <?= inicio_h($inicio['cta_boton_texto']) ?>
+            </a>
+        </div>
+    </section>
+    <?php endif; ?>
+</main>
+
+<?php if (!$inicioPersonalizado): ?>
 <div id="galleryModal" class="fixed inset-0 hidden z-50">
-    <!-- Fondo / overlay -->
     <div class="absolute inset-0 bg-black/80"></div>
 
-    <!-- Botón cerrar -->
-    <button aria-label="Cerrar galería" onclick="closeGallery()"
-        class="absolute top-6 right-6 text-white text-4xl z-20 p-2 hover:scale-110 transition-all duration-300 close-btn">
+    <button aria-label="Cerrar galeria" onclick="closeGallery()" class="absolute top-6 right-6 text-white text-4xl z-20 p-2 hover:scale-110 transition-all duration-300 close-btn">
         &times;
     </button>
 
-    <!-- Botón anterior -->
-    <button aria-label="Imagen anterior" onclick="prevImage()"
-        class="absolute left-4 md:left-8 text-white text-3xl z-20 p-3 hover:scale-110 transition-all duration-300 prev-btn">
+    <button aria-label="Imagen anterior" onclick="prevImage()" class="absolute left-4 md:left-8 text-white text-3xl z-20 p-3 hover:scale-110 transition-all duration-300 prev-btn">
         &#10094;
     </button>
 
-    <!-- Contenedor de imagen -->
     <div class="relative w-full h-full flex items-center justify-center p-4 z-10">
-        <img id="galleryImage" class="max-w-[95%] max-h-[90%] object-contain rounded-lg shadow-2xl modal-image"
-            alt="Galería">
+        <img id="galleryImage" class="max-w-[95%] max-h-[90%] object-contain rounded-lg shadow-2xl modal-image" alt="Galeria">
     </div>
 
-    <!-- Botón siguiente -->
-    <button aria-label="Imagen siguiente" onclick="nextImage()"
-        class="absolute right-4 md:right-8 text-white text-3xl z-20 p-3 hover:scale-110 transition-all duration-300 next-btn">
+    <button aria-label="Imagen siguiente" onclick="nextImage()" class="absolute right-4 md:right-8 text-white text-3xl z-20 p-3 hover:scale-110 transition-all duration-300 next-btn">
         &#10095;
     </button>
 
-    <!-- Indicador de posición (ÚNICO) -->
-    <div
-        class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm indicator z-20">
-        <span id="currentIndex">1</span> / <span id="totalImages">10</span>
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm indicator z-20">
+        <span id="currentIndex">1</span> / <span id="totalImages"><?= count($galeriaInicio) ?></span>
     </div>
 </div>
 
+<?php endif; ?>
+<?php mysqli_close($conn); ?>
 <?php include_once "../componentes/pie_pagina.php"; ?>

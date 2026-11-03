@@ -5,17 +5,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Seguridad: solo Admin
-if (empty($_SESSION['usuario_id']) || empty($_SESSION['logged_in'])) {
-    header("Location: " . BASE_URL . "pantallas/inicio_sesion.php");
-    exit;
-}
-if (($_SESSION['usuario_rol_id'] ?? 0) != 1) {
-    header("Location: " . BASE_URL . "pantallas/inicio.php");
-    exit;
-}
+$PERMISO_REQUERIDO = 'usuarios.roles';
+require_once __DIR__ . '/../componentes/proteccion_autenticacion.php';
+require_once __DIR__ . '/../componentes/permisos.php';
+require_once __DIR__ . '/../componentes/cargos.php';
 
-$pageTitle = "Mantenimiento Roles | Senderismo Go!";
+$pageTitle = "Roles";
 
 $cssFiles = [
     "css/global.css",
@@ -30,7 +25,21 @@ $jsFiles = [
 
 require_once __DIR__ . '/../bd/conexion.php';
 
-// Traer roles (SP listar)
+function roles_h($value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+// Tipo de cada rol: acceso (Administrador, Invitado, Normal) o cargo (Contable, Directiva...).
+$cargosListo = sg_cargos_listo($conn);
+$tipos = [];
+if ($cargosListo) {
+    $rTipos = mysqli_query($conn, 'SELECT id, tipo FROM roles');
+    while ($rTipos && $fila = mysqli_fetch_assoc($rTipos)) {
+        $tipos[(int) $fila['id']] = $fila['tipo'];
+    }
+}
+
 $roles = [];
 $res = mysqli_query($conn, "CALL sp_roles_listar()");
 if ($res) {
@@ -39,7 +48,6 @@ if ($res) {
     }
     mysqli_free_result($res);
 }
-// Limpiar resultados restantes del CALL (por seguridad)
 while (mysqli_more_results($conn)) {
     mysqli_next_result($conn);
 }
@@ -50,35 +58,34 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
 <div class="roles-page">
     <div class="roles-container">
-
         <div class="roles-header">
             <div>
-                <h1 class="roles-title">Mantenimiento de Roles</h1>
-                <p class="roles-subtitle">Crea, edita o elimina roles del sistema.</p>
+                <span class="roles-kicker">Seguridad</span>
+                <h1 class="roles-title">Roles</h1>
+                <p class="roles-subtitle">Crea y edita los perfiles administrativos de la plataforma.</p>
             </div>
+            <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="roles-panel-link">Volver al panel</a>
         </div>
 
         <?php if (!empty($_SESSION['roles_success'])): ?>
             <div class="roles-alert success">
-                <?= htmlspecialchars($_SESSION['roles_success']) ?>
+                <?= roles_h($_SESSION['roles_success']) ?>
             </div>
             <?php unset($_SESSION['roles_success']); ?>
         <?php endif; ?>
 
         <?php if (!empty($_SESSION['roles_error'])): ?>
             <div class="roles-alert error">
-                <?= htmlspecialchars($_SESSION['roles_error']) ?>
+                <?= roles_h($_SESSION['roles_error']) ?>
             </div>
             <?php unset($_SESSION['roles_error']); ?>
         <?php endif; ?>
 
         <div class="roles-grid">
-
-            <!-- FORM -->
             <section class="roles-card">
                 <div class="roles-card-head">
-                    <h2 id="formTitle">Nuevo Rol</h2>
-                    <p>Completa los datos y guarda.</p>
+                    <h2 id="formTitle">Nuevo rol</h2>
+                    <p>Completa los datos principales del rol.</p>
                 </div>
 
                 <form id="roleForm" class="roles-form" method="POST" action="<?= BASE_URL ?>procesos/proceso_roles.php">
@@ -87,15 +94,23 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                     <div class="form-group">
                         <label for="nombre">Nombre *</label>
-                        <input type="text" name="nombre" id="nombre" maxlength="50" required
-                            placeholder="Ej: Invitado, Moderador, Editor...">
+                        <input type="text" name="nombre" id="nombre" maxlength="50" required placeholder="Ej: Contable, Directiva, Operaciones">
                     </div>
 
                     <div class="form-group">
-                        <label for="descripcion">Descripción</label>
-                        <textarea name="descripcion" id="descripcion" maxlength="150" rows="4"
-                            placeholder="Descripción breve del rol (opcional)"></textarea>
+                        <label for="descripcion">Descripcion</label>
+                        <textarea name="descripcion" id="descripcion" maxlength="150" rows="4" placeholder="Descripcion breve del rol (opcional)"></textarea>
                     </div>
+
+                    <?php if ($cargosListo): ?>
+                    <div class="form-group">
+                        <label for="tipo">Tipo</label>
+                        <select name="tipo" id="tipo">
+                            <option value="acceso">Acceso (lo que puede abrir: Administrador, Invitado, Normal)</option>
+                            <option value="cargo">Cargo (grupo aparte: Contable, Directiva...)</option>
+                        </select>
+                    </div>
+                    <?php endif; ?>
 
                     <div class="form-actions">
                         <button type="submit" class="btn-primary" id="submitBtn">Guardar</button>
@@ -104,7 +119,6 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 </form>
             </section>
 
-            <!-- TABLA -->
             <section class="roles-card">
                 <div class="roles-card-head">
                     <h2>Roles existentes</h2>
@@ -112,7 +126,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                 </div>
 
                 <div class="table-tools">
-                    <input type="text" id="searchInput" placeholder="Buscar por nombre, descripción o ID...">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre, descripcion o ID...">
                 </div>
 
                 <div class="roles-table-wrap">
@@ -121,7 +135,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                             <tr>
                                 <th style="width:80px;">ID</th>
                                 <th>Nombre</th>
-                                <th>Descripción</th>
+                                <th>Descripcion</th>
                                 <th style="width:170px;">Acciones</th>
                             </tr>
                         </thead>
@@ -132,23 +146,13 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($roles as $r): ?>
-                                    <tr data-id="<?= (int) $r['id'] ?>" data-nombre="<?= htmlspecialchars($r['nombre']) ?>"
-                                        data-descripcion="<?= htmlspecialchars($r['descripcion'] ?? '') ?>">
-                                        <td>
-                                            <?= (int) $r['id'] ?>
-                                        </td>
-                                        <td>
-                                            <?= htmlspecialchars($r['nombre']) ?>
-                                        </td>
-                                        <td>
-                                            <?= htmlspecialchars($r['descripcion'] ?? '') ?>
-                                        </td>
+                                    <tr data-id="<?= (int) $r['id'] ?>" data-nombre="<?= roles_h($r['nombre']) ?>" data-descripcion="<?= roles_h($r['descripcion'] ?? '') ?>" data-tipo="<?= roles_h($tipos[(int) $r['id']] ?? 'acceso') ?>">
+                                        <td><?= (int) $r['id'] ?></td>
+                                        <td><?= roles_h($r['nombre']) ?><?php if ($cargosListo): ?> <small class="cargo-chip"><?= ($tipos[(int) $r['id']] ?? 'acceso') === 'cargo' ? 'Cargo' : 'Acceso' ?></small><?php endif; ?></td>
+                                        <td><?= roles_h($r['descripcion'] ?? '') ?></td>
                                         <td>
                                             <button type="button" class="btn-mini edit-btn">Editar</button>
-
-                                            <form method="POST" action="<?= BASE_URL ?>procesos/proceso_roles.php"
-                                                class="inline-form"
-                                                onsubmit="return confirm('¿Seguro que deseas eliminar este rol?');">
+                                            <form method="POST" action="<?= BASE_URL ?>procesos/proceso_roles.php" class="inline-form" onsubmit="return confirm('Seguro que deseas eliminar este rol?');">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
                                                 <button type="submit" class="btn-mini danger">Eliminar</button>
@@ -161,8 +165,8 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                     </table>
                 </div>
             </section>
-
         </div>
+
     </div>
 </div>
 

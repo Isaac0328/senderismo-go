@@ -13,10 +13,9 @@ let counterTotalEl = null;
 
 // Inicializar galería
 function initGallery() {
-    galleryImages = [];
-    for (let i = 1; i <= 10; i++) {
-        galleryImages.push(`../imagenes/paisajes/img${i}.jpg`);
-    }
+    galleryImages = Array.from(document.querySelectorAll(".image-hover img"))
+        .map((img) => img.getAttribute("src"))
+        .filter(Boolean);
 
     galleryModal = document.getElementById("galleryModal");
     galleryModalImage = document.getElementById("galleryImage");
@@ -47,6 +46,7 @@ function updateGalleryCounter() {
 // Abrir galería
 function openGallery(index) {
     if (isAnimating) return;
+    if (!galleryImages.length) return;
     isAnimating = true;
 
     if (!galleryModal || !galleryModalImage) initGallery();

@@ -1,0 +1,666 @@
+/* Gastos por sendero: resumen, secciones por categoria y otros gastos en grupos. */
+
+.gs-page .fin-container {
+    max-width: 1240px;
+}
+
+.gs-app {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 110px;
+}
+
+.gs-app .fin-card {
+    margin-bottom: 0;
+}
+
+/* ---------- Cabecera y resumen ---------- */
+.gs-cabecera {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+}
+
+.gs-sendero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.gs-sendero h2 {
+    margin: 8px 0 2px;
+    color: var(--app-text);
+    font-size: 1.25rem;
+    font-weight: 950;
+}
+
+.gs-sendero p {
+    margin: 0;
+    color: var(--app-muted);
+    font-weight: 700;
+}
+
+.gs-sendero-estado {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: var(--app-ink);
+    color: var(--app-inverse);
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.gs-sendero .fin-head-link svg {
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
+}
+
+.gs-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+}
+
+.gs-kpi {
+    display: grid;
+    gap: 3px;
+    padding: 12px 14px;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+    background: var(--app-neutral-50);
+}
+
+.gs-kpi span {
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.gs-kpi strong {
+    color: var(--app-text);
+    font-size: 1.2rem;
+    font-weight: 950;
+}
+
+.gs-kpi small {
+    color: var(--app-muted);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.gs-kpi.is-main {
+    border-color: var(--app-primary-200);
+    background: var(--app-primary-50);
+}
+
+.gs-kpi.is-main strong {
+    color: var(--app-primary-dark);
+}
+
+.gs-kpi.is-ok strong {
+    color: var(--app-success-dark);
+}
+
+.gs-kpi.is-alert {
+    border-color: var(--app-danger-200);
+    background: var(--app-danger-50);
+}
+
+.gs-kpi.is-alert strong {
+    color: var(--app-danger-dark);
+}
+
+/* Reparto por tipo de gasto */
+.gs-barra {
+    display: flex;
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--app-neutral-150);
+}
+
+.gs-barra span {
+    display: block;
+    height: 100%;
+}
+
+.gs-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--app-neutral-700);
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.gs-leyenda li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gs-leyenda i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.gs-leyenda b {
+    color: var(--app-text);
+}
+
+.gs-leyenda em {
+    color: var(--app-muted);
+    font-style: normal;
+}
+
+.gs-color-0 { background: var(--app-primary); }
+.gs-color-1 { background: var(--app-accent); }
+.gs-color-2 { background: var(--app-info); }
+.gs-color-3 { background: var(--app-warning); }
+.gs-color-4 { background: var(--app-neutral-700); }
+.gs-color-5 { background: var(--app-danger); }
+.gs-color-6 { background: var(--app-neutral-500); }
+.gs-color-7 { background: var(--app-primary-300); }
+
+/* ---------- Secciones ---------- */
+.gs-secciones {
+    display: grid;
+    gap: 10px;
+}
+
+.gs-seccion,
+.gs-otros {
+    padding: 4px 14px;
+}
+
+.gs-otros {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+}
+
+.gs-seccion-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.gs-seccion-head h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--app-text);
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.gs-seccion-head h3 svg {
+    width: 18px;
+    height: 18px;
+}
+
+.gs-seccion-head p {
+    margin: 4px 0 0;
+    color: var(--app-muted);
+    font-size: .84rem;
+    font-weight: 650;
+}
+
+.gs-seccion-head > strong {
+    color: var(--app-text);
+    font-size: 1.05rem;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.gs-plegar {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.gs-plegar svg {
+    width: 18px;
+    height: 18px;
+    color: var(--app-muted);
+    transition: transform .15s;
+}
+
+.gs-seccion.is-abierta .gs-plegar svg {
+    transform: rotate(90deg);
+}
+
+.gs-cuenta {
+    border-radius: 999px;
+    padding: 2px 9px;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-700);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.gs-cuerpo {
+    display: grid;
+    gap: 10px;
+    padding: 0 0 14px;
+}
+
+.gs-cuerpo[hidden] {
+    display: none;
+}
+
+.gs-vacio {
+    margin: 0;
+    color: var(--app-muted);
+    font-size: .86rem;
+    font-weight: 650;
+}
+
+/* Grupos de otros gastos */
+.gs-grupo {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--app-line);
+    border-left: 4px solid var(--app-accent);
+    border-radius: 10px;
+    background: var(--app-neutral-25);
+}
+
+.gs-grupo-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gs-grupo-head input {
+    flex: 1;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.gs-grupo-head strong {
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+/* ---------- Tablas de lineas ---------- */
+.gs-tabla-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+}
+
+.gs-tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gs-tabla th {
+    padding: 8px 10px;
+    background: var(--app-neutral-50);
+    color: var(--app-muted);
+    font-size: .72rem;
+    font-weight: 900;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.gs-tabla td {
+    padding: 6px 8px;
+    border-top: 1px solid var(--app-line);
+    vertical-align: middle;
+}
+
+.gs-tabla td:first-child {
+    min-width: 220px;
+}
+
+.gs-tabla .gs-num {
+    width: 130px;
+    text-align: right;
+}
+
+.gs-tabla input,
+.gs-tabla select {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 9px;
+    border: 1px solid var(--app-line);
+    border-radius: 7px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 750;
+}
+
+.gs-tabla .gs-num input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.gs-tabla input:focus,
+.gs-tabla select:focus,
+.gs-grupo-head input:focus {
+    border-color: var(--app-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-primary) 15%, transparent);
+}
+
+.gs-tabla td strong {
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.gs-tabla tr.has-error td {
+    background: var(--app-danger-50);
+}
+
+.gs-tabla tr.has-error input,
+.gs-tabla tr.has-error select {
+    border-color: var(--app-danger-300);
+}
+
+.gs-unidad {
+    display: block;
+    margin-top: 2px;
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 700;
+}
+
+.gs-accion {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.gs-insignia {
+    margin-right: 6px;
+    border-radius: 999px;
+    padding: 2px 8px;
+    background: var(--app-info-50);
+    color: var(--app-info-dark);
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+.gs-quitar {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--app-muted);
+    cursor: pointer;
+}
+
+.gs-quitar:hover {
+    border-color: var(--app-danger-200);
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+}
+
+.gs-quitar svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ---------- Botones ---------- */
+.gs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: fit-content;
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid var(--app-line);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.gs-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.gs-btn:hover {
+    border-color: var(--app-primary-300);
+    background: var(--app-primary-50);
+}
+
+.gs-btn.is-suave {
+    border-style: dashed;
+    color: var(--app-primary-dark);
+}
+
+.gs-btn.is-primary {
+    border-color: var(--app-primary);
+    background: var(--app-primary);
+    color: var(--app-inverse);
+}
+
+.gs-btn.is-primary:hover {
+    background: var(--app-primary-dark);
+}
+
+.gs-btn:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+.gs-btn:focus-visible,
+.gs-plegar:focus-visible,
+.gs-quitar:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--app-primary) 35%, transparent);
+    outline-offset: 2px;
+}
+
+/* ---------- Pie fijo con total y guardar ---------- */
+/* Fijo a la ventana: el body del sitio tiene overflow y eso anula position: sticky. */
+.gs-pie {
+    position: fixed;
+    left: 50%;
+    bottom: 12px;
+    z-index: 40;
+    width: min(1240px, calc(100% - 40px));
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border: 1px solid var(--app-line);
+    border-radius: 12px;
+    background: var(--app-surface);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .16);
+}
+
+.gs-pie > div {
+    display: grid;
+    margin-right: auto;
+}
+
+.gs-pie > div span {
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.gs-pie > div strong {
+    color: var(--app-text);
+    font-size: 1.3rem;
+    font-weight: 950;
+}
+
+.gs-estado {
+    border-radius: 999px;
+    padding: 5px 11px;
+    background: var(--app-neutral-100);
+    color: var(--app-neutral-700);
+    font-size: .8rem;
+    font-weight: 850;
+}
+
+.gs-estado[data-tipo="pendiente"] {
+    background: var(--app-warning-50);
+    color: var(--app-warning-dark);
+}
+
+.gs-estado[data-tipo="guardando"] {
+    background: var(--app-info-50);
+    color: var(--app-info-dark);
+}
+
+.gs-estado[data-tipo="error"] {
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+}
+
+.gs-errores {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gs-errores[hidden] {
+    display: none;
+}
+
+.gs-errores li {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--app-danger-50);
+    color: var(--app-danger-dark);
+    font-weight: 800;
+}
+
+/* ---------- Telefono ---------- */
+@media (max-width: 760px) {
+    .gs-sendero {
+        flex-direction: column;
+    }
+
+    .gs-tabla thead {
+        display: none;
+    }
+
+    .gs-tabla,
+    .gs-tabla tbody {
+        display: block;
+    }
+
+    .gs-tabla tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 10px;
+        border-top: 1px solid var(--app-line);
+    }
+
+    .gs-tabla td {
+        padding: 0;
+        border: 0;
+    }
+
+    .gs-tabla td:first-child,
+    .gs-tabla td:nth-child(5) {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+
+    .gs-tabla .gs-num {
+        width: auto;
+    }
+
+    .gs-tabla td:nth-child(4) {
+        align-self: center;
+        text-align: left;
+    }
+
+    .gs-pie {
+        flex-wrap: wrap;
+        bottom: 6px;
+        width: calc(100% - 16px);
+        gap: 8px;
+    }
+
+    .gs-pie .gs-btn {
+        width: 100%;
+    }
+}
+
+/* Los hijos de grid no deben crecer mas que su contenedor (tablas con scroll propio). */
+.gs-app > *,
+.gs-otros > *,
+.gs-grupo > *,
+.gs-cuerpo > * {
+    min-width: 0;
+}
+
+@media (max-width: 760px) {
+    .gs-grupo-head {
+        flex-wrap: wrap;
+    }
+
+    .gs-grupo-head input {
+        flex-basis: 100%;
+    }
+
+    .gs-grupo-head strong {
+        margin-right: auto;
+    }
+
+    /* Total y boton de quitar en la misma fila; la nota al final. */
+    .gs-tabla td:nth-child(4) { order: 3; }
+    .gs-tabla td:nth-child(6) { order: 4; }
+    .gs-tabla td:nth-child(5) { order: 5; }
+
+    .gs-otros,
+    .gs-seccion {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .gs-grupo {
+        padding: 10px 8px;
+    }
+}

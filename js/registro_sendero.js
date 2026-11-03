@@ -3,6 +3,127 @@ document.addEventListener('DOMContentLoaded', () => {
     const alergiaDetalle = document.querySelector('input[name="alergias_detalle"]');
     const viaSelect = document.querySelector('select[name="via_entero"]');
     const referidoInput = document.querySelector('input[name="referido_nombre"]');
+    const investmentWarning = document.querySelector('[data-investment-warning]');
+    const acceptInvestmentWarning = document.querySelector('[data-accept-investment-warning]');
+    const lowInvestmentInputs = document.querySelectorAll('[data-low-investment="1"]');
+    const proofInput = document.querySelector('[data-proof-input]');
+    const proofFileName = document.querySelector('[data-proof-file-name]');
+    const registrationForm = document.querySelector('form.registro-card');
+    const validationSummary = document.querySelector('[data-validation-summary]');
+    let validationAttempted = false;
+
+    const validationRules = [
+        {
+            name: 'inversion_id',
+            message: 'Selecciona un tipo de inversion.',
+            input: () => registrationForm?.querySelector('input[name="inversion_id"]'),
+            valid: () => registrationForm?.hasAttribute('data-directiva') || Boolean(registrationForm?.querySelector('input[name="inversion_id"]:checked')),
+            anchor: () => document.querySelector('[data-validation-anchor="inversion_id"]'),
+        },
+        {
+            name: 'chaleco_talla_id',
+            message: 'Selecciona una talla de chaleco salvavidas.',
+            input: () => document.getElementById('chaleco_talla_id'),
+            valid: () => {
+                const input = document.getElementById('chaleco_talla_id');
+                return !input || Boolean(input.value);
+            },
+            anchor: () => document.querySelector('.life-jacket-choice'),
+        },
+        {
+            name: 'sendero_punto_encuentro_id',
+            message: 'Selecciona el punto de encuentro donde te esperaremos.',
+            input: () => registrationForm?.querySelector('input[name="sendero_punto_encuentro_id"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="sendero_punto_encuentro_id"]:checked')),
+            anchor: () => document.querySelector('[data-validation-anchor="sendero_punto_encuentro_id"]'),
+        },
+        {
+            name: 'consentimiento',
+            message: 'Debes aceptar el consentimiento informado.',
+            input: () => registrationForm?.querySelector('input[name="consentimiento"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="consentimiento"]:checked')),
+            anchor: () => registrationForm?.querySelector('input[name="consentimiento"]')?.closest('.consent-box'),
+        },
+        {
+            name: 'rgpd',
+            message: 'Debes aceptar el acuerdo RGPD.',
+            input: () => registrationForm?.querySelector('input[name="rgpd"]'),
+            valid: () => Boolean(registrationForm?.querySelector('input[name="rgpd"]:checked')),
+            anchor: () => registrationForm?.querySelector('input[name="rgpd"]')?.closest('.consent-box'),
+        },
+    ];
+
+    const setValidationState = (rule, showError) => {
+        const anchor = rule.anchor();
+        const message = document.querySelector(`[data-validation-message="${rule.name}"]`);
+        anchor?.classList.toggle('has-validation-error', showError);
+        if (message) {
+            message.textContent = showError ? rule.message : '';
+            message.hidden = !showError;
+        }
+    };
+
+    const validateRegistrationForm = () => {
+        const failed = validationRules.filter((rule) => rule.input() && !rule.valid());
+        validationRules.forEach((rule) => setValidationState(rule, failed.includes(rule)));
+
+        if (validationSummary) {
+            validationSummary.textContent = failed.map((rule) => rule.message).join(' ');
+            validationSummary.hidden = failed.length === 0;
+        }
+
+        return failed;
+    };
+
+    validationRules.forEach((rule) => {
+        registrationForm?.querySelectorAll(`[name="${rule.name}"]`).forEach((input) => {
+            input.addEventListener('change', () => {
+                if (!validationAttempted) return;
+                setValidationState(rule, !rule.valid());
+                const failed = validationRules.filter((item) => item.input() && !item.valid());
+                if (validationSummary) {
+                    validationSummary.textContent = failed.map((item) => item.message).join(' ');
+                    validationSummary.hidden = failed.length === 0;
+                }
+            });
+        });
+    });
+
+    registrationForm?.addEventListener('submit', (event) => {
+        validationAttempted = true;
+        const failed = validateRegistrationForm();
+        if (!failed.length) return;
+
+        event.preventDefault();
+        const firstRule = failed[0];
+        const firstAnchor = firstRule.anchor();
+        firstAnchor?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => firstRule.input()?.focus({ preventScroll: true }), 350);
+    });
+
+    proofInput?.addEventListener('change', () => {
+        if (!proofFileName) return;
+        const file = proofInput.files?.[0];
+        proofFileName.textContent = file
+            ? `${file.name} | ${(file.size / 1024 / 1024).toFixed(2)} MB`
+            : 'JPG, PNG, WEBP o PDF. Maximo 8 MB.';
+    });
+
+    const openInvestmentWarning = () => {
+        if (!investmentWarning) return;
+        investmentWarning.hidden = false;
+        document.body.classList.add('modal-open');
+        acceptInvestmentWarning?.focus();
+    };
+
+    const closeInvestmentWarning = () => {
+        if (!investmentWarning) return;
+        investmentWarning.hidden = true;
+        document.body.classList.remove('modal-open');
+    };
+
+    lowInvestmentInputs.forEach((input) => input.addEventListener('change', openInvestmentWarning));
+    acceptInvestmentWarning?.addEventListener('click', closeInvestmentWarning);
 
     const syncAlergia = () => {
         if (!alergiaDetalle) return;
@@ -32,8 +153,353 @@ document.addEventListener('DOMContentLoaded', () => {
             button.setAttribute('aria-expanded', String(!isOpen));
             button.classList.toggle('is-open', !isOpen);
             target.hidden = isOpen;
-            button.querySelector('span').textContent = isOpen ? 'Leer consentimiento completo' : 'Ocultar consentimiento';
+            const collapsedLabel = button.dataset.collapsedLabel || 'Leer contenido completo';
+            const expandedLabel = button.dataset.expandedLabel || 'Ocultar contenido';
+            button.querySelector('span').textContent = isOpen ? collapsedLabel : expandedLabel;
         });
+    });
+
+    const minorsRoot = document.querySelector('[data-minors-root]');
+    const minorsModal = document.querySelector('[data-minors-modal]');
+    const minorsEditor = document.querySelector('[data-minors-editor]');
+    const minorsTemplate = document.getElementById('minorFormTemplate');
+    const minorsSummary = document.querySelector('[data-minors-summary]');
+    const minorsFields = document.querySelector('[data-minors-fields]');
+    const minorsCount = document.querySelector('[data-minors-count]');
+    const savedMinorsPanel = document.querySelector('[data-saved-minors-panel]');
+    const savedMinorsList = document.querySelector('[data-saved-minors-list]');
+    const openMinorsBtn = document.querySelector('[data-open-minors-modal]');
+    const addMinorBtn = document.querySelector('[data-add-minor]');
+    const saveMinorsBtn = document.querySelector('[data-save-minors]');
+    const closeMinorsBtns = document.querySelectorAll('[data-close-minors-modal]');
+    let minors = [];
+    let savedMinors = [];
+
+    const minorFields = [
+        'menor_usuario_id',
+        'nombre',
+        'apellido',
+        'telefono',
+        'inversion_id',
+        'rango_edad',
+        'es_alergico',
+        'alergias_detalle',
+        'grupo_sanguineo',
+        'tiene_enfermedad',
+        'enfermedad',
+        'tiene_seguro_medico',
+        'seguro_medico',
+        'experiencia_senderismo',
+        'emergencia_nombre',
+        'emergencia_parentesco',
+        'emergencia_telefono',
+    ];
+
+    const hasConditionDetail = (value) => {
+        const normalized = String(value || '').trim().toLowerCase();
+        return normalized !== '' && !['no', 'ninguna', 'ninguno', 'no aplica'].includes(normalized);
+    };
+
+    const normalizeMinor = (minor = {}) => {
+        const enfermedad = minor.enfermedad || '';
+        const tieneEnfermedad = minor.tiene_enfermedad === undefined
+            ? hasConditionDetail(enfermedad)
+            : String(minor.tiene_enfermedad) === '1';
+        const seguroMedico = minor.seguro_medico || '';
+        const tieneSeguroMedico = minor.tiene_seguro_medico === undefined
+            ? hasConditionDetail(seguroMedico)
+            : String(minor.tiene_seguro_medico) === '1';
+
+        return {
+            menor_usuario_id: minor.menor_usuario_id || minor.id || '',
+            nombre: minor.nombre || '',
+            apellido: minor.apellido || '',
+            telefono: minor.telefono || '',
+            inversion_id: minor.inversion_id || '',
+            rango_edad: minor.rango_edad || '',
+            es_alergico: String(minor.es_alergico ?? '0') === '1' ? '1' : '0',
+            alergias_detalle: minor.alergias_detalle || '',
+            grupo_sanguineo: minor.grupo_sanguineo || '',
+            tiene_enfermedad: tieneEnfermedad ? '1' : '0',
+            enfermedad: tieneEnfermedad ? enfermedad : 'No',
+            tiene_seguro_medico: tieneSeguroMedico ? '1' : '0',
+            seguro_medico: tieneSeguroMedico ? seguroMedico : 'No',
+            experiencia_senderismo: minor.experiencia_senderismo || '',
+            emergencia_nombre: minor.emergencia_nombre || '',
+            emergencia_parentesco: minor.emergencia_parentesco || '',
+            emergencia_telefono: minor.emergencia_telefono || '',
+        };
+    };
+
+    const refreshFeather = () => {
+        if (window.feather) {
+            window.feather.replace();
+        }
+    };
+
+    const syncMinorConditional = (card, selectorField, detailField) => {
+        const selector = card.querySelector(`[data-field="${selectorField}"]`);
+        const detalle = card.querySelector(`[data-field="${detailField}"]`);
+        const container = card.querySelector(`[data-minor-conditional="${detailField}"]`);
+        if (!selector || !detalle || !container) return;
+        const requiere = selector.value === '1';
+        container.hidden = !requiere;
+        detalle.required = requiere;
+        container.classList.toggle('is-required', requiere);
+        if (!requiere) detalle.value = '';
+    };
+
+    const syncConditionalMinorCard = (card) => {
+        syncMinorConditional(card, 'es_alergico', 'alergias_detalle');
+        syncMinorConditional(card, 'tiene_enfermedad', 'enfermedad');
+        syncMinorConditional(card, 'tiene_seguro_medico', 'seguro_medico');
+    };
+
+    const collectEditorMinors = () => {
+        if (!minorsEditor) return [];
+        return [...minorsEditor.querySelectorAll('[data-minor-card]')].map((card) => {
+            const minor = {};
+            minorFields.forEach((field) => {
+                const input = card.querySelector(`[data-field="${field}"]`);
+                minor[field] = input ? input.value.trim() : '';
+            });
+            return normalizeMinor(minor);
+        });
+    };
+
+    const validateEditorMinors = () => {
+        if (!minorsEditor) return true;
+        const cards = [...minorsEditor.querySelectorAll('[data-minor-card]')];
+        for (const card of cards) {
+            syncConditionalMinorCard(card);
+            const requiredFields = [...card.querySelectorAll('[required]')];
+            for (const field of requiredFields) {
+                if (!field.value.trim()) {
+                    setMinorCardCollapsed(card, false);
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    window.setTimeout(() => {
+                        field.focus();
+                        field.reportValidity?.();
+                    }, 0);
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    const renderHiddenMinors = () => {
+        if (!minorsFields) return;
+        minorsFields.innerHTML = '';
+        minors.forEach((minor, index) => {
+            minorFields.forEach((field) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `menores[${index}][${field}]`;
+                input.value = minor[field] ?? '';
+                minorsFields.appendChild(input);
+            });
+        });
+    };
+
+    const renderSummary = () => {
+        if (!minorsSummary || !minorsCount) return;
+        minorsCount.textContent = `${minors.length} ${minors.length === 1 ? 'menor agregado' : 'menores agregados'}`;
+        if (!minors.length) {
+            minorsSummary.innerHTML = `
+                <div class="minors-empty">
+                    <i data-feather="user-plus"></i>
+                    <span>No has agregado menores para este sendero.</span>
+                </div>
+            `;
+            refreshFeather();
+            return;
+        }
+
+        minorsSummary.innerHTML = minors.map((minor, index) => `
+            <article class="minor-summary-card">
+                <span>${index + 1}</span>
+                <div>
+                    <strong>${escapeHtml(`${minor.nombre} ${minor.apellido}`.trim())}</strong>
+                    <small>${escapeHtml(minor.grupo_sanguineo || 'Sangre no indicada')} | ${escapeHtml(minor.experiencia_senderismo || 'Experiencia no indicada')}</small>
+                    ${minor.menor_usuario_id ? '<em>Guardado en perfil</em>' : ''}
+                </div>
+            </article>
+        `).join('');
+    };
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    const renderHiddenAndSummary = () => {
+        renderHiddenMinors();
+        renderSummary();
+    };
+
+    const updateMinorCardSummary = (card) => {
+        const summary = card.querySelector('[data-minor-summary]');
+        if (!summary) return;
+
+        const nombre = card.querySelector('[data-field="nombre"]')?.value.trim() || '';
+        const apellido = card.querySelector('[data-field="apellido"]')?.value.trim() || '';
+        const rango = card.querySelector('[data-field="rango_edad"]')?.value || '';
+        const sangre = card.querySelector('[data-field="grupo_sanguineo"]')?.value || '';
+        const nombreCompleto = `${nombre} ${apellido}`.trim();
+        const detalles = [rango, sangre].filter(Boolean).join(' | ');
+
+        summary.textContent = nombreCompleto
+            ? `${nombreCompleto}${detalles ? ` - ${detalles}` : ''}`
+            : 'Datos de salud y contacto de emergencia.';
+    };
+
+    const setMinorCardCollapsed = (card, collapsed) => {
+        const content = card.querySelector('[data-minor-card-content]');
+        const toggle = card.querySelector('[data-toggle-minor-card]');
+        card.classList.toggle('is-collapsed', collapsed);
+        if (content) content.hidden = collapsed;
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.textContent = collapsed ? 'Ver datos' : 'Ocultar';
+        }
+        updateMinorCardSummary(card);
+    };
+
+    const collapseOtherMinorCards = (currentCard) => {
+        minorsEditor?.querySelectorAll('[data-minor-card]').forEach((card) => {
+            if (card !== currentCard) setMinorCardCollapsed(card, true);
+        });
+    };
+
+    const createMinorCard = (minor = {}) => {
+        if (!minorsTemplate || !minorsEditor) return;
+        collapseOtherMinorCards(null);
+        const fragment = minorsTemplate.content.cloneNode(true);
+        const card = fragment.querySelector('[data-minor-card]');
+        const data = normalizeMinor(minor);
+
+        minorFields.forEach((field) => {
+            const input = card.querySelector(`[data-field="${field}"]`);
+            if (input) input.value = data[field] ?? '';
+        });
+
+        card.querySelector('[data-remove-minor]')?.addEventListener('click', () => {
+            card.remove();
+            updateCardTitles();
+            renderSavedMinors();
+        });
+        card.querySelector('[data-toggle-minor-card]')?.addEventListener('click', () => {
+            const isCollapsed = card.classList.contains('is-collapsed');
+            setMinorCardCollapsed(card, !isCollapsed);
+        });
+        card.querySelector('[data-field="es_alergico"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
+        card.querySelector('[data-field="tiene_enfermedad"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
+        card.querySelector('[data-field="tiene_seguro_medico"]')?.addEventListener('change', () => syncConditionalMinorCard(card));
+        card.addEventListener('input', () => updateMinorCardSummary(card));
+        card.addEventListener('change', () => updateMinorCardSummary(card));
+
+        minorsEditor.appendChild(fragment);
+        syncConditionalMinorCard(card);
+        setMinorCardCollapsed(card, false);
+        updateCardTitles();
+        refreshFeather();
+    };
+
+    const renderSavedMinors = () => {
+        if (!savedMinorsPanel || !savedMinorsList) return;
+        if (!savedMinors.length) {
+            savedMinorsPanel.hidden = true;
+            savedMinorsList.innerHTML = '';
+            return;
+        }
+
+        savedMinorsPanel.hidden = false;
+        savedMinorsList.innerHTML = savedMinors.map((minor) => {
+            const fullName = `${minor.nombre} ${minor.apellido}`.trim();
+            const savedId = String(minor.menor_usuario_id || minor.id || '');
+            const alreadyAdded = minorsEditor && [...minorsEditor.querySelectorAll('[data-minor-card]')].some((card) => {
+                const input = card.querySelector('[data-field="menor_usuario_id"]');
+                return String(input?.value || '') === savedId;
+            });
+            return `
+                <button type="button" class="saved-minor-chip ${alreadyAdded ? 'is-added' : ''}" data-use-saved-minor="${escapeHtml(savedId)}">
+                    <strong>${escapeHtml(fullName)}</strong>
+                    <span>${escapeHtml(minor.rango_edad || 'Edad no indicada')} | ${escapeHtml(minor.grupo_sanguineo || 'Sangre no indicada')}</span>
+                    <small>${alreadyAdded ? 'Agregado' : 'Agregar a este sendero'}</small>
+                </button>
+            `;
+        }).join('');
+
+        savedMinorsList.querySelectorAll('[data-use-saved-minor]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const id = button.dataset.useSavedMinor || '';
+                const selected = savedMinors.find((minor) => String(minor.menor_usuario_id || minor.id || '') === String(id));
+                if (!selected) return;
+                const exists = minorsEditor && [...minorsEditor.querySelectorAll('[data-minor-card]')].some((card) => {
+                    const input = card.querySelector('[data-field="menor_usuario_id"]');
+                    return String(input?.value || '') === String(id);
+                });
+                if (exists) return;
+                createMinorCard(selected);
+                renderSavedMinors();
+            });
+        });
+    };
+
+    function updateCardTitles() {
+        if (!minorsEditor) return;
+        minorsEditor.querySelectorAll('[data-minor-card]').forEach((card, index) => {
+            const title = card.querySelector('[data-minor-title]');
+            if (title) title.textContent = `Menor ${index + 1}`;
+            updateMinorCardSummary(card);
+        });
+    }
+
+    const openMinorsModal = () => {
+        if (!minorsModal || !minorsEditor) return;
+        minorsEditor.innerHTML = '';
+        const editableMinors = minors.length ? minors : (savedMinors.length ? [] : [normalizeMinor()]);
+        editableMinors.forEach((minor) => createMinorCard(minor));
+        renderSavedMinors();
+        minorsModal.hidden = false;
+        document.body.classList.add('modal-open');
+    };
+
+    const closeMinorsModal = () => {
+        if (!minorsModal) return;
+        minorsModal.hidden = true;
+        document.body.classList.remove('modal-open');
+    };
+
+    if (minorsRoot) {
+        try {
+            const parsed = JSON.parse(minorsRoot.dataset.minors || '[]');
+            minors = Array.isArray(parsed) ? parsed.map(normalizeMinor) : [];
+        } catch (error) {
+            minors = [];
+        }
+        try {
+            const parsedSaved = JSON.parse(minorsRoot.dataset.savedMinors || '[]');
+            savedMinors = Array.isArray(parsedSaved) ? parsedSaved.map(normalizeMinor) : [];
+        } catch (error) {
+            savedMinors = [];
+        }
+        renderHiddenAndSummary();
+    }
+
+    openMinorsBtn?.addEventListener('click', openMinorsModal);
+    closeMinorsBtns.forEach((button) => button.addEventListener('click', closeMinorsModal));
+    addMinorBtn?.addEventListener('click', () => createMinorCard(normalizeMinor()));
+    saveMinorsBtn?.addEventListener('click', () => {
+        if (!validateEditorMinors()) return;
+        minors = collectEditorMinors().filter((minor) => minor.nombre || minor.apellido);
+        renderHiddenAndSummary();
+        closeMinorsModal();
     });
 
     syncAlergia();

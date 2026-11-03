@@ -1,13 +1,18 @@
 <?php
 require_once __DIR__ . '/../configuracion.php';
+require_once __DIR__ . '/../componentes/rutas.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 require_once __DIR__ . '/../bd/conexion.php';
+require_once __DIR__ . '/../componentes/actualizar_estado_senderos.php';
+require_once __DIR__ . '/../componentes/menores_sendero.php';
 
-$pageTitle = "Detalle del Sendero | Senderismo Go!";
+sg_actualizar_senderos_vencidos($conn);
+
+$pageTitle = "Detalle del Sendero";
 
 $cssFiles = [
     "css/global.css",
@@ -77,6 +82,28 @@ function dinero_detalle($monto): string
     return 'RD$ ' . number_format((float) $monto, 2) . ' pesos';
 }
 
+function dificultad_color_detalle(int $nivel): string
+{
+    if ($nivel <= 35) {
+        return 'easy';
+    }
+    if ($nivel <= 70) {
+        return 'medium';
+    }
+    return 'hard';
+}
+
+function dificultad_face_detalle(int $nivel): string
+{
+    if ($nivel <= 35) {
+        return ':)';
+    }
+    if ($nivel <= 70) {
+        return ':|';
+    }
+    return ':O';
+}
+
 function dias_restantes_detalle(?string $fecha): int
 {
     if (empty($fecha)) {
@@ -88,8 +115,20 @@ function dias_restantes_detalle(?string $fecha): int
     return max(0, (int) $hoy->diff($evento)->format('%r%a'));
 }
 
+function sendero_fecha_vencida(?string $fecha): bool
+{
+    if (empty($fecha)) {
+        return false;
+    }
+
+    $hoy = new DateTime('today');
+    $evento = new DateTime($fecha);
+    return $evento < $hoy;
+}
+
 $sqlSendero = "
     SELECT
+        s.*,
         s.id,
         s.nombre,
         s.slug,
@@ -108,7 +147,9 @@ $sqlSendero = "
         s.inversion_total,
         s.fecha_limite_pago,
         s.estado,
+        s.menores_misma_inversion,
         nd.nombre AS nivel_dificultad,
+        nd.nivel_numero,
         tc.nombre AS tipo_camino_vehiculo
     FROM senderos s
     INNER JOIN niveles_dificultad nd ON nd.id = s.nivel_dificultad_id
@@ -200,7 +241,7 @@ $stmtAnotaciones = mysqli_prepare(
      INNER JOIN anotaciones_importantes ai ON ai.id = sa.anotacion_id
      WHERE sa.sendero_id = ?
        AND ai.activo = 1
-     ORDER BY ai.nombre ASC"
+     ORDER BY sa.orden ASC, sa.id ASC"
 );
 if ($stmtAnotaciones) {
     mysqli_stmt_bind_param($stmtAnotaciones, "i", $idSendero);
@@ -212,25 +253,49 @@ if ($stmtAnotaciones) {
     mysqli_stmt_close($stmtAnotaciones);
 }
 
-$incluye = [];
-$stmtIncluye = mysqli_prepare(
+$inversiones = [];
+$stmtInversiones = mysqli_prepare(
     $conn,
-    "SELECT i.nombre, i.descripcion
-     FROM sendero_elementos_incluidos si
-     INNER JOIN elementos_incluidos i ON i.id = si.incluye_id
+    "SELECT si.id, si.nombre, si.descripcion, si.monto, si.monto_menor, si.fecha_limite_pago, si.orden, si.es_menor,
+            i.nombre AS incluye_nombre, i.descripcion AS incluye_descripcion
+     FROM sendero_inversiones si
+     LEFT JOIN sendero_inversion_incluye sii ON sii.inversion_id = si.id
+     LEFT JOIN elementos_incluidos i ON i.id = sii.incluye_id AND i.activo = 1
      WHERE si.sendero_id = ?
-       AND i.activo = 1
-     ORDER BY i.nombre ASC"
+       AND si.activo = 1
+     ORDER BY si.orden ASC, si.id ASC, sii.orden ASC, i.nombre ASC"
 );
-if ($stmtIncluye) {
-    mysqli_stmt_bind_param($stmtIncluye, "i", $idSendero);
-    mysqli_stmt_execute($stmtIncluye);
-    $resIncluye = mysqli_stmt_get_result($stmtIncluye);
-    while ($row = mysqli_fetch_assoc($resIncluye)) {
-        $incluye[] = $row;
+if ($stmtInversiones) {
+    mysqli_stmt_bind_param($stmtInversiones, "i", $idSendero);
+    mysqli_stmt_execute($stmtInversiones);
+    $resInversiones = mysqli_stmt_get_result($stmtInversiones);
+    while ($row = mysqli_fetch_assoc($resInversiones)) {
+        $idInversion = (int) $row['id'];
+        if (!isset($inversiones[$idInversion])) {
+            $inversiones[$idInversion] = [
+                'id' => $idInversion,
+                'nombre' => $row['nombre'],
+                'descripcion' => $row['descripcion'],
+                'monto' => $row['monto'],
+                'monto_menor' => $row['monto_menor'],
+                'fecha_limite_pago' => $row['fecha_limite_pago'],
+                'orden' => (int) $row['orden'],
+                'es_menor' => (int) $row['es_menor'],
+                'incluye' => [],
+            ];
+        }
+        if (!empty($row['incluye_nombre'])) {
+            $inversiones[$idInversion]['incluye'][] = [
+                'nombre' => $row['incluye_nombre'],
+                'descripcion' => $row['incluye_descripcion'],
+            ];
+        }
     }
-    mysqli_stmt_close($stmtIncluye);
+    mysqli_stmt_close($stmtInversiones);
 }
+$inversiones = array_values($inversiones);
+$inversionesAdultos = array_values(array_filter($inversiones, static fn(array $inversion): bool => (int) $inversion['es_menor'] === 0));
+$inversionesMenores = array_values(array_filter($inversiones, static fn(array $inversion): bool => (int) $inversion['es_menor'] === 1));
 
 $tarjetaPago = null;
 $resPago = mysqli_query($conn, "SELECT * FROM tarjeta_pago WHERE id = 1 AND activo = 1 LIMIT 1");
@@ -242,10 +307,28 @@ include_once __DIR__ . "/../componentes/encabezado.php";
 include_once __DIR__ . "/../componentes/barra_navegacion.php";
 
 $imagenPrincipalSrc = detalle_img_src($sendero['imagen_principal']);
-$esVisitado = ($sendero['estado'] ?? '') === 'visitado';
+$fechaVencida = sendero_fecha_vencida($sendero['fecha_sendero']);
+$esVisitado = ($sendero['estado'] ?? '') === 'visitado' || $fechaVencida;
+$vieneDesdePerfil = isset($_GET['desde']) && $_GET['desde'] === 'perfil';
+$volverUrl = $vieneDesdePerfil
+    ? sg_clean_url('pantallas/mi_perfil.php')
+    : sg_clean_url('pantallas/' . ($esVisitado ? 'senderos_visitados.php' : 'senderos.php'));
+$volverTexto = $vieneDesdePerfil ? 'Volver al perfil' : 'Volver a senderos';
 $diasRestantes = dias_restantes_detalle($sendero['fecha_sendero']);
-$horaSalidaPrincipal = $puntosEncuentro[0]['hora_salida'] ?? null;
+$horaSalidaPrincipal = null;
+for ($i = count($puntosEncuentro) - 1; $i >= 0; $i--) {
+    if (!empty($puntosEncuentro[$i]['hora_salida'])) {
+        $horaSalidaPrincipal = $puntosEncuentro[$i]['hora_salida'];
+        break;
+    }
+}
 $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
+$mostrarVerInscritos = !empty($_SESSION['logged_in'])
+    && $_SESSION['logged_in'] === true
+    && (int) ($_SESSION['usuario_rol_id'] ?? 0) === 1
+    && $tieneFecha;
+$nivelNumero = min(100, max(0, (int) ($sendero['nivel_numero'] ?? 50)));
+$dificultadClase = dificultad_color_detalle($nivelNumero);
 ?>
 
 <div class="sendero-detalle-page">
@@ -261,12 +344,22 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
         <div class="detalle-hero-overlay"></div>
 
         <div class="detalle-hero-content container-detalle">
-            <a href="<?= BASE_URL ?>pantallas/<?= $esVisitado ? 'senderos_visitados.php' : 'senderos.php' ?>" class="back-link">
-                <i data-feather="arrow-left"></i>
-                Volver a senderos
-            </a>
+            <div class="detalle-hero-actions">
+                <a href="<?= htmlspecialchars($volverUrl) ?>" class="back-link">
+                    <i data-feather="arrow-left"></i>
+                    <?= htmlspecialchars($volverTexto) ?>
+                </a>
 
-            <span class="status-badge"><?= htmlspecialchars($sendero['estado']) ?></span>
+                <?php if ($mostrarVerInscritos): ?>
+                    <a href="<?= BASE_URL ?>mantenimientos/mantenimiento_usuarios_senderos.php?sendero_id=<?= (int) $sendero['id'] ?>"
+                       class="admin-inscritos-link">
+                        <i data-feather="users"></i>
+                        Ver inscritos
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <span class="status-badge"><?= htmlspecialchars($esVisitado ? 'visitado' : $sendero['estado']) ?></span>
             <h1><?= htmlspecialchars($sendero['nombre']) ?></h1>
 
             <?php if (!empty($sendero['descripcion_corta'])): ?>
@@ -316,11 +409,6 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                 </div>
             <?php endif; ?>
             <div class="summary-card">
-                <i data-feather="trending-up"></i>
-                <span>Dificultad</span>
-                <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?></strong>
-            </div>
-            <div class="summary-card">
                 <i data-feather="activity"></i>
                 <span>Recorrido</span>
                 <strong><?= tiempo_detalle($sendero['tiempo_sendero_min'] !== null ? (int) $sendero['tiempo_sendero_min'] : null) ?></strong>
@@ -343,19 +431,41 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
 
             <aside class="detail-section terrain-card">
                 <span class="section-kicker">Caracteristicas</span>
-                <h2>Terreno y dificultad</h2>
-                <div class="feature-list">
-                    <span><strong>Trayecto vehiculo:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
-                    <span><strong>Ida vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
-                    <span><strong>Regreso vehiculo:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
-                    <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
-                    <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
+                <h2>Caracteristicas del recorrido</h2>
+
+                <div class="terrain-subsection">
+                    <h3 class="terrain-subtitle"><i data-feather="truck"></i>Trayecto en vehiculo</h3>
+                    <div class="feature-list">
+                        <span><strong>Tipo de trayecto:</strong> <?= htmlspecialchars($sendero['tipo_camino_vehiculo'] ?: 'Por definir') ?></span>
+                        <span><strong>Tiempo de ida:</strong> <?= tiempo_detalle($sendero['tiempo_ida_vehiculo_min'] !== null ? (int) $sendero['tiempo_ida_vehiculo_min'] : null) ?></span>
+                        <span><strong>Tiempo de regreso:</strong> <?= tiempo_detalle($sendero['tiempo_regreso_vehiculo_min'] !== null ? (int) $sendero['tiempo_regreso_vehiculo_min'] : null) ?></span>
+                    </div>
                 </div>
-                <div class="terrain-tags">
-                    <span><?= htmlspecialchars($sendero['nivel_dificultad']) ?></span>
-                    <?php foreach ($tiposTerreno as $terreno): ?>
-                        <span><?= htmlspecialchars($terreno) ?></span>
-                    <?php endforeach; ?>
+
+                <div class="terrain-subsection">
+                    <h3 class="terrain-subtitle"><i data-feather="map"></i>Trayecto del sendero</h3>
+                    <div class="feature-list">
+                        <span><strong>Desnivel (+ -):</strong> <?= $sendero['desnivel_mts'] !== null ? '+ ' . (int) $sendero['desnivel_mts'] . ' mts aprox.' : 'Por definir' ?></span>
+                        <span><strong>Cobertura senal:</strong> <?= $sendero['cobertura_senal_pct'] !== null ? (int) $sendero['cobertura_senal_pct'] . '%' : 'Por definir' ?></span>
+                    </div>
+                    <div class="difficulty-meter <?= $dificultadClase ?>" style="--difficulty-level: <?= $nivelNumero ?>%;">
+                        <div class="difficulty-meter-head">
+                            <span>Nivel de dificultad</span>
+                            <strong><?= htmlspecialchars($sendero['nivel_dificultad']) ?> · <?= $nivelNumero ?>/100</strong>
+                        </div>
+                        <div class="difficulty-bar" aria-label="Nivel de dificultad <?= $nivelNumero ?> de 100">
+                            <span class="difficulty-marker"></span>
+                        </div>
+                        <div class="difficulty-scale">
+                            <span>Bajo</span>
+                            <span>Alto</span>
+                        </div>
+                    </div>
+                    <div class="terrain-tags">
+                        <?php foreach ($tiposTerreno as $terreno): ?>
+                            <span><?= htmlspecialchars($terreno) ?></span>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </aside>
         </section>
@@ -373,11 +483,16 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                     <?php foreach ($galeria as $index => $imagen): ?>
                         <?php $src = detalle_img_src($imagen['ruta_imagen']); ?>
                         <?php if ($src !== ''): ?>
-                            <button type="button" class="gallery-item" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
+                            <button type="button" class="gallery-item <?= $index >= 4 ? 'is-gallery-mobile-extra' : '' ?> <?= $index >= 6 ? 'is-gallery-extra' : '' ?>" data-gallery-src="<?= $src ?>" data-gallery-index="<?= $index ?>" aria-label="Ver imagen">
                                 <img src="<?= $src ?>" alt="<?= htmlspecialchars($imagen['titulo'] ?: $sendero['nombre']) ?>">
                             </button>
                         <?php endif; ?>
                     <?php endforeach; ?>
+                    <?php if (count($galeria) > 4): ?>
+                        <button type="button" class="gallery-more-btn" data-gallery-more data-more-text="Ver mas imagenes" data-less-text="Ver menos imagenes">
+                            Ver mas imagenes
+                        </button>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="gallery-empty">
                         <i data-feather="image"></i>
@@ -421,76 +536,129 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                 </div>
             </section>
 
-            <section class="detail-lists-grid">
-                <article class="detail-section list-panel">
-                    <span class="section-kicker">Preparacion</span>
-                    <h2>Anotaciones importantes</h2>
+            <section class="detail-section list-panel">
+                <span class="section-kicker">Preparacion</span>
+                <h2>Anotaciones importantes</h2>
 
-                    <?php if (!empty($anotaciones)): ?>
-                        <div class="detail-list">
-                            <?php foreach ($anotaciones as $item): ?>
-                                <div class="detail-list-item">
-                                    <i data-feather="check-circle"></i>
-                                    <div>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
+                <?php if (!empty($anotaciones)): ?>
+                    <div class="detail-list">
+                        <?php foreach ($anotaciones as $item): ?>
+                            <div class="detail-list-item">
+                                <i data-feather="check-circle"></i>
+                                <div>
+                                    <strong><?= htmlspecialchars($item['nombre']) ?></strong>
+                                    <?php if (!empty($item['descripcion'])): ?>
+                                        <p><?= htmlspecialchars($item['descripcion']) ?></p>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-block">No hay anotaciones registradas.</div>
-                    <?php endif; ?>
-                </article>
-
-                <article class="detail-section list-panel">
-                    <span class="section-kicker">Incluido</span>
-                    <h2>Este sendero incluye</h2>
-
-                    <?php if (!empty($incluye)): ?>
-                        <div class="detail-list">
-                            <?php foreach ($incluye as $item): ?>
-                                <div class="detail-list-item">
-                                    <i data-feather="plus-circle"></i>
-                                    <div>
-                                        <strong><?= htmlspecialchars($item['nombre']) ?></strong>
-                                        <?php if (!empty($item['descripcion'])): ?>
-                                            <p><?= htmlspecialchars($item['descripcion']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="empty-block">No hay elementos incluidos registrados.</div>
-                    <?php endif; ?>
-                </article>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-block">No hay anotaciones registradas.</div>
+                <?php endif; ?>
             </section>
 
             <section class="payment-section">
-                <article class="detail-section investments-panel">
+                <article class="detail-section list-panel">
                     <span class="section-kicker">Inversiones</span>
-                    <h2>Inversiones</h2>
-                    <div class="payment-lines">
-                        <div class="payment-line payment-amount">
-                            <i data-feather="credit-card"></i>
-                            <span>
-                                <small>Inversion total</small>
-                                <strong><?= dinero_detalle($sendero['inversion_total']) ?></strong>
-                            </span>
+                    <h2>Elige tu opcion</h2>
+                    <?php if (!empty($inversionesAdultos)): ?>
+                        <div class="investment-public-grid">
+                            <?php foreach ($inversionesAdultos as $idx => $inversion): ?>
+                                <?php
+                                $numeroInversion = (int) ($inversion['orden'] ?? ($idx + 1));
+                                $tituloInversion = 'Inversion ' . $numeroInversion;
+                                $nombreOpcional = trim((string) ($inversion['nombre'] ?? ''));
+                                $mostrarNombreOpcional = $nombreOpcional !== '' && strcasecmp($nombreOpcional, $tituloInversion) !== 0;
+                                ?>
+                                <article class="investment-public-card">
+                                    <div class="investment-public-top">
+                                        <span><?= htmlspecialchars($tituloInversion) ?></span>
+                                        <strong>Adultos: <?= dinero_detalle($inversion['monto']) ?></strong>
+                                        <?php $modoMenoresDetalle = sg_menores_modo($sendero); ?>
+                                        <?php if ($modoMenoresDetalle === 'no_admite'): ?>
+                                            <small class="investment-public-minor-price">No se admiten menores</small>
+                                        <?php elseif ($modoMenoresDetalle !== 'propias'): ?>
+                                            <?php $precioMenorDetalle = (float) ($inversion['monto_menor'] ?? $inversion['monto']); ?>
+                                            <small class="investment-public-minor-price">Menores: <?= $precioMenorDetalle <= 0 ? 'gratis' : dinero_detalle($precioMenorDetalle) ?></small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($mostrarNombreOpcional): ?>
+                                        <p class="investment-alias"><?= htmlspecialchars($nombreOpcional) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['descripcion'])): ?>
+                                        <p><?= htmlspecialchars($inversion['descripcion']) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['fecha_limite_pago'])): ?>
+                                        <div class="investment-limit">
+                                            <i data-feather="calendar"></i>
+                                            Pago hasta <?= fecha_larga_detalle($inversion['fecha_limite_pago']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="investment-included-list">
+                                        <b>Incluye</b>
+                                        <?php if (!empty($inversion['incluye'])): ?>
+                                            <?php foreach ($inversion['incluye'] as $item): ?>
+                                                <span><i data-feather="check"></i><?= htmlspecialchars($item['nombre']) ?></span>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <span><i data-feather="minus"></i>No tiene suplementos asignados.</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="payment-line">
-                            <i data-feather="info"></i>
-                            <span>
-                                Solo reservas tu cupo con el pago total del sendero<?= !empty($sendero['fecha_limite_pago']) ? ', a mas tardar el ' . fecha_larga_detalle($sendero['fecha_limite_pago']) . '.' : '.' ?>
-                            </span>
+                    <?php else: ?>
+                        <div class="empty-block">Las inversiones se publicaran proximamente.</div>
+                    <?php endif; ?>
+
+                    <?php if ((int) ($sendero['menores_misma_inversion'] ?? 1) === 0 && !empty($inversionesMenores)): ?>
+                        <div class="investment-minors-heading">
+                            <h3>Inversiones para menores de edad</h3>
+                            <p>Opciones, montos y beneficios exclusivos para los acompanantes menores.</p>
                         </div>
-                        <div class="payment-line">
-                            <i data-feather="info"></i>
-                            <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un companero. <strong>Deben compartir el gasto de combustible.</strong></span>
+                        <div class="investment-public-grid">
+                            <?php foreach ($inversionesMenores as $idx => $inversion): ?>
+                                <?php
+                                $tituloInversion = 'Inversion menor ' . ($idx + 1);
+                                $nombreOpcional = trim((string) ($inversion['nombre'] ?? ''));
+                                $mostrarNombreOpcional = $nombreOpcional !== '' && strcasecmp($nombreOpcional, $tituloInversion) !== 0;
+                                ?>
+                                <article class="investment-public-card investment-public-card-minor">
+                                    <div class="investment-public-top">
+                                        <span><?= htmlspecialchars($tituloInversion) ?></span>
+                                        <strong>Menores: <?= dinero_detalle($inversion['monto']) ?></strong>
+                                    </div>
+                                    <?php if ($mostrarNombreOpcional): ?>
+                                        <p class="investment-alias"><?= htmlspecialchars($nombreOpcional) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['descripcion'])): ?>
+                                        <p><?= htmlspecialchars($inversion['descripcion']) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($inversion['fecha_limite_pago'])): ?>
+                                        <div class="investment-limit">
+                                            <i data-feather="calendar"></i>
+                                            Pago hasta <?= fecha_larga_detalle($inversion['fecha_limite_pago']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="investment-included-list">
+                                        <b>Incluye</b>
+                                        <?php if (!empty($inversion['incluye'])): ?>
+                                            <?php foreach ($inversion['incluye'] as $item): ?>
+                                                <span><i data-feather="check"></i><?= htmlspecialchars($item['nombre']) ?></span>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <span><i data-feather="minus"></i>No tiene suplementos asignados.</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
                         </div>
+                    <?php endif; ?>
+                    <div class="payment-line fuel-note">
+                        <i data-feather="info"></i>
+                        <span>El transporte, para las personas que no van en su vehiculo, deben coordinarlo con un compañero. <strong>Deben compartir el gasto de combustible. </strong><strong>Su punto de encuentro es el punto 2.</strong></span>
                     </div>
                 </article>
 
@@ -506,7 +674,7 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                                 <div><dt>Cedula:</dt><dd><?= htmlspecialchars($tarjetaPago['cedula']) ?></dd></div>
                                 <div><dt>Correo:</dt><dd><?= htmlspecialchars($tarjetaPago['correo']) ?></dd></div>
                                 <div><dt>Nombre:</dt><dd><?= htmlspecialchars($tarjetaPago['nombre']) ?></dd></div>
-                                <div><dt>Comprobante:</dt><dd><?= htmlspecialchars($tarjetaPago['telefono_comprobante']) ?></dd></div>
+                                <div><dt>Enviar a:</dt><dd><?= htmlspecialchars($tarjetaPago['telefono_comprobante']) ?></dd></div>
                             </dl>
                             <div class="payment-note">
                                 <strong><i data-feather="alert-triangle"></i> Nota importante</strong>
@@ -530,7 +698,7 @@ $tieneFecha = !$esVisitado && !empty($sendero['fecha_sendero']);
                     <h2>Reserva tu cupo para este sendero</h2>
                     <p>Completa tus datos de participante, salud y contacto de emergencia en una pantalla separada.</p>
                 </div>
-                <a class="register-sendero-btn" href="<?= BASE_URL ?>pantallas/registro_sendero.php?id=<?= (int) $sendero['id'] ?>">
+                <a class="register-sendero-btn" href="<?= htmlspecialchars(sg_clean_url('pantallas/registro_sendero.php?id=' . (int) $sendero['id']), ENT_QUOTES, 'UTF-8') ?>">
                     Registrarme
                     <i data-feather="arrow-right"></i>
                 </a>
