@@ -12,6 +12,7 @@
 
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/cargos.php';
+require_once __DIR__ . '/menores_asistencia.php';
 
 if (!class_exists('IngresoValidacionException')) {
     // Error pensado para el administrador; se muestra tal cual.
@@ -343,6 +344,9 @@ if (!function_exists('ic_cents')) {
 
         $creditos = ic_creditos_de_duenos($conn, array_keys($usuarios), array_keys($personas));
         $hoy = date('Y-m-d');
+        // Menores de cada inscripcion (detalle desplegable) y si su asistencia ya se lleva por separado.
+        $menoresDetalle = sg_menores_de_sendero($conn, $senderoId, $registroIds);
+        $menoresAsistenciaListo = sg_menores_asistencia_listo($conn);
 
         foreach ($filas as &$fila) {
             $registroId = (int) $fila['registro_id'];
@@ -387,6 +391,8 @@ if (!function_exists('ic_cents')) {
             $fila['contexto'] = $contexto;
             $fila['calculo'] = $calculo;
             $fila['nota'] = (string) $fila['nota'];
+            $fila['menores_detalle'] = $menoresDetalle[$registroId] ?? [];
+            $fila['menores_con_asistencia'] = $menoresAsistenciaListo;
         }
         unset($fila);
 
@@ -538,7 +544,9 @@ if (!function_exists('ic_cents')) {
             $c = $fila['calculo'];
             $personas = 1 + (int) $fila['total_menores'];
             $t['inscritos'] += $personas;
-            $t['asistieron'] += $c['asistio'] ? $personas : 0;
+            $t['asistieron'] += !empty($fila['menores_con_asistencia'])
+                ? ($c['asistio'] ? 1 : 0) + count(array_filter($fila['menores_detalle'] ?? [], static fn(array $m): bool => $m['asistio']))
+                : ($c['asistio'] ? $personas : 0);
             $t['no_asistieron'] += $c['modo'] === 'no_asistio' ? $personas : 0;
             $t['con_pago'] += ($c['recibido'] > 0 || $c['credito'] > 0) ? 1 : 0;
             if ($c['tipo'] === 'automatico') {
@@ -713,6 +721,24 @@ if (!function_exists('ic_cents')) {
                 . '<i data-feather="check"></i>Pagar ' . $h(ic_dinero($c['debe_pagar'])) . '</button>';
         }
 
+        // Menores desplegables: su inversion, lo que le toca pagar a cada uno y si asistieron.
+        $menoresHtml = '';
+        if (!empty($fila['menores_detalle'])) {
+            $totalMenores = 0.0;
+            $itemsMenores = '';
+            foreach ($fila['menores_detalle'] as $menor) {
+                $totalMenores += $menor['monto'];
+                $asistioMenor = !empty($fila['menores_con_asistencia'])
+                    ? '<em class="ing-menor-asis' . ($menor['asistio'] ? ' is-si' : '') . '">' . ($menor['asistio'] ? 'Asistio' : 'No asistio') . '</em>'
+                    : '';
+                $itemsMenores .= '<li><span><strong>' . $h($menor['nombre']) . '</strong><small>'
+                    . $h(trim(implode(' · ', array_filter([$menor['rango_edad'], $menor['inversion']])))) . '</small></span>'
+                    . $asistioMenor . '<b>' . $h(ic_dinero(ic_cents($menor['monto']))) . '</b></li>';
+            }
+            $menoresHtml = '<details class="ing-menores"><summary>' . count($fila['menores_detalle']) . ' menor(es) · '
+                . $h(ic_dinero(ic_cents($totalMenores))) . '</summary><ul>' . $itemsMenores . '</ul></details>';
+        }
+
         $datos = json_encode(ic_datos_panel($fila), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
 
         return '<tr data-fila data-registro="' . $rid . '" data-grupo="' . $h($grupo) . '" data-revisar="' . ($c['revisar'] ? '1' : '0') . '"'
@@ -720,7 +746,7 @@ if (!function_exists('ic_cents')) {
             . '<td class="ing-col-asis"><label class="ing-switch" title="Asistio"><input type="checkbox" data-asistencia'
             . ($c['asistio'] ? ' checked' : '') . ' aria-label="Asistio ' . $h($fila['nombre']) . '"><span></span></label></td>'
             . '<td class="ing-col-persona"><strong>' . $h($fila['nombre']) . '</strong><small>' . $h(implode(' · ', $contacto)) . '</small>'
-            . '<small>' . $h($inversion) . '</small></td>'
+            . '<small>' . $h($inversion) . '</small>' . $menoresHtml . '</td>'
             . '<td class="ing-col-num" data-label="A pagar">' . $aPagar . '</td>'
             . '<td class="ing-col-pago" data-label="Como pago"><div class="ing-chips">' . $comoPago . '</div></td>'
             . '<td class="ing-col-balance" data-label="Balance">' . $balance . '</td>'
@@ -890,6 +916,12 @@ if (!function_exists('ic_cents')) {
         }
 
         $asistio = $calculo['asistio'] ? 1 : 0;
+        if (sg_menores_asistencia_listo($conn) && (bool) $calculo['asistio'] !== (bool) $fila['entrada']['asistio']) {
+            $stmt = mysqli_prepare($conn, 'UPDATE registro_sendero_menores SET asistio = ?, fecha_asistencia = CASE WHEN ? = 1 THEN NOW() ELSE NULL END WHERE registro_id = ?');
+            mysqli_stmt_bind_param($stmt, 'iii', $asistio, $asistio, $registroId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
         $stmt = mysqli_prepare(
             $conn,
             "UPDATE registros_senderos

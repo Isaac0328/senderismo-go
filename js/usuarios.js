@@ -19,11 +19,59 @@ document.addEventListener('DOMContentLoaded', () => {
         if (casilla) casilla.checked = activa;
     };
     // Cargos (casillas aparte del rol): se marcan los del usuario que se edita.
-    const marcarCargos = (ids) => {
-        document.querySelectorAll('[data-cargos-lista] input[type=checkbox]').forEach((casilla) => {
-            casilla.checked = ids.includes(casilla.value);
+    // Selector de varios cargos: se agregan desde el desplegable y quedan como etiquetas con su "x".
+    const cargoSelect = document.querySelector('[data-cargo-agregar]');
+    const cargosElegidosCont = document.querySelector('[data-cargos-elegidos]');
+    const cargosBloque = document.querySelector('[data-cargos-bloque]');
+    let cargosElegidos = [];
+    const pintarCargos = () => {
+        if (!cargoSelect || !cargosElegidosCont) return;
+        cargosElegidosCont.innerHTML = '';
+        cargosElegidos.forEach((id) => {
+            const opcion = Array.from(cargoSelect.options).find((o) => o.value === id);
+            if (!opcion) return;
+            const etiqueta = document.createElement('span');
+            etiqueta.className = 'cargo-chip cargo-elegido';
+            etiqueta.textContent = opcion.dataset.nombre || opcion.textContent;
+            const quitar = document.createElement('button');
+            quitar.type = 'button';
+            quitar.textContent = '\u00d7';
+            quitar.setAttribute('aria-label', 'Quitar ' + etiqueta.textContent);
+            quitar.addEventListener('click', () => {
+                cargosElegidos = cargosElegidos.filter((otro) => otro !== id);
+                pintarCargos();
+            });
+            const oculto = document.createElement('input');
+            oculto.type = 'hidden';
+            oculto.name = 'cargos[]';
+            oculto.value = id;
+            etiqueta.append(quitar, oculto);
+            cargosElegidosCont.appendChild(etiqueta);
         });
+        Array.from(cargoSelect.options).forEach((o) => { if (o.value) o.disabled = cargosElegidos.includes(o.value); });
+        cargoSelect.value = '';
     };
+    const marcarCargos = (ids) => {
+        cargosElegidos = ids.slice();
+        pintarCargos();
+        sincronizarCargosPorRol();
+    };
+    cargoSelect?.addEventListener('change', () => {
+        if (cargoSelect.value && !cargosElegidos.includes(cargoSelect.value)) cargosElegidos.push(cargoSelect.value);
+        pintarCargos();
+    });
+    // El Invitado es el cliente de afuera: no lleva cargos. Solo el Administrador y el Normal.
+    function sincronizarCargosPorRol() {
+        if (!cargosBloque) return;
+        const opcion = rol_id.options[rol_id.selectedIndex];
+        const invitado = !!opcion && opcion.textContent.trim().toLowerCase() === 'invitado';
+        if (invitado && cargosElegidos.length) {
+            cargosElegidos = [];
+            pintarCargos();
+        }
+        cargosBloque.hidden = invitado;
+    }
+    rol_id.addEventListener('change', sincronizarCargosPorRol);
     const password = document.getElementById('password');
     const detailFields = [
         'telefono',

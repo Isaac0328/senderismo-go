@@ -1140,3 +1140,14 @@
 .ing-cargo label.ing-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 800; }
 .ing-cargo label.ing-check input { width: 18px; height: 18px; margin: 0; flex-shrink: 0; }
 .ing-cargo [hidden] { display: none !important; }
+
+/* Menores de una inscripcion: se despliegan con su inversion, asistencia y lo que le toca pagar a cada uno. */
+.ing-menores { margin-top: 4px; }
+.ing-menores summary { cursor: pointer; font-size: .78rem; font-weight: 800; color: var(--app-primary-dark, #1f5a3a); }
+.ing-menores ul { list-style: none; margin: 6px 0 0; padding: 6px 8px; display: grid; gap: 6px; border: 1px solid var(--app-line, #d8ddd9); border-radius: 10px; background: var(--app-surface, #fff); }
+.ing-menores li { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .82rem; }
+.ing-menores li span { display: grid; min-width: 0; }
+.ing-menores li small { color: var(--app-muted, #5f6b63); font-size: .74rem; }
+.ing-menores li b { white-space: nowrap; }
+.ing-menor-asis { font-style: normal; padding: 1px 8px; border-radius: 999px; background: #eceeed; color: #5f6b63; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+.ing-menor-asis.is-si { background: #e8f3ec; color: #1f5a3a; }

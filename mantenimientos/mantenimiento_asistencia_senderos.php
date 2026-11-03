@@ -16,6 +16,7 @@ require_once __DIR__ . '/../componentes/filtro_senderos.php';
 require_once __DIR__ . '/../componentes/senderos_admin_data.php';
 require_once __DIR__ . '/../componentes/personas_sin_cuenta.php';
 require_once __DIR__ . '/../componentes/ingresos_cobro.php';
+require_once __DIR__ . '/../componentes/menores_asistencia.php';
 
 sg_actualizar_senderos_vencidos($conn);
 
@@ -60,6 +61,7 @@ $usuariosDisponibles = [];
 $personasSinCuenta = [];
 $tallasChalecos = [];
 $totalMenores = 0;
+$menoresPorRegistro = [];
 if ($senderoSeleccionado) {
     $stmt = mysqli_prepare(
         $conn,
@@ -104,6 +106,8 @@ if ($senderoSeleccionado) {
         $registros[] = $row;
     }
     mysqli_stmt_close($stmt);
+    // Menores de cada inscripcion, con su asistencia propia (se despliegan en la lista).
+    $menoresPorRegistro = sg_menores_de_sendero($conn, $senderoId);
 
     $stmt = mysqli_prepare(
         $conn,
@@ -205,7 +209,35 @@ function asis_pago_html(?array $c, array $catalogo): string
 }
 
 $totalRegistros = count($registros) + $totalMenores;
-$totalAsistieron = array_sum(array_map(static fn($r) => ((int) ($r['asistio'] ?? 0) === 1 ? 1 + (int) ($r['total_menores'] ?? 0) : 0), $registros));
+$menoresAsistencia = sg_menores_asistencia_listo($conn);
+$totalAsistieron = array_sum(array_map(static fn($r) => ((int) ($r['asistio'] ?? 0) === 1 ? 1 + ($menoresAsistencia ? 0 : (int) ($r['total_menores'] ?? 0)) : 0), $registros));
+if ($menoresAsistencia) {
+    foreach ($menoresPorRegistro as $listaMenores) {
+        foreach ($listaMenores as $menorFila) {
+            $totalAsistieron += $menorFila['asistio'] ? 1 : 0;
+        }
+    }
+}
+
+// Menores desplegables de una inscripcion; en el celular las casillas copian a las de la tabla.
+function asis_menores_html(int $rid, array $menores, bool $movil, bool $listo): string
+{
+    if (!$menores) {
+        return '<strong>0</strong>';
+    }
+    $marcados = count(array_filter($menores, static fn(array $m): bool => $m['asistio']));
+    $html = '<details class="asis-menores"><summary><strong>' . count($menores) . '</strong> <span data-menores-contador="' . $rid . '">'
+        . ($listo ? $marcados . '/' . count($menores) . ' asistieron' : 'ver') . '</span></summary><div class="asis-menores-lista">';
+    foreach ($menores as $m) {
+        $detalle = trim(implode(' - ', array_filter([$m['rango_edad'], $m['inversion'] . ' ' . asis_money($m['monto'])])));
+        $comun = ' data-registro-menor="' . $rid . '"' . ($m['asistio'] ? ' checked' : '') . ($listo ? '' : ' disabled');
+        $input = $movil
+            ? '<input type="checkbox" data-mobile-menor="' . (int) $m['id'] . '"' . $comun . '>'
+            : '<input type="checkbox" name="menor_asistio[]" value="' . (int) $m['id'] . '"' . $comun . '>';
+        $html .= '<label class="asis-menor">' . $input . '<span><strong>' . asis_h($m['nombre']) . '</strong><small>' . asis_h($detalle) . '</small></span></label>';
+    }
+    return $html . '</div></details>';
+}
 $pendientes = max(0, $totalRegistros - $totalAsistieron);
 
 include_once __DIR__ . '/../componentes/encabezado.php';
@@ -354,6 +386,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                         <tr class="<?= (int) $registro['asistio'] === 1 ? 'is-present' : '' ?>" data-attendance-row data-attendance-search="<?= asis_h(trim($registro['nombre'] . ' ' . $registro['apellido']) . ' ' . $registro['user'] . ' ' . $registro['telefono'] . ' ' . $registro['email'] . ' ' . $registro['inversion_nombre'] . ' ' . ($registro['asistencia_notas'] ?? '')) ?>">
                                             <td>
                                                 <input type="hidden" name="registro_ids[]" value="<?= $rid ?>">
+                                                <?php if ($menoresAsistencia): ?><input type="hidden" name="menores_enviados" value="1"><?php endif; ?>
                                                 <input type="hidden" name="asistio_original[<?= $rid ?>]" value="<?= (int) $registro['asistio'] ?>">
                                                 <input type="hidden" name="nota_original[<?= $rid ?>]" value="<?= asis_h($registro['asistencia_notas'] ?? '') ?>">
                                                 <label class="asis-check">
@@ -374,7 +407,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                                 <span><?= asis_h(asis_money($registro['inversion_monto'])) ?></span>
                                             </td>
                                             <td class="asis-col-pago"><?= asis_pago_html($cobros[$rid] ?? null, $catalogoEstados) ?></td>
-                                            <td><strong><?= (int) $registro['total_menores'] ?></strong></td>
+                                            <td class="asis-col-menores"><?= asis_menores_html($rid, $menoresPorRegistro[$rid] ?? [], false, $menoresAsistencia) ?></td>
                                             <td>
                                                 <strong><?= asis_h(asis_fecha($registro['fecha_registro'], true)) ?></strong>
                                                 <span><?= (int) $registro['asistio'] === 1 ? 'Marcado: ' . asis_h(asis_fecha($registro['fecha_asistencia'], true)) : 'Sin asistencia marcada' ?></span>
@@ -435,6 +468,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                     <p><?= asis_h($registro['telefono'] ?: 'Sin telefono') ?> / <?= asis_h($registro['email']) ?></p>
                                     <p><?= asis_h($registro['inversion_nombre'] ?: 'Sin inversion') ?> - <?= asis_h(asis_money($registro['inversion_monto'])) ?></p>
                                     <div class="asis-pago-movil"><?= asis_pago_html($cobros[$rid] ?? null, $catalogoEstados) ?></div>
+                                    <?php if ((int) $registro['total_menores'] > 0): ?><div class="asis-menores-movil"><span>Menores:</span> <?= asis_menores_html($rid, $menoresPorRegistro[$rid] ?? [], true, $menoresAsistencia) ?></div><?php endif; ?>
                                     <small>Menores: <?= (int) $registro['total_menores'] ?> | Registro: <?= asis_h(asis_fecha($registro['fecha_registro'], true)) ?></small>
                                     <input class="asis-note" type="text" data-mobile-note="<?= $rid ?>" maxlength="255" placeholder="Nota opcional" value="<?= asis_h($registro['asistencia_notas'] ?? '') ?>">
                                     <?php if ($esManual): ?>
@@ -1083,6 +1117,44 @@ document.addEventListener('DOMContentLoaded', function () {
         syncRows();
     });
     checks().forEach(check => check.addEventListener('change', syncRows));
+
+    // Menores: la casilla del adulto marca o desmarca a todos sus menores; cada menor se puede cambiar aparte.
+    const casillasMenor = (rid) => root.querySelectorAll('input[name="menor_asistio[]"][data-registro-menor="' + rid + '"]');
+    const actualizarMenores = (rid) => {
+        const reales = Array.from(casillasMenor(rid));
+        const marcados = reales.filter(c => c.checked).length;
+        root.querySelectorAll('[data-menores-contador="' + rid + '"]').forEach(el => {
+            el.textContent = marcados + '/' + reales.length + ' asistieron';
+        });
+        reales.forEach(real => {
+            const movil = root.querySelector('input[data-mobile-menor="' + real.value + '"]');
+            if (movil && movil.checked !== real.checked) movil.checked = real.checked;
+        });
+    };
+    checks().forEach(check => check.addEventListener('change', function () {
+        casillasMenor(check.value).forEach(c => { c.checked = check.checked; });
+        actualizarMenores(check.value);
+    }));
+    root.querySelectorAll('input[name="menor_asistio[]"]').forEach(real => {
+        real.addEventListener('change', () => actualizarMenores(real.dataset.registroMenor));
+    });
+    root.querySelectorAll('input[data-mobile-menor]').forEach(movil => {
+        movil.addEventListener('change', () => {
+            const real = root.querySelector('input[name="menor_asistio[]"][value="' + movil.dataset.mobileMenor + '"]');
+            if (real) {
+                real.checked = movil.checked;
+                actualizarMenores(real.dataset.registroMenor);
+            }
+        });
+    });
+    ['[data-check-all]', '[data-uncheck-all]'].forEach(selector => {
+        root.querySelector(selector)?.addEventListener('click', () => {
+            checks().forEach(check => {
+                casillasMenor(check.value).forEach(c => { c.checked = check.checked; });
+                actualizarMenores(check.value);
+            });
+        });
+    });
     mobileChecks().forEach(function (mobileCheck) {
         mobileCheck.addEventListener('change', function () {
             const realCheck = root.querySelector('input[type="checkbox"][name="asistio[]"][value="' + mobileCheck.value + '"]');

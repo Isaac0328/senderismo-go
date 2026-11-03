@@ -1109,3 +1109,13 @@
     color: var(--app-muted);
     font-size: .76rem;
 }
+
+/* Menores de cada inscripcion: se despliegan y se marca su asistencia. */
+.asis-menores summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; }
+.asis-menores summary span { color: var(--asis-muted, #5f6b63); font-size: .78rem; font-weight: 700; }
+.asis-menores-lista { display: grid; gap: 6px; margin-top: 8px; min-width: 240px; padding: 8px; border: 1px solid var(--asis-line, #d8ddd9); border-radius: 10px; background: var(--asis-surface, #fff); }
+.asis-menor { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: .86rem; }
+.asis-menor input { width: 18px; height: 18px; margin: 2px 0 0; flex-shrink: 0; }
+.asis-menor span { display: grid; }
+.asis-menor small { color: var(--asis-muted, #5f6b63); font-size: .76rem; }
+.asis-menores-movil { margin: 6px 0; display: flex; align-items: flex-start; gap: 6px; font-size: .86rem; }

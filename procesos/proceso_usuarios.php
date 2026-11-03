@@ -327,6 +327,15 @@ function guardar_cargos_usuario(mysqli $conn, int $usuarioId): void
         return;
     }
     $ids = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['cargos'] ?? [])))));
+    // El Invitado es el cliente de afuera: no lleva cargos (solo el Administrador y el Normal).
+    $stmtRol = mysqli_prepare($conn, 'SELECT r.nombre FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE u.id = ?');
+    mysqli_stmt_bind_param($stmtRol, 'i', $usuarioId);
+    mysqli_stmt_execute($stmtRol);
+    $rolUsuario = mysqli_fetch_row(mysqli_stmt_get_result($stmtRol));
+    mysqli_stmt_close($stmtRol);
+    if ($rolUsuario && strcasecmp(trim((string) $rolUsuario[0]), 'Invitado') === 0) {
+        $ids = [];
+    }
     mysqli_query($conn, 'DELETE FROM usuario_cargos WHERE usuario_id = ' . $usuarioId);
     foreach ($ids as $cargoId) {
         $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO usuario_cargos (usuario_id, cargo_id) SELECT ?, id FROM roles WHERE id = ? AND tipo = 'cargo'");

@@ -44,7 +44,10 @@ $roles = [];
 $res = mysqli_query($conn, "CALL sp_roles_listar()");
 if ($res) {
     while ($row = mysqli_fetch_assoc($res)) {
-        $roles[] = $row;
+        // Los cargos tienen su propio mantenimiento (Cargos).
+        if (($tipos[(int) $row['id']] ?? 'acceso') !== 'cargo') {
+            $roles[] = $row;
+        }
     }
     mysqli_free_result($res);
 }
@@ -62,7 +65,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
             <div>
                 <span class="roles-kicker">Seguridad</span>
                 <h1 class="roles-title">Roles</h1>
-                <p class="roles-subtitle">Crea y edita los perfiles administrativos de la plataforma.</p>
+                <p class="roles-subtitle">El acceso de cada persona: Administrador, Normal o Invitado. Los permisos no van aqui: los da el cargo (menu Cargos); el Administrador lo tiene todo.</p>
             </div>
             <a href="<?= BASE_URL ?>pantallas/panel_administrativo.php" class="roles-panel-link">Volver al panel</a>
         </div>
@@ -102,16 +105,6 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <textarea name="descripcion" id="descripcion" maxlength="150" rows="4" placeholder="Descripcion breve del rol (opcional)"></textarea>
                     </div>
 
-                    <?php if ($cargosListo): ?>
-                    <div class="form-group">
-                        <label for="tipo">Tipo</label>
-                        <select name="tipo" id="tipo">
-                            <option value="acceso">Acceso (lo que puede abrir: Administrador, Invitado, Normal)</option>
-                            <option value="cargo">Cargo (grupo aparte: Contable, Directiva...)</option>
-                        </select>
-                    </div>
-                    <?php endif; ?>
-
                     <div class="form-actions">
                         <button type="submit" class="btn-primary" id="submitBtn">Guardar</button>
                         <button type="button" class="btn-secondary" id="resetBtn">Limpiar</button>
@@ -148,7 +141,7 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                                 <?php foreach ($roles as $r): ?>
                                     <tr data-id="<?= (int) $r['id'] ?>" data-nombre="<?= roles_h($r['nombre']) ?>" data-descripcion="<?= roles_h($r['descripcion'] ?? '') ?>" data-tipo="<?= roles_h($tipos[(int) $r['id']] ?? 'acceso') ?>">
                                         <td><?= (int) $r['id'] ?></td>
-                                        <td><?= roles_h($r['nombre']) ?><?php if ($cargosListo): ?> <small class="cargo-chip"><?= ($tipos[(int) $r['id']] ?? 'acceso') === 'cargo' ? 'Cargo' : 'Acceso' ?></small><?php endif; ?></td>
+                                        <td><?= roles_h($r['nombre']) ?></td>
                                         <td><?= roles_h($r['descripcion'] ?? '') ?></td>
                                         <td>
                                             <button type="button" class="btn-mini edit-btn">Editar</button>

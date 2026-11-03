@@ -154,7 +154,35 @@ foreach ($actuales as $registroId => $actual) {
     }
 }
 
-if ($cambiosAsistencia === 0 && $cambiosNota === 0 && !$omitidos) {
+// Asistencia de cada menor (aparte de la del adulto): se guarda lo que cambio.
+$cambiosMenores = 0;
+if (isset($_POST['menores_enviados'])) {
+    require_once __DIR__ . '/../componentes/menores_asistencia.php';
+    if (sg_menores_asistencia_listo($conn)) {
+        $marcadosMenores = array_flip(array_map('intval', is_array($_POST['menor_asistio'] ?? null) ? $_POST['menor_asistio'] : []));
+        $enLista = implode(',', array_map('intval', $registroIds));
+        $resMenores = mysqli_query(
+            $conn,
+            "SELECT m.id, m.asistio FROM registro_sendero_menores m
+             INNER JOIN registros_senderos rs ON rs.id = m.registro_id
+             WHERE rs.sendero_id = " . (int) $senderoId . " AND rs.estado = 'registrado' AND rs.id IN ({$enLista})"
+        );
+        $filasMenores = $resMenores ? mysqli_fetch_all($resMenores, MYSQLI_ASSOC) : [];
+        $stmtMenor = mysqli_prepare($conn, 'UPDATE registro_sendero_menores SET asistio = ?, fecha_asistencia = CASE WHEN ? = 1 THEN NOW() ELSE NULL END WHERE id = ?');
+        foreach ($filasMenores as $menor) {
+            $nuevo = isset($marcadosMenores[(int) $menor['id']]) ? 1 : 0;
+            if ($nuevo !== (int) $menor['asistio']) {
+                $idMenor = (int) $menor['id'];
+                mysqli_stmt_bind_param($stmtMenor, 'iii', $nuevo, $nuevo, $idMenor);
+                mysqli_stmt_execute($stmtMenor);
+                $cambiosMenores++;
+            }
+        }
+        mysqli_stmt_close($stmtMenor);
+    }
+}
+
+if ($cambiosAsistencia === 0 && $cambiosNota === 0 && $cambiosMenores === 0 && !$omitidos) {
     $_SESSION['asistencia_success'] = "No habia cambios que guardar.";
 } else {
     $partes = [];
@@ -163,6 +191,9 @@ if ($cambiosAsistencia === 0 && $cambiosNota === 0 && !$omitidos) {
     }
     if ($cambiosNota > 0) {
         $partes[] = $cambiosNota . ' nota(s)';
+    }
+    if ($cambiosMenores > 0) {
+        $partes[] = $cambiosMenores . ' cambio(s) de asistencia de menores';
     }
     if ($partes) {
         $_SESSION['asistencia_success'] = 'Asistencia guardada: ' . implode(' y ', $partes) . '.';

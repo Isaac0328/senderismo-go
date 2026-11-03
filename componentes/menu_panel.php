@@ -54,6 +54,7 @@ function sg_admin_menu_default_groups(array $stats = []): array
             ['Usuarios sin cuenta', 'Personas inscritas a mano y su reconciliacion', 'user-x', $url.'mantenimientos/mantenimiento_usuarios_sin_cuenta.php', 'permission' => 'usuarios.sin_cuenta'],
             ['Pasaporte senderista', 'Niveles, insignias y progreso del usuario', 'award', $url.'mantenimientos/mantenimiento_pasaporte.php', 'permission' => 'usuarios.pasaporte'],
             ['Roles', 'Perfiles administrativos de usuarios', 'key', $url.'mantenimientos/mantenimiento_roles.php', 'permission' => 'usuarios.roles'],
+            ['Cargos', 'Funciones de las personas y sus permisos', 'briefcase', $url.'mantenimientos/mantenimiento_cargos.php', 'permission' => 'usuarios.cargos'],
             ['Permisos por rol', 'Distribucion de accesos por ventana', 'lock', $url.'mantenimientos/mantenimiento_permisos_roles.php', 'permission' => 'usuarios.permisos_roles'],
             ['Configuracion del panel', 'Organizar secciones, subsecciones y modulos visibles', 'sidebar', $url.'mantenimientos/mantenimiento_menu_panel.php', 'permission' => 'panel.menu_panel'],
             ['Configuracion de avisos', 'Activar avisos y definir su importancia', 'bell', $url.'mantenimientos/mantenimiento_notificaciones.php', 'permission' => 'panel.notificaciones'],

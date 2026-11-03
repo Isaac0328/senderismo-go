@@ -213,13 +213,17 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
                         <?php endif; ?>
 
                         <?php if ($cargos): ?>
-                        <div class="form-group">
-                            <label>Cargos <span class="hint">(opcional, aparte del rol)</span></label>
+                        <div class="form-group" data-cargos-bloque>
+                            <label>Cargos <span class="hint">(opcional; el Invitado no lleva cargos)</span></label>
                             <input type="hidden" name="cargos_enviados" value="1">
-                            <div class="cargos-lista" data-cargos-lista>
-                                <?php foreach ($cargos as $c): ?>
-                                    <label class="cargo-opcion"><input type="checkbox" name="cargos[]" value="<?= (int) $c['id'] ?>"><span><?= htmlspecialchars($c['nombre']) ?></span></label>
-                                <?php endforeach; ?>
+                            <div class="cargos-selector" data-cargos-lista>
+                                <select data-cargo-agregar aria-label="Agregar cargo">
+                                    <option value="">Agregar cargo...</option>
+                                    <?php foreach ($cargos as $c): ?>
+                                        <option value="<?= (int) $c['id'] ?>" data-nombre="<?= htmlspecialchars($c['nombre']) ?>"><?= htmlspecialchars($c['nombre']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="cargos-elegidos" data-cargos-elegidos></div>
                             </div>
                         </div>
                         <?php endif; ?>

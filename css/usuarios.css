@@ -728,3 +728,11 @@
 .form-group .cargos-lista label.cargo-opcion input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; border-radius: 4px; flex-shrink: 0; }
 .form-group .cargos-lista label.cargo-opcion:has(input:checked) { background: var(--app-primary-50, #e8f3ec); border-color: var(--app-primary-300, #7fb596); color: var(--app-primary-dark, #1f5a3a); }
 .cargo-chip { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--app-primary-50, #e8f3ec); color: var(--app-primary-dark, #1f5a3a); font-size: .72rem; font-weight: 800; }
+
+/* Selector de varios cargos: desplegable para agregar y etiquetas con su "x". */
+.form-group .cargos-selector select { width: 100%; }
+.cargos-elegidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cargo-chip.cargo-elegido { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 4px 6px 4px 12px; font-size: .82rem; }
+.cargo-chip.cargo-elegido button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .12); color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; }
+.cargo-chip.cargo-elegido button:hover { background: rgba(0, 0, 0, .25); }
+[data-cargos-bloque][hidden] { display: none !important; }

@@ -29,14 +29,27 @@ function permisos_roles_h($value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+// Con los cargos activos, los permisos se asignan a los cargos; el Administrador lo tiene todo y Normal e Invitado no llevan permisos.
+require_once __DIR__ . '/../componentes/cargos.php';
+$cargosListo = sg_cargos_listo($conn);
+$tiposRol = [];
+if ($cargosListo) {
+    $rTipos = mysqli_query($conn, 'SELECT id, tipo FROM roles');
+    while ($rTipos && $fila = mysqli_fetch_assoc($rTipos)) {
+        $tiposRol[(int) $fila['id']] = $fila['tipo'];
+    }
+}
 $roles = [];
 $res = mysqli_query($conn, "CALL sp_roles_listar()");
 if ($res) {
     while ($row = mysqli_fetch_assoc($res)) {
-        $roles[] = $row;
+        if (!$cargosListo || (int) $row['id'] === 1 || ($tiposRol[(int) $row['id']] ?? '') === 'cargo') {
+            $roles[] = $row;
+        }
     }
     mysqli_free_result($res);
 }
+$rolElegido = (int) ($_GET['id'] ?? 0);
 while (mysqli_more_results($conn)) {
     mysqli_next_result($conn);
 }
@@ -105,11 +118,11 @@ include_once __DIR__ . '/../componentes/barra_navegacion.php';
 
                 <div class="permission-toolbar">
                     <label>
-                        <span>Rol a configurar</span>
+                        <span><?= $cargosListo ? 'Cargo a configurar' : 'Rol a configurar' ?></span>
                         <select name="id" id="permissionRoleSelect" required>
                             <?php foreach ($roles as $role): ?>
-                                <option value="<?= (int) $role['id'] ?>">
-                                    <?= permisos_roles_h($role['nombre']) ?><?= (int) $role['id'] === 1 ? ' (acceso total)' : '' ?>
+                                <option value="<?= (int) $role['id'] ?>" <?= (int) $role['id'] === $rolElegido ? 'selected' : '' ?>>
+                                    <?= permisos_roles_h($role['nombre']) ?><?= (int) $role['id'] === 1 ? ' (acceso total)' : ($cargosListo ? ' (cargo)' : '') ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

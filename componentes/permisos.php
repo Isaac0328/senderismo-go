@@ -40,6 +40,7 @@ if (!function_exists('sg_permission_catalog')) {
                     ['usuarios.sin_cuenta', 'Usuarios sin cuenta', 'Personas inscritas a mano: crear, editar, unir y reconciliar con su cuenta.', 'user-x', 'mantenimientos/mantenimiento_usuarios_sin_cuenta.php'],
                     ['usuarios.pasaporte', 'Pasaporte senderista', 'Administrar niveles, insignias y progreso.', 'award', 'mantenimientos/mantenimiento_pasaporte.php'],
                     ['usuarios.roles', 'Roles', 'Crear y editar perfiles administrativos.', 'key', 'mantenimientos/mantenimiento_roles.php'],
+                    ['usuarios.cargos', 'Cargos', 'Crear y editar los cargos de las personas (Contable, Comunicaciones...) y sus permisos.', 'briefcase', 'mantenimientos/mantenimiento_cargos.php'],
                     ['usuarios.permisos_roles', 'Permisos por rol', 'Distribuir por rol las ventanas visibles del panel.', 'lock', 'mantenimientos/mantenimiento_permisos_roles.php'],
                 ],
             ],
@@ -356,6 +357,8 @@ if (!function_exists('sg_permission_route_map')) {
             'mantenimientos/mantenimiento_pasaporte.php' => ['usuarios.pasaporte'],
             'procesos/proceso_pasaporte.php' => ['usuarios.pasaporte'],
             'mantenimientos/mantenimiento_roles.php' => ['usuarios.roles'],
+            'mantenimientos/mantenimiento_cargos.php' => ['usuarios.cargos'],
+            'procesos/proceso_cargos.php' => ['usuarios.cargos'],
             'mantenimientos/mantenimiento_permisos_roles.php' => ['usuarios.permisos_roles'],
             'procesos/proceso_roles.php' => ['usuarios.roles', 'usuarios.permisos_roles'],
             'mantenimientos/mantenimiento_senderos.php' => ['operaciones.senderos'],
@@ -479,11 +482,17 @@ if (!function_exists('sg_role_permissions')) {
 if (!function_exists('sg_session_role_ids')) {
     function sg_session_role_ids(mysqli $conn): array
     {
-        $ids = [(int) ($_SESSION['usuario_rol_id'] ?? 0)];
-        foreach (sg_cargos_de_usuario($conn, (int) ($_SESSION['usuario_id'] ?? 0)) as $cargoId) {
-            $ids[] = $cargoId;
+        $rol = (int) ($_SESSION['usuario_rol_id'] ?? 0);
+        // El Administrador tiene todo habilitado.
+        if (sg_is_admin_role($rol)) {
+            return [$rol];
         }
-        return array_values(array_unique(array_filter($ids)));
+        $cargos = sg_cargos_de_usuario($conn, (int) ($_SESSION['usuario_id'] ?? 0));
+        // Con los cargos activos, los permisos salen solo de los cargos; el rol de acceso (Normal, Invitado) no da ninguno.
+        if (sg_cargos_listo($conn)) {
+            return array_values(array_unique(array_filter($cargos)));
+        }
+        return array_values(array_unique(array_filter(array_merge([$rol], $cargos))));
     }
 }
 
